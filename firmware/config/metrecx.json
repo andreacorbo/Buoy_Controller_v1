@@ -1,0 +1,43 @@
+{
+	"METRECX":{
+		"Device":1,
+		"Async":1,
+		"Uart":{
+			"Bus":4,
+			"Baudrate":9600,
+			"Bits":8,
+			"Parity":"None",
+			"Stop":1,
+			"Timeout":10,
+			"Timeout_Char":10,
+			"Flow_Control":0,
+			"Read_Buf_Len":1024,
+			"Write_Buf_Len":1024,
+			"Read_Char_Attempt":10
+		},
+		"Led":"3",
+		"Ctrl_Pin":"Y6",
+		"Activation_Rate":300,
+		"Warmup_Time":30,
+		"Samples":10,
+		"Activation_Delay":120,
+		"Sampling_Rate":1,
+		"Data_Format":"",
+		"String_To_Acquire":"",
+		"Data_Separator":"  ",
+		"Status":1,
+		"String_Label":"$METRECX",
+		"Timeout":10
+	},
+	"UVXCHANGE":{
+		"Device":1,
+		"Async":1,
+		"Ctrl_Pin":"Y4",
+		"Activation_Rate":120,
+		"Warmup_Time":60,
+		"Samples":0,
+		"Activation_Delay":0,
+		"Sampling_Rate":0,
+		"Status":1
+	}
+}
