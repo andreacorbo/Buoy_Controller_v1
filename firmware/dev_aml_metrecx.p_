@@ -26,24 +26,24 @@ import constants
 
 class METRECX(DEVICE):
 
-    def __init__(self):
-        self.config_file = __name__ + constants.CONFIG_TYPE
-        DEVICE.__init__(self)
+    def __init__(self, instance):
+        self.instance = instance
+        self.config_file = __name__ + "." + constants.CONFIG_TYPE
+        DEVICE.__init__(self, self.instance)
         self.timeout = constants.TIMEOUT
-        self.prompt = '>'
-        self.start_up()
-        self._init_uart()
-        if self._break():
-            self._stop_logging()
-            self._set_clock()
-            self._set_sampling_rate()
-            self._start_logging()
-            self.off()
+        self.prompt = ">"
 
     def start_up(self):
-        """Performs power on sequence."""
+        """Performs device specific initialization sequence."""
         if self.init_power():
-          return True
+            if self.init_uart():
+                if self._break():
+                    self._stop_logging()
+                    self._set_clock()
+                    self._set_sample_rate()
+                    self._start_logging()
+                    self.off()
+                    return True
         return False
 
     def _timeout(self, start, timeout=None):
@@ -69,20 +69,20 @@ class METRECX(DEVICE):
         start = utime.time()
         while not self._timeout(start, timeout):
             if self.uart.any():
-                return self.uart.read().split(b'\r\n')[1].decode('utf-8')
+                return self.uart.read().split(b"\r\n")[1].decode("utf-8")
         return
 
     def _break(self):
         utils.log_file("{} => waiting for instrument getting ready...".format(self.__qualname__))  # DEBUG
         while True:
             self._flush_uart()
-            self.uart.write(b'\x03')  # <CTRL+C>
+            self.uart.write(b"\x03")  # <CTRL+C>
             if self._get_prompt(120):
                 return True
 
     def _get_prompt(self, timeout=None):
         self._flush_uart()
-        self.uart.write(b'\r')
+        self.uart.write(b"\r")
         rx = self._get_reply(timeout)
         if rx == self.prompt:
             return True
@@ -109,12 +109,12 @@ class METRECX(DEVICE):
 
     def _get_date(self):
         if self._get_prompt():
-            self.uart.write('DISPLAY DATE\r')
+            self.uart.write("DISPLAY DATE\r")
             return self._get_reply()[-13:]
 
     def _get_time(self):
         if self._get_prompt():
-            self.uart.write('DISPLAY TIME\r')
+            self.uart.write("DISPLAY TIME\r")
             return self._get_reply()[-14:-3]
 
     def _set_clock(self):
@@ -125,24 +125,24 @@ class METRECX(DEVICE):
         utils.log_file("{} => unable to sync clock".format(self.__qualname__))  # DEBUG
         return False
 
-    def _set_sampling_rate(self):
+    def _set_sample_rate(self):
         """Sets intrument sampling rate."""
         if self._get_prompt():
-            self.uart.write('SET S {:0d} S\r'.format(self.config['Sampling_Rate']))
+            self.uart.write("SET S {:0d} S\r".format(self.config["Sample_Rate"]))
             if self._get_reply() ==  self.prompt:
-                self._get_sampling_rate()
+                self._get_sample_rate()
                 return True
         utils.log_file("{} => unable to set sampling rate".format(self.__qualname__))  # DEBUG
         return False
 
-    def _get_sampling_rate(self):
+    def _get_sample_rate(self):
         if self._get_prompt():
-            self.uart.write('DIS S\r')
+            self.uart.write("DIS S\r")
             utils.log_file("{} => {}".format(self.__qualname__, self._get_reply()))  # DEBUG
 
     def _stop_logging(self):
         if self._get_prompt():
-            self.uart.write('SET SCAN NOLOGGING\r')
+            self.uart.write("SET SCAN NOLOGGING\r")
             if self._get_prompt():
                 utils.log_file("{} => logging stopped".format(self.__qualname__))  # DEBUG
                 return True
@@ -151,7 +151,7 @@ class METRECX(DEVICE):
 
     def _start_logging(self):
         if self._get_prompt():
-            self.uart.write('SET SCAN LOGGING\r')
+            self.uart.write("SET SCAN LOGGING\r")
             if self._get_prompt():
                 utils.log_file("{} => logging started".format(self.__qualname__))  # DEBUG
                 return True
@@ -162,52 +162,51 @@ class METRECX(DEVICE):
         """Formats data according to output format."""
         epoch = utime.time()
         data = [
-            self.config['String_Label'],
+            self.config["String_Label"],
             utils.unix_epoch(epoch),
             utils.datestamp(epoch),  # YYMMDD
             utils.timestamp(epoch)  # hhmmss
             ]
-        sample = sample.split(self.config['Data_Separator'])
-        data.append(','.join(sample[0].split(' ')))
+        sample = sample.split(self.config["Data_Separator"])
+        data.append(",".join(sample[0].split(" ")))
         for field in sample[1:]:
             data.append(field)
         return constants.DATA_SEPARATOR.join(data)
 
     def main(self):
         """Captures instrument data."""
-        if not self._init_uart():
+        if not self.init_uart():
             return
         utils.log_file("{} => acquiring data...".format(self.__qualname__))  # DEBUG
-        self._led_on()
-        sample = ''
+        self.led_on()
+        sample = ""
         new_line = False
         start = utime.time()
         while True:
-            if utime.time() - start > self.config['Samples'] // self.config['Sampling_Rate']:
+            if utime.time() - start > self.config["Samples"] // self.config["Sample_Rate"]:
                 utils.log_file("{} => no data coming from serial".format(self.__qualname__))  # DEBUG
                 break
             if self.uart.any():
                 byte = self.uart.read(1)
-                if byte == b'\n':
+                if byte == b"\n":
                     new_line = True
-                elif byte == b'\r' and new_line:
+                elif byte == b"\r" and new_line:
                     break
                 elif new_line:
-                    sample += byte.decode('utf-8')
+                    sample += byte.decode("utf-8")
         utils.log_data(self._format_data(sample))
-        self._led_off()
+        self.led_on()
         return
 
 
 class UVXCHANGE(DEVICE):
 
     def __init__(self):
-        self.config_file = __name__ + constants.CONFIG_TYPE
+        self.config_file = __name__ + "." + constants.CONFIG_TYPE
         DEVICE.__init__(self)
-        self.start_up()
 
     def start_up(self):
-        """Performs power on sequence."""
+        """Performs device specific initialization sequence."""
         if self.init_power():
           return True
         return False

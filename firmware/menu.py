@@ -22,6 +22,7 @@
 
 import pyb
 import utime
+import uos
 import tools.utils as utils
 import constants
 import _thread
@@ -43,26 +44,24 @@ class MENU(object):
 
     def _board_menu(self):
         """Writes board menu."""
-        print('\r\n' +
-        'BOARD\r\n' +
-        '[1] DEVICES\r\n' +
-        '[2] DATA FILES\r\n' +
-        '[3] NEXT EVENTS\r\n' +
-        '[4] LAST LOG\r\n' +
-        '[BACKSPACE] BACK TO SCHEDULED MODE')
+        print("\r\n" +
+        "BOARD\r\n" +
+        "[1] DEVICES\r\n" +
+        "[2] DATA FILES\r\n" +
+        "[3] NEXT EVENTS\r\n" +
+        "[4] LAST LOG\r\n" +
+        "[BACKSPACE] BACK TO SCHEDULED MODE")
 
     def _devices_menu(self):
         """Writes devices list."""
         self.device_list = {}
         i=1
-        print('\r\n'+
-        'DEVICES')
-        for device in self.board.devices:
-            if self.board.devices[device].config['Device']:
-                print('[{}] {}'.format(i, self.board.devices[device].name.upper()))
-                self.device_list[str(i)] = self.board.devices[device]
-                i += 1
-        print('[BACKSPACE] BACK')
+        print("\r\nDEVICES")
+        for key in utils.status_table:
+            print("[{}] {}".format(i, key.split(".")[1]))
+            self.device_list[str(i)] = key
+            i += 1
+        print("[BACKSPACE] BACK")
 
     def _device_menu(self, device):
         """Writes device menu.
@@ -70,82 +69,85 @@ class MENU(object):
         Params:
             device(obj)
         """
-        print('\r\n' +
-        '{}\r\n'.format(device.name.upper()) +
-        '[1] ON/OFF ({})\r\n'.format(device.status())+
-        '[2] TRANSPARENT MODE\r\n' +
-        '[3] SAMPLING\r\n' +
-        '[4] CONFIGURATION\r\n' +
-        '[BACKSPACE] BACK')
+        print("\r\n" +
+        "{}\r\n".format(device.name) +
+        "[1] ON/OFF ({})\r\n".format(device.status())+
+        "[2] TRANSPARENT MODE\r\n" +
+        "[3] SAMPLING\r\n" +
+        "[4] CONFIGURATION\r\n" +
+        "[BACKSPACE] BACK")
 
     def _pass_through(self, device):
         """Forwards device uart to board uart.
         Params:
             device(obj)
         """
-        device._init_uart()
-        tx = ''
+        device.init_uart()
+        tx = ""
         while True:
             if not self.board.interactive:
-                device._deinit_uart()
+                device.deinit_uart()
                 return False
             r, w, x = uselect.select([self.board.usb, self.board.uart, device.uart], [], [], 0)
             for _ in r:
                 if _ == self.board.usb or _ == self.board.uart:
                     byte = ord(_.read(1))
                     if byte == 8:  # [BACKSPACE] Backs to previous menu.
-                        device._deinit_uart()
+                        device.deinit_uart()
                         return True
                     elif byte == 13:  # [CR] Forwards cmds to device.
                         tx += chr(byte)
                         device.uart.write(tx)
-                        tx = ''
+                        tx = ""
                     else:
                         tx += chr(byte)
-                        print(chr(byte), end='')
+                        print(chr(byte), end="")
                 elif _ == device.uart:
-                     print('{}'.format(chr(_.readchar())), end='')
+                     print("{}".format(chr(_.readchar())), end="")
             """r, w, x = uselect.select(self.board.input, [], [], 0)
             if r:
                 byte = ord(r[0].read(1))
                 if byte == 8:  # [BACKSPACE] Backs to previous menu.
-                    device._deinit_uart()
+                    device.deinit_uart()
                     return True
                 elif byte == 13:  # [CR] Forwards cmds to device.
                     tx += chr(byte)
                     device.uart.write(tx)
-                    tx = ''
+                    tx = ""
                 else:
                     tx += chr(byte)
-                    print(chr(byte), end='')
+                    print(chr(byte), end="")
             if device.uart.any():
                 print(device.uart.read())
-                #print('{}'.format(chr(device.uart.readchar())), end='')"""
+                #print("{}".format(chr(device.uart.readchar())), end="")"""
 
     def _get_data_files(self):
         """Lists data directory."""
-        import uos
-        print('\r\n\r\nDATA FILES ' +
-        '[{}]'.format(self.board.config['Data_File_Path']))
-        data = uos.listdir(self.board.config['Data_File_Path'])
-        data.sort(reverse=True)
-        for file in data:
-            print(file)
+        print("\r\n\r\nDATA FILES")
+        for media in constants.MEDIA:
+            try:
+                print("[{}]".format(media + "/" + constants.DATA_DIR))
+                data = uos.listdir(media + "/" + constants.DATA_DIR)
+                data.sort(reverse=True)
+                for file in data:
+                    print(file)
+            except:
+                pass
 
     def _get_event_table(self):
         """Shows scheduled events."""
-        print('\r\n\r\nNEXT EVENTS (current time: {})'.format(utils.time_string(utime.time())))
+        print("\r\n\r\nNEXT EVENTS (current time: {})".format(utils.time_string(utime.time())))
         for event in sorted(self.scheduler.event_table.keys()):
-            print('{} => '.format(utils.time_string(event)), end='')
+            print("{} => ".format(utils.time_string(event)), end="")
             for device in self.scheduler.event_table[event]:
-                print('{} ({}) '.format(self.board.devices[device].name.upper(), constants.DEVICE_STATUS[self.board.devices[device].config['Status']]), end='')
-            print('\r')
+                print("{} ({}) ".format(device, constants.DEVICE_STATUS[utils.status_table[device.__qualname__]]), end="")
+            print("\r")
 
-    def _get_config(self, device):
+    def get_config(self, device):
         """Shows device configuration."""
-        print('\r\n\r\nCONFIGURATION')
+        print("\r\n\r\nCONFIGURATION")
 
-        with open(constants.CONFIG_PATH + '/' + self.device.name + constants.CONFIG_TYPE, 'r') as file:
+        with open(constants.CONFIG_PATH + "/" + device.__qualname__ + "." + constants.CONFIG_TYPE, "r") as file:
             print(file.read())
 
     def main(self):
@@ -155,7 +157,7 @@ class MENU(object):
         device = False  # Device menu flag
         while True:
             if not self.board.interactive:  # if back received or timeout occurred backs to scheduled mode
-                self.board._enable_interrupts()
+                self.board.enable_interrupts()
                 return
             r, w, x = uselect.select(self.board.input, [], [], 0)
             if r:
@@ -184,19 +186,20 @@ class MENU(object):
                                     self.device.main()
                                     self.board.operational = False
                                 elif 52 in key_buff:
-                                    self._get_config(self.device)
+                                    self.get_config(self.device)
                                 elif 8 in key_buff:
                                     device = False
                                     devices = True
+                                    utils.delete_device()
                                     self._devices_menu()
                                 elif 27 in key_buff:
-                                    self._device_menu(self.device)
+                                    self._device_menu(device)
                         else:
                             if chr(key_buff[0]) in self.device_list:
                                 devices = False
                                 device = True
-                                self.device = self.device_list[chr(key_buff[0])]
-                                self._device_menu(self.device)
+                                device = utils.create_device(self.device_list[chr(key_buff[0])])
+                                self._device_menu(device)
                             elif 8 in key_buff:
                                 devices = False
                                 board = True
@@ -208,7 +211,7 @@ class MENU(object):
                             board = True
                             self._board_menu()
                         elif 8 in key_buff:
-                            print('')
+                            print("")
                             self.board.interactive = False
                             #return  DEBUG
                         elif 49 in key_buff:

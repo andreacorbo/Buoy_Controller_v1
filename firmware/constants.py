@@ -20,24 +20,29 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-ESC_SEQ = "###"
-THREAD_TIMEOUT = 60
-TIMEOUT = 60
-SESSION_TIMEOUT = 604800
+ESC_CHAR = "#"
+THREAD_TIMEOUT = 60  # sec.
+TIMEOUT = 60  # sec.
+SESSION_TIMEOUT = 604800  # sec.
 LOGIN_ATTEMPTS = 3
 PASSWD = "pippo"
 WD_TIMEOUT = 30000  # 1000ms < watchdog timer timeout < 32000ms
 MEDIA = ["/sd", "/flash"]
 STORAGE = ""
 CONFIG_PATH = "config"
-CONFIG_TYPE = ".json"
-LOG_PATH = "Log"
-DATA_DIR = "Data"
-DATA_FILE_NAME = "'{:04d}{:02d}{:02d}'.format(utime.localtime()[0], utime.localtime()[1], utime.localtime()[2])"
+CONFIG_TYPE = "json"
+LOG_PATH = "log"
+DATA_DIR = "data"
+DATA_FILE_NAME = "\"{:04d}{:02d}{:02d}\".format(utime.localtime()[0], utime.localtime()[1], utime.localtime()[2])"
 TMP_FILE_PFX = "$"
 SENT_FILE_PFX = "_"
 BUF_DAYS = 3
 DATA_SEPARATOR = ","
 LOG_LEVEL = 0  # 0 screen output, 1 log to file
 VERBOSE = 0  # 0 nothing, 1 shows device activity
-DEVICE_STATUS = {0: 'OFF', 1: 'WARMING UP', 2: 'READY', 3: 'STANDING BY'}
+DEVICE_STATUS = {0:"OFF", 1:"ON", 2:"READY"}
+LEDS = {"IO":1, "PWR":2, "RUN":3, "SLEEP":4}  # red, green, yellow, blue
+UARTS = {1:2, 2:4, 3:6, 4:1}
+DEVICES = {"GPS_1":1, "METEO_1":1, "METRECX_1":2, "ADCP_1":3}
+DATA_ACQUISITION_INTERVAL = 60  # sec.
+SCHEDULER = {"GPS_1":{"sync_rtc":120, "last_fix":30}}

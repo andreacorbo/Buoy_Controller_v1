@@ -25,29 +25,27 @@ import constants
 
 class NMEA(object):
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         self.new_sentence_flag = False
         self.checksum_flag = False
-        self.checksum = ''
+        self.checksum = ""
         self.checksum_verified = False
-        self.word = ''
+        self.word = ""
         self.sentence = []
-        self.string = ''
-        self.serial_string = ''
 
-    def _verify_checksum(self, checksum, string):
+    def verify_checksum(self, checksum, sentence):
         """Verifies the NMEA sentence integrity.
 
         Params:
             checksum(hex)
-            string(str)
+            sentence(list)
         """
         calculated_checksum = 0
-        for char in string:
+        for char in ",".join(map(str, sentence)):
             calculated_checksum ^= ord(char)
         if "{:02X}".format(calculated_checksum) != checksum:
             self.checksum_verified = False
-            utils.log_file("NMEA invalid checksum calculated: {:02X} got: {}".format(calculated_checksum, checksum), constants.LOG_LEVEL, new_line=True)
+            utils.log_file("NMEA invalid checksum calculated: {:02X} got: {}".format(calculated_checksum, checksum), constants.LOG_LEVEL)
         else:
             self.checksum_verified = True
 
@@ -59,29 +57,36 @@ class NMEA(object):
         """
         if char_code in range(32, 126):
             ascii_char = chr(char_code)
-            if ascii_char == '$':
+            if ascii_char == "$":
                 self.new_sentence_flag = True
-                self.word = ''
+                self.word = ""
                 self.sentence = []
-                self.checksum = ''
+                self.checksum = ""
                 self.checksum_verified = False
                 self.checksum_flag = False
-            elif ascii_char == ',':
-                if self.new_sentence_flag is True:
+            elif ascii_char == ",":
+                if self.new_sentence_flag:
                     self.sentence.append(self.word)
-                    self.word = ''
-            elif ascii_char == '*':
-                if self.new_sentence_flag is True:
+                    self.word = ""
+            elif ascii_char == "*":
+                if self.new_sentence_flag:
                     self.sentence.append(self.word)
                     self.checksum_flag = True
-            else:
-                if self.new_sentence_flag is True:
-                    if self.checksum_flag is True:
-                        self.checksum = self.checksum + ascii_char
-                        if len(self.checksum) == 2:
-                            self.string = ','.join(map(str, self.sentence))
-                            self._verify_checksum(self.checksum, self.string)
-                            self.serial_string = "$" + self.string
-                            self.new_sentence_flag = False
-                    else:
-                        self.word = self.word + ascii_char
+            elif self.new_sentence_flag:
+                if self.checksum_flag:
+                    self.checksum = self.checksum + ascii_char
+                    if len(self.checksum) == 2:
+                        self.verify_checksum(self.checksum, self.sentence)
+                        self.new_sentence_flag = False
+                else:
+                    self.word = self.word + ascii_char
+
+    def is_valid_gprmc(self):
+        """Checks if a GPRMC sentence contains valid data.
+
+        Returns:
+          True or False
+        """
+        if self.sentence[2] == "A":
+            return True
+        return False

@@ -32,32 +32,39 @@ from math import sin, cos, radians, atan2, degrees, pow, sqrt
 
 class METEO(DEVICE, NMEA):
 
-
-    def __init__(self):
-        self.config_file = __name__ + constants.CONFIG_TYPE
-        DEVICE.__init__(self)
-        NMEA.__init__(self)
-        self.start_up()
+    def __init__(self, *args, **kwargs):
+        self.config_file = __name__ + "." + constants.CONFIG_TYPE
+        DEVICE.__init__(self, *args, **kwargs)
+        NMEA.__init__(self, *args, **kwargs)
+        data_tasks = ["log"]
+        if "tasks" in kwargs:
+            if any(elem in data_tasks for elem in kwargs["tasks"]):
+                if self.main():
+                    for task in kwargs["tasks"]:
+                        eval("self." + task + "()", {"self":self})
+            else:
+                for task in kwargs["tasks"]:
+                    eval("self." + task + "()", {"self":self})
 
     def start_up(self):
-        """Performs power on sequence."""
+        """Performs device specific initialization sequence."""
         if self.init_power():
             return True
         return False
 
-    def _wd_vect_avg(self, samples):
+    def _wd_vect_avg(self, strings):
         """Calculates wind vector average direction.
 
         Params:
-            samples(list)
+            strings(list)
         Returns:
             avg(float)
         """
         avg = 0
         sample_list = []
         try:
-            for sample in samples:
-                sample_list.append([int(sample[0])* float(self.config['Meteo']['Windspeed_'+self.config['Meteo']['Windspeed_Unit']]), int(sample[1])/10])
+            for sample in strings:
+                sample_list.append([int(sample[0])* float(self.config["Meteo"]["Windspeed_"+self.config["Meteo"]["Windspeed_Unit"]]), int(sample[1])/10])
             x = 0
             y = 0
             for sample in sample_list:
@@ -72,19 +79,19 @@ class METEO(DEVICE, NMEA):
             pass
         return avg
 
-    def _ws_vect_avg(self, samples):
+    def _ws_vect_avg(self, strings):
         """Calculates wind vector average speed.
 
         Params:
-            samples(list)
+            strings(list)
         Returns:
             avg(float)
         """
         avg = 0
         sample_list = []
         try:
-            for sample in samples:
-                sample_list.append([int(sample[0])* float(self.config['Meteo']['Windspeed_'+self.config['Meteo']['Windspeed_Unit']]), int(sample[1])/10])
+            for sample in strings:
+                sample_list.append([int(sample[0])* float(self.config["Meteo"]["Windspeed_"+self.config["Meteo"]["Windspeed_Unit"]]), int(sample[1])/10])
             x = 0
             y = 0
             for sample in sample_list:
@@ -97,125 +104,125 @@ class METEO(DEVICE, NMEA):
             pass
         return avg
 
-    def _ws_avg(self, samples):
+    def _ws_avg(self, strings):
         """Calculates average wind speed.
 
         Params:
-            samples(list)
+            strings(list)
         Returns:
             avg(float)
         """
         avg = 0
         sample_list = []
         try:
-            for sample in samples:
-                sample_list.append(int(sample[0]) * float(self.config['Meteo']['Windspeed_'+self.config['Meteo']['Windspeed_Unit']]))
+            for sample in strings:
+                sample_list.append(int(sample[0]) * float(self.config["Meteo"]["Windspeed_"+self.config["Meteo"]["Windspeed_Unit"]]))
             avg = sum(sample_list) / len(sample_list)
         except:
             pass
         return avg
 
-    def _ws_max(self, samples):
+    def _ws_max(self, strings):
         """Calculates max wind speed (gust).
 
         Params:
-            samples(list)
+            strings(list)
         Returns:
             max(float)
         """
         max = 0
         sample_list = []
         try:
-            for sample in samples:
-                sample_list.append(int(sample[0]) * float(self.config['Meteo']['Windspeed_'+self.config['Meteo']['Windspeed_Unit']]))
+            for sample in strings:
+                sample_list.append(int(sample[0]) * float(self.config["Meteo"]["Windspeed_"+self.config["Meteo"]["Windspeed_Unit"]]))
             max = max(sample_list)
         except:
             pass
         return max
 
-    def _wd_max(self, samples):
+    def _wd_max(self, strings):
         """Calculates gust direction.
 
         Params:
-            samples(list)
+            strings(list)
         Returns:
             max(float)
         """
         max = 0
         try:
-            for sample in samples:
-                if sample[0] == self._ws_max(samples):
+            for sample in strings:
+                if sample[0] == self._ws_max(strings):
                     max = sample[1] / 10
         except:
             pass
         return max
 
-    def _temp_avg(self, samples):
+    def _temp_avg(self, strings):
         """Calculates average air temperature.
 
         Params:
-            samples(list)
+            strings(list)
         Returns:
             avg(float)
         """
         avg = 0
         sample_list = []
         try:
-            for sample in samples:
-                sample_list.append(int(sample[2]) * float(self.config['Meteo']['Temp_Conv_0']) - float(self.config['Meteo']['Temp_Conv_1']))
+            for sample in strings:
+                sample_list.append(int(sample[2]) * float(self.config["Meteo"]["Temp_Conv_0"]) - float(self.config["Meteo"]["Temp_Conv_1"]))
             avg = sum(sample_list) / len(sample_list)
         except:
             pass
         return avg
 
-    def _press_avg(self, samples):
+    def _press_avg(self, strings):
         """Calculates average barometric pressure.
 
         Params:
-            samples(list)
+            strings(list)
         Returns:
             avg(float)
         """
         avg = 0
         sample_list = []
         try:
-            for sample in samples:
-                sample_list.append(int(sample[3]) * float(self.config['Meteo']['Press_Conv_0']) + float(self.config['Meteo']['Press_Conv_1']))
+            for sample in strings:
+                sample_list.append(int(sample[3]) * float(self.config["Meteo"]["Press_Conv_0"]) + float(self.config["Meteo"]["Press_Conv_1"]))
             avg = sum(sample_list) / len(sample_list)
         except:
             pass
         return avg
 
-    def _hum_avg(self, samples):
+    def _hum_avg(self, strings):
         """Calculates average relative humidity.
 
         Params:
-            samples(list)
+            strings(list)
         Returns:
             avg(float)
         """
         avg = 0
         sample_list = []
         try:
-            for sample in samples:
-                sample_list.append(int(sample[4]) * float(self.config['Meteo']['Hum_Conv_0']))
+            for sample in strings:
+                sample_list.append(int(sample[4]) * float(self.config["Meteo"]["Hum_Conv_0"]))
             avg = sum(sample_list) / len(sample_list)
         except:
             pass
         return avg
 
-    def _compass_avg(self, samples):
+    def _compass_avg(self, strings):
         """Calculates average heading.
 
         Params:
-            samples(list)
+            strings(list)
         Returns:
             avg(float)
         """
         avg = 0
         sample_list = []
         try:
-            for sample in samples:
+            for sample in strings:
                 sample_list.append(int(sample[6]) / 10)
             x = 0
             y = 0
@@ -229,19 +236,19 @@ class METEO(DEVICE, NMEA):
             pass
         return avg
 
-    def _radiance_avg(self, samples):
+    def _radiance_avg(self, strings):
         """Calculates average solar radiance.
 
         Params:
-            samples(list)
+            strings(list)
         Returns:
             avg(float)
         """
         avg = 0
         sample_list = []
         try:
-            for sample in samples:
-                sample_list.append(int(sample[5]) * float(self.config['Meteo']['Rad_Conv_0']))
+            for sample in strings:
+                sample_list.append(int(sample[5]) * float(self.config["Meteo"]["Rad_Conv_0"]))
             avg = sum(sample_list) / len(sample_list)
         except:
             pass
@@ -279,66 +286,61 @@ class METEO(DEVICE, NMEA):
         Returns:
             None
         """
-        if not self._init_uart():
-            return
-        self._led_on()
-        if self.config['Data_Format'] == 'NMEA':
-            NMEA.__init__(self)
+        utils.log_file("{} => acquiring data...".format(self.name), constants.LOG_LEVEL)
+        self.led_on()
         string_count = 0
         new_string = False
-        serial_string = ''
-        serial_list = []
-        data_string = []
+        string = ""
+        strings = []
+        self.data = []
         start = utime.time()
-        while string_count < int(self.config['Samples']) // 2:  # Read a pre defined number of strings
-            if self.status() == 'off':
-                utils.log_file("{} => timeout occourred".format(self.__qualname__), constants.LOG_LEVEL, True)  # DEBUG
-                break
+        while string_count < self.config["Samples"]:
+            if not self.status() == "READY":
+                utils.log_file("{} => timeout occourred".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
+                return False
             if self.uart.any():
                 char = self.uart.readchar()
-                if self.config['Data_Format'] == 'NMEA':
-                    self.get_sentence(char)
-                    if not self.checksum_verified:
-                        continue
-                    if not self.sentence[0] in self.config['String_To_Acquire']:
-                        continue
-                    if self.sentence[0] == "WIMWV":
-                        valid_data = False
-                        if self.sentence[5] != "A":
-                            utils.log_file("{} => invalid data".format(self.__qualname__), constants.LOG_LEVEL, True)  # DEBUG
-                            continue
-                        valid_data = True
-                    if valid_data:
-                        utils.log_data(self.config['Data_File_Path'], self.config['Data_File_Name'], self.serial_string)
-                elif self.config['Data_Format'] == 'STRING':
-                    if chr(char) == '\n':
+                if self.config["Data_Format"] == "STRING":
+                    if chr(char) == "\n":
                         new_string = True
-                    elif chr(char) == '\r':
+                    elif chr(char) == "\r":
                         if new_string:
-                            serial_list.append(serial_string.split(self.config['Data_Separator']))
-                            serial_string = ''
+                            strings.append(string.split(self.config["Data_Separator"]))
+                            string = ""
                             new_string = False
                             string_count += 1
                     else:
                         if new_string:
-                            serial_string = serial_string + chr(char)
+                            string = string + chr(char)
+                elif self.config["Data_Format"] == "NMEA":
+                    self.get_sentence(char)
+                    if self.checksum_verified:
+                        if self.sentence[0] in self.config["String_To_Acquire"]:
+                            if self.sentence[0] == "WIMWV":
+                                valid_data = False
+                                if self.sentence[5] == "A":
+                                    return True
+                                else:
+                                    utils.log_file("{} => invalid data received".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
         epoch = utime.time()
-        data_string.append(self.config['String_Label'])
-        data_string.append(utils.unix_epoch(epoch))
-        data_string.append(utils.datestamp(epoch))  # YYMMDD
-        data_string.append(utils.timestamp(epoch))  # hhmmss
-        data_string.append("{:.1f}".format(self._wd_vect_avg(serial_list)))  # vectorial avg wind direction
-        data_string.append("{:.1f}".format(self._ws_avg(serial_list)))  # avg wind speed
-        data_string.append("{:.1f}".format(self._temp_avg(serial_list)))  # avg temp
-        data_string.append("{:.1f}".format(self._press_avg(serial_list)))  # avg pressure
-        data_string.append("{:.1f}".format(self._hum_avg(serial_list)))  # avg relative humidity
-        data_string.append("{:.1f}".format(self._compass_avg(serial_list)))  # avg heading
-        data_string.append("{:.1f}".format(self._ws_vect_avg(serial_list)))  # vectorial avg wind speed
-        data_string.append("{:.1f}".format(self._ws_max(serial_list)))  # gust speed
-        data_string.append("{:.1f}".format(self._wd_max(serial_list)))  # gust direction
-        data_string.append("{:0d}".format(len(serial_list)))  # number of samples
-        data_string.append("{:.1f}".format(self._radiance_avg(serial_list)))  # solar radiance (optional)
-        utils.log_data(','.join(data_string))  # write data to file
-        self._deinit_uart()
-        self._led_off()
+        self.data.append(self.config["String_Label"])
+        self.data.append(utils.unix_epoch(epoch))
+        self.data.append(utils.datestamp(epoch))  # YYMMDD
+        self.data.append(utils.timestamp(epoch))  # hhmmss
+        self.data.append("{:.1f}".format(self._wd_vect_avg(strings)))  # vectorial avg wind direction
+        self.data.append("{:.1f}".format(self._ws_avg(strings)))  # avg wind speed
+        self.data.append("{:.1f}".format(self._temp_avg(strings)))  # avg temp
+        self.data.append("{:.1f}".format(self._press_avg(strings)))  # avg pressure
+        self.data.append("{:.1f}".format(self._hum_avg(strings)))  # avg relative humidity
+        self.data.append("{:.1f}".format(self._compass_avg(strings)))  # avg heading
+        self.data.append("{:.1f}".format(self._ws_vect_avg(strings)))  # vectorial avg wind speed
+        self.data.append("{:.1f}".format(self._ws_max(strings)))  # gust speed
+        self.data.append("{:.1f}".format(self._wd_max(strings)))  # gust direction
+        self.data.append("{:0d}".format(len(strings)))  # number of strings
+        self.data.append("{:.1f}".format(self._radiance_avg(strings)))  # solar radiance (optional)
+        return True
+
+    def log(self):
+        """Writes out acquired data to file."""
+        utils.log_data(",".join(map(str, self.data)))
         return

@@ -32,28 +32,26 @@ import _thread
 
 class MODEM(DEVICE, YMODEM):
 
-    def __init__(self):
-        self.config_file = __name__ + constants.CONFIG_TYPE
-        DEVICE.__init__(self)
+    def __init__(self, , *args, **kwargs):
+        self.config_file = __name__ + "." + constants.CONFIG_TYPE
+        DEVICE.__init__(self, *args, **kwargs)
         self.sending = False
         self.connected = False
         self.sent = False
         self.received = False
         self.timeout = 1
         self.file_paths = []
-        self.unsent_files = []
-        self.pre_ats = self.config['Modem']['Pre_Ats']
-        self.post_ats = self.config['Modem']['Post_Ats']
-        self.ats_delay = self.config['Modem']['Ats_Delay']
-        self.call_attempt = self.config['Modem']['Call_Attempt']
-        self.call_delay = self.config['Modem']['Call_Delay']
-        self.call_timeout = self.config['Modem']['Call_Timeout']
-        YMODEM.__init__(self, self._getc, self._putc, mode='Ymodem1k')
-        #self._init_uart()
-        self.start_up()
+        self.unsent_files = utils.unsent_files
+        self.pre_ats = self.config["Modem"]["Pre_Ats"]
+        self.post_ats = self.config["Modem"]["Post_Ats"]
+        self.ats_delay = self.config["Modem"]["Ats_Delay"]
+        self.call_attempt = self.config["Modem"]["Call_Attempt"]
+        self.call_delay = self.config["Modem"]["Call_Delay"]
+        self.call_timeout = self.config["Modem"]["Call_Timeout"]
+        YMODEM.__init__(self, self._getc, self._putc, mode="Ymodem1k")
 
     def start_up(self):
-        """Performs power on sequence."""
+        """Performs device specific initialization sequence."""
         #if self.init_power() and self._set_auto_answer():  DEBUG
         if self.init_power():
             return True
@@ -68,21 +66,21 @@ class MODEM(DEVICE, YMODEM):
         utils.log_file("{} => starting up...".format(__name__), constants.LOG_LEVEL, False)
         for _ in range(constants.TIMEOUT):
             rx_buff = []
-            self.uart.write('AT\r')
+            self.uart.write("AT\r")
             t0 = utime.time()
             while True:
                 if utime.time() - t0 > 5:  # Waits 5 sec for response.
                     break
                 if self.uart.any():
                     byte = self.uart.read(1)
-                    if byte == b'\n':
+                    if byte == b"\n":
                         continue
-                    elif byte == b'\r':
-                        rx = ''.join(rx_buff)
+                    elif byte == b"\r":
+                        rx = "".join(rx_buff)
                         if rx:
-                            if rx == 'ERROR':
+                            if rx == "ERROR":
                                 break
-                            if rx == 'OK':
+                            if rx == "OK":
                                 return True
                             rx_buff = []
                     else:
@@ -101,23 +99,23 @@ class MODEM(DEVICE, YMODEM):
             return False
         else:
             utils.log_file("{} => initialization sequence".format(__name__), constants.LOG_LEVEL, True)
-            for at in ['AT\r','AT+CREG=0\r','AT+CBST=7,0,1\r','ATS0=2\r','ATS0?\r']:
+            for at in ["AT\r","AT+CREG=0\r","AT+CBST=7,0,1\r","ATS0=2\r","ATS0?\r"]:
                 self.uart.write(at)
                 rx_buff = []
                 t = utime.time()
                 while True:
                     if utime.time() - t == self.call_timeout:
-                        print('TIMEOUT OCCURRED')
+                        print("TIMEOUT OCCURRED")
                         return False
                     if self.uart.any():
                         byte = self.uart.read(1)
-                        if byte == b'\n':
+                        if byte == b"\n":
                             continue
-                        elif byte == b'\r':
-                            rx = ''.join(rx_buff)
+                        elif byte == b"\r":
+                            rx = "".join(rx_buff)
                             if rx:
                                 print(rx)
-                                if rx == 'OK':
+                                if rx == "OK":
                                     break
                                 rx_buff = []
                         else:
@@ -156,48 +154,6 @@ class MODEM(DEVICE, YMODEM):
         else:
             return
 
-    def _clean_dir(self, file):
-        """Removes unwanted files.
-
-        Params:
-            file(str)
-        """
-        uos.remove(file)
-
-    def _too_old(self, file):
-        """Rename unsent files older than buffer days.
-
-        Params:
-            file(str)
-        Returns:
-            True or False
-        """
-        filename = file.split('/')[-1]
-        pathname = file.replace('/' + file.split('/')[-1], '')
-        if utime.mktime(utime.localtime()) - utime.mktime([int(filename[0:4]),int(filename[4:6]),int(filename[6:8]),0,0,0,0,0]) > constants.BUF_DAYS * 86400:
-            uos.rename(file, pathname + '/' + constants.SENT_FILE_PFX + filename)
-            if pathname + '/' + constants.TMP_FILE_PFX + filename in uos.listdir(pathname):
-                uos.remove(pathname + '/' + constants.TMP_FILE_PFX + filename)
-            return True
-        return False
-
-    def _check_dir(self):
-        """Checks for files to send."""
-        self.unsent_files = []
-        for media in constants.MEDIA:
-            try:
-                for file in uos.listdir(media + '/' + constants.DATA_DIR):
-                    if file[0] not in (constants.TMP_FILE_PFX, constants.SENT_FILE_PFX):  # check for unsent files
-                        try:
-                            int(file)
-                        except:
-                            self._clean_dir(media + '/' + constants.DATA_DIR + '/' + file)
-                            continue
-                        if not self._too_old(media + '/' + constants.DATA_DIR + '/' + file):
-                            self.unsent_files.append(media + '/' + constants.DATA_DIR + '/' + file)
-            except:
-                pass
-
     def _send(self):
         """Sends files."""
         if self.send(self.unsent_files, constants.TMP_FILE_PFX, constants.SENT_FILE_PFX):
@@ -214,17 +170,17 @@ class MODEM(DEVICE, YMODEM):
             True or False
         """
         self.uart.write(
-        '\r\n'+
-        '##################################################\r\n'+
-        '#                                                #\r\n'+
-        '#              YMODEM RECEIVER V1.1              #\r\n'+
-        '#                                                #\r\n'+
-        '##################################################\r\n'+
-        'WAITING FOR FILES...')
+        "\r\n"+
+        "##################################################\r\n"+
+        "#                                                #\r\n"+
+        "#              YMODEM RECEIVER V1.1              #\r\n"+
+        "#                                                #\r\n"+
+        "##################################################\r\n"+
+        "WAITING FOR FILES...")
         for counter in range(attempts):
             if self.recv():
                 break
-        self.uart.write('...RECEIVED\r\n\r\n')
+        self.uart.write("...RECEIVED\r\n\r\n")
         self.received = True
         return
 
@@ -241,25 +197,25 @@ class MODEM(DEVICE, YMODEM):
             now = utime.time()
             while True:
                 if utime.time() - now == self.call_timeout:
-                    print('TIMEOUT OCCURRED')
+                    print("TIMEOUT OCCURRED")
                     return False
                 if self.uart.any():
                     byte = self.uart.read(1)
-                    if byte == b'\n':
+                    if byte == b"\n":
                         continue
-                    elif byte == b'\r':
-                        rx = ''.join(rx_buff)
+                    elif byte == b"\r":
+                        rx = "".join(rx_buff)
                         if rx:
                             print(rx)
-                            if rx == 'ERROR':
+                            if rx == "ERROR":
                                 return False
-                            if rx == 'NO CARRIER':
+                            if rx == "NO CARRIER":
                                 return False
-                            if rx == 'NO ANSWER':
+                            if rx == "NO ANSWER":
                                 return False
-                            if rx == 'OK':
+                            if rx == "OK":
                                 break
-                            elif 'CONNECT' in rx:
+                            elif "CONNECT" in rx:
                                 self.uart.read(1)  # Clears last byte \n
                                 self.connected = True
                                 return True
@@ -281,19 +237,19 @@ class MODEM(DEVICE, YMODEM):
             now = utime.time()
             while True:
                 if utime.time() - now == self.call_timeout:
-                    print('TIMEOUT OCCURRED WHILE HANG UP')
+                    print("TIMEOUT OCCURRED WHILE HANG UP")
                     return False
                 if self.uart.any():
                     byte = self.uart.read(1)
-                    if byte == b'\n':
+                    if byte == b"\n":
                         continue
-                    elif byte == b'\r':
-                        rx = ''.join(rx_buff)
+                    elif byte == b"\r":
+                        rx = "".join(rx_buff)
                         if rx:
                             print(rx)
-                            if 'ERROR' in rx:
+                            if "ERROR" in rx:
                                 return False
-                            elif 'OK' in rx:
+                            elif "OK" in rx:
                                 break
                             rx_buff = []
                             break
@@ -302,31 +258,24 @@ class MODEM(DEVICE, YMODEM):
             utime.sleep(self.ats_delay)
         return True
 
-    def main(self):
+    def data_transfer(self):
         """Sends files over the gsm network."""
-        self._check_dir()
-        if not self.unsent_files:
-            utils.log_file("{} => nothing to send".format(__name__), constants.LOG_LEVEL, True)
-            return
-        if not self._init_uart():
+        if not self.init_uart():
             return
         self.sending = True
-        while utils.file_lock.locked():
-            continue
-        utils.file_lock.acquire()
-        self._led_on()
-        print('########################################')
-        print('#                                      #')
-        print('#           YMODEM SENDER V1.1         #')
-        print('#                                      #')
-        print('########################################')
+        self.led_on()
+        print("########################################")
+        print("#                                      #")
+        print("#           YMODEM SENDER V1.1         #")
+        print("#                                      #")
+        print("########################################")
         self.connected = False
         self.sending = False
         self.sent = False
         error_count = 0
         while True:
             if error_count == int(self.call_attempt):
-                utils.log_file("{} => connection unavailable, aborting...".format(__name__), constants.LOG_LEVEL, True)
+                utils.log_file("{} => connection unavailable, aborting...".format(self.__qualname__), constants.LOG_LEVEL, True)
                 break
             elif not self.connected:
                 if not self._call():
@@ -341,7 +290,6 @@ class MODEM(DEVICE, YMODEM):
                     error_count += 1
                     continue
                 break
-        self._led_off()
-        # self._deinit_uart() DEBUG Restore before deploy???
-        utils.file_lock.release()
+        self.led_on()
+        # self.deinit_uart() DEBUG Restore before deploy???
         return

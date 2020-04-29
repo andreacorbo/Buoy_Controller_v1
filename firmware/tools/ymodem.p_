@@ -24,17 +24,18 @@ import utime
 import uos
 import sys
 from tools.functools import partial
+import tools.utils as utils
 
 #
 # Protocol bytes
 #
-SOH = b'\x01'  # 1
-STX = b'\x02'  # 2
-EOT = b'\x04'  # 4
-ACK = b'\x06'  # 6
-NAK = b'\x15'  # 21
-CAN = b'\x18'  # 24
-C = b'\x43'  # 67
+SOH = b"\x01"  # 1
+STX = b"\x02"  # 2
+EOT = b"\x04"  # 4
+ACK = b"\x06"  # 6
+NAK = b"\x15"  # 21
+CAN = b"\x18"  # 24
+C = b"\x43"  # 67
 
 
 class YMODEM(object):
@@ -77,11 +78,17 @@ class YMODEM(object):
     ]
 
 
-    def __init__(self, _getc, _putc, mode='Ymodem', pad=b'\x1a'):
+    def __init__(self, _getc, _putc, mode="Ymodem", pad=b"\x1a"):
         self._getc = _getc
         self._putc = _putc
         self.mode = mode
         self.pad = pad
+        self.break_condition = len(utils.processes)
+
+    def _time_to_stop(self):
+        """Aborts transmission if and external stop flag is set."""
+        if self.break_condition > 1:
+            self.abort()
 
     def abort(self, count=2, timeout=60):
         """Sends an abort sequence using CAN byte.
@@ -92,18 +99,18 @@ class YMODEM(object):
         """
         for _ in range(count):
             self._putc(CAN, timeout)  # handle tx errors
-            print('CANCEL TRANSMISSION...')
+            print("CANCEL TRANSMISSION...")
 
     def _ack(self, error_count, retry):
         while True:
             if error_count == retry:
-                print('TOO MANY ERRORS, ABORTING...')
+                print("TOO MANY ERRORS, ABORTING...")
                 return False  # Exit
             if not self._putc(ACK):  # handle tx errors
-                print('ERROR SENDING ACK, RETRY...')
+                print("ERROR SENDING ACK, RETRY...")
                 error_count += 1
                 continue
-            print('ACK -->')
+            print("ACK -->")
             break
         return True
 
@@ -111,13 +118,13 @@ class YMODEM(object):
     def _clear(self, error_count, retry):
         while True:
             if error_count == retry:
-                print('TOO MANY ERRORS, ABORTING...')
+                print("TOO MANY ERRORS, ABORTING...")
                 return False  # Exit
             if not self._putc(C):  # handle tx errors
-                print('ERROR SENDING C, RETRY...')
+                print("ERROR SENDING C, RETRY...")
                 error_count += 1
                 continue
-            print('C -->')
+            print("C -->")
             break
         return True
 
@@ -125,13 +132,13 @@ class YMODEM(object):
     def _nak(self, error_count, retry):
         while True:
             if error_count == retry:
-                print('TOO MANY ERRORS, ABORTING...')
+                print("TOO MANY ERRORS, ABORTING...")
                 return False  # Exit
             if not self._putc(NAK):  # handle tx errors
-                print('ERROR SENDING NAK, RETRY...')
+                print("ERROR SENDING NAK, RETRY...")
                 error_count += 1
                 continue
-            print('NAK -->')
+            print("NAK -->")
             break
         return True
 
@@ -147,7 +154,7 @@ class YMODEM(object):
             calculated_sum = self._calc_crc(data)
             valid = bool(received_sum == calculated_sum)
             if not valid:
-                print('CHECKSUM FAIL EXPECTED({:04x}) GOT({:4x})'.format(received_sum, calculated_sum))
+                print("CHECKSUM FAIL EXPECTED({:04x}) GOT({:4x})".format(received_sum, calculated_sum))
         else:
             _checksum = bytearray([data[-1]])
             received_sum = _checksum[0]
@@ -156,7 +163,7 @@ class YMODEM(object):
             calculated_sum = self._calc_checksum(data)
             valid = received_sum == calculated_sum
             if not valid:
-                print('CHECKSUM FAIL EXPECTED({:02x}) GOT({:2x})'.format(received_sum, calculated_sum))
+                print("CHECKSUM FAIL EXPECTED({:02x}) GOT({:2x})".format(received_sum, calculated_sum))
         return valid, data
 
     def _set_last_byte(self, tmp_file, pointer):
@@ -166,7 +173,7 @@ class YMODEM(object):
             tmp_file(str)
             pointer(int)
         """
-        with open(tmp_file, 'w') as part:
+        with open(tmp_file, "w") as part:
             part.write(str(pointer))
 
 
@@ -179,7 +186,7 @@ class YMODEM(object):
         """
         pointer = 0
         try:
-            with open(tmp_file, 'r') as part:
+            with open(tmp_file, "r") as part:
                 pointer = int(part.read())
         except:
             pass
@@ -218,9 +225,9 @@ class YMODEM(object):
                 try:
                     uos.remove(tmp_file)
                 except:
-                    print('UNABLE TO REMOVE {} FILE'.format(tmp_file))
+                    print("UNABLE TO REMOVE {} FILE".format(tmp_file))
             except:
-                print('UNABLE TO RENAME {} FILE'.format(file))
+                print("UNABLE TO RENAME {} FILE".format(file))
 
 
     def _make_filename_header(self, packet_size):
@@ -315,59 +322,59 @@ class YMODEM(object):
         try:
             packet_size = dict(Ymodem = 128, Ymodem1k = 1024)[self.mode]
         except KeyError:
-            raise ValueError('INVALID MODE {self.mode}'.format(self=self))
+            raise ValueError("INVALID MODE {self.mode}".format(self=self))
         error_count = 0
         crc_mode = 0
         cancel = 0
-        print('BEGIN TRANSACTION, PACKET SIZE {}'.format(packet_size))
+        print("BEGIN TRANSACTION, PACKET SIZE {}".format(packet_size))
         #
         # Set 16 bit CRC or standard checksum mode
         #
         while True:
             char = self._getc(1, timeout)
             if error_count == retry:
-                print('TOO MANY ERRORS, ABORTING...')
+                print("TOO MANY ERRORS, ABORTING...")
                 return False  # Exit
             elif not char:
-                print('TIMEOUT OCCURRED, RETRY...')
+                print("TIMEOUT OCCURRED, RETRY...")
                 error_count += 1
             elif char == C:
-                print('<-- C')
-                print('16 BIT CRC REQUESTED')
+                print("<-- C")
+                print("16 BIT CRC REQUESTED")
                 crc_mode = 1
                 error_count = 0
                 break
             elif char == NAK:
-                print('<-- NAK')
-                print('STANDARD CECKSUM REQUESTED')
+                print("<-- NAK")
+                print("STANDARD CECKSUM REQUESTED")
                 crc_mode = 0
                 error_count = 0
                 break
             else:
-                print('UNATTENDED CHAR {}, RETRY...'.format(char))
+                print("UNATTENDED CHAR {}, RETRY...".format(char))
                 error_count += 1
         #
         # Iterate over file list
         #
-        files.extend('\x00')  # add a null file to list to handle eot
+        files.extend("\x00")  # add a null file to list to handle eot
         file_count = 0
         for file in files:
             #
             # Set stream pointer (read file from last tansmitted byte)
             #
-            tmp_file = file.replace(file.split('/')[-1], tmp_file_pfx + file.split('/')[-1])
-            sent_file = file.replace(file.split('/')[-1], sent_file_pfx + file.split('/')[-1])
-            filename = file.split('/')[-1]
-            if file != '\x00':
+            tmp_file = file.replace(file.split("/")[-1], tmp_file_pfx + file.split("/")[-1])
+            sent_file = file.replace(file.split("/")[-1], sent_file_pfx + file.split("/")[-1])
+            filename = file.split("/")[-1]
+            if file != "\x00":
                 try:
                     stream = open(file)
                 except:
-                    print('UNABLE TO OPEN {}, TRY NEXT FILE...'.format(file))
+                    print("UNABLE TO OPEN {}, TRY NEXT FILE...".format(file))
                     continue
                 self._get_last_byte(tmp_file, stream)  # read last byte from $file
                 pointer = stream.tell()  # set stream pointer
                 if pointer == uos.stat(file)[6]:  # check if pointer correspond to file size
-                    print('FILE {} ALREADY TRANSMITTED, SEND NEXT FILE...'.format(filename))
+                    print("FILE {} ALREADY TRANSMITTED, SEND NEXT FILE...".format(filename))
                     stream.close()
                     self._totally_sent(file, tmp_file, sent_file)
                     continue  # open next file
@@ -379,41 +386,41 @@ class YMODEM(object):
                 while True:
                     char = self._getc(1, timeout)
                     if error_count == retry:
-                        print('TOO MANY ERRORS, ABORTING...')
+                        print("TOO MANY ERRORS, ABORTING...")
                         return False  # Exit
                     if not char:  # handle rx errors
-                        print('TIMEOUT OCCURRED, RETRY...')
+                        print("TIMEOUT OCCURRED, RETRY...")
                         error_count += 1
                     elif char == C:
-                        print('<-- C')
+                        print("<-- C")
                         error_count = 0
                         break
                     else:
-                        print('UNATTENDED CHAR {}, RETRY...'.format(char))
+                        print("UNATTENDED CHAR {}, RETRY...".format(char))
                         error_count += 1
             #
             # Create file name packet
             #
             header = self._make_filename_header(packet_size)  # create file packet
-            data = bytearray(filename + '\x00')  # filename + space
-            if file != '\x00':
+            data = bytearray(filename + "\x00")  # filename + space
+            if file != "\x00":
                 data.extend(str(uos.stat(file)[6] - pointer))  # Sends data size to be transmitted
             padding = bytearray(packet_size - len(data))  # fill packet size with null char
             data.extend(padding)
             checksum = self._make_checksum(crc_mode, data)  # create packet checksum
             ackd  = 0
-            while True:
+            while True and not self._time_to_stop():
                 #
                 # Send packet
                 #
-                while True:
+                while True and not self._time_to_stop():
                     if error_count == retry:
-                        print('TOO MANY ERRORS, ABORTING...')
+                        print("TOO MANY ERRORS, ABORTING...")
                         return False  # Exit
                     if not self._putc(header + data +checksum):  # handle tx errors
                         error_count += 1
                         continue
-                    print('SENDING FILE {}'.format(filename))
+                    print("SENDING FILE {}".format(filename))
                     break
                 #
                 # Wait for reply
@@ -421,32 +428,32 @@ class YMODEM(object):
                 while True:
                     char = self._getc(1, timeout)
                     if error_count == retry:
-                        print('TOO MANY ERRORS, ABORTING...')
+                        print("TOO MANY ERRORS, ABORTING...")
                         return False  # Exit
                     if not char:  # handle rx erros
-                        print('TIMEOUT OCCURRED, RETRY...')
+                        print("TIMEOUT OCCURRED, RETRY...")
                         error_count += 1
                         break  # resend packet
                     elif char == ACK :
-                        print('<-- ACK')
+                        print("<-- ACK")
                         if data == bytearray(packet_size):
-                            print('TRANSMISSION COMPLETE, EXITING...')
+                            print("TRANSMISSION COMPLETE, EXITING...")
                             return True # Exit
                         else:
                             error_count = 0
                             ackd = 1
                             break
                     elif char == CAN:
-                        print('<-- CAN')
+                        print("<-- CAN")
                         if cancel:
-                            print('TRANSMISSION CANCELED BY RECEIVER')
+                            print("TRANSMISSION CANCELED BY RECEIVER")
                             return False  # Exit
                         else:
                             cancel = 1
                             error_count = 0
                             continue  # wait for a second CAN
                     else:
-                        print('UNATTENDED CHAR {}, RETRY...'.format(char))
+                        print("UNATTENDED CHAR {}, RETRY...".format(char))
                         error_count += 1
                         break  # resend packet
                 if ackd:
@@ -457,17 +464,17 @@ class YMODEM(object):
             while True:
                 char = self._getc(1, timeout)
                 if error_count == retry:
-                    print('TOO MANY ERRORS, ABORTING...')
+                    print("TOO MANY ERRORS, ABORTING...")
                     return False # Exit
                 if not char:  # handle rx errors
-                    print('TIMEOUT OCCURRED, RETRY...')
+                    print("TIMEOUT OCCURRED, RETRY...")
                     error_count += 1
                 elif char == C:
-                    print('<-- C')
+                    print("<-- C")
                     error_count = 0
                     break
                 else:
-                    print('UNATTENDED CHAR {}, RETRY...'.format(char))
+                    print("UNATTENDED CHAR {}, RETRY...".format(char))
                     error_count += 1
             #
             # Send file
@@ -476,34 +483,34 @@ class YMODEM(object):
             total_packets = 0
             sequence = 1
             cancel = 0
-            while True:
+            while True and not self._time_to_stop():
                 #
                 # Create data packet
                 #
                 data = stream.read(packet_size)  # read a bytes packet
 
                 if not data:  # file reached eof send eot
-                    print('EOF')
+                    print("EOF")
                     break
                 total_packets += 1
 
                 header = self._make_data_header(packet_size, sequence)  # create header
-                format_string = "{:"+self.pad.decode('utf-8')+"<"+str(packet_size)+"}"  # right fill data with pad byte
+                format_string = "{:"+self.pad.decode("utf-8")+"<"+str(packet_size)+"}"  # right fill data with pad byte
                 data = format_string.format(data)  # create packet data
                 checksum = self._make_checksum(crc_mode, data)  # create checksum
                 ackd = 0
-                while True:
+                while True and not self._time_to_stop():
                     #
                     # Send data packet
                     #
-                    while True:
+                    while True  and not self._time_to_stop():
                         if error_count == retry:
-                            print('TOO MANY ERRORS, ABORTING...')
+                            print("TOO MANY ERRORS, ABORTING...")
                             return False  # Exit
                         if not self._putc(header + data + checksum):  # handle tx errors
                             error_count += 1
                             continue  # resend packet
-                        print('PACKET {} -->'.format(sequence))
+                        print("PACKET {} -->".format(sequence))
                         break
                     #
                     # Wait for reply
@@ -511,11 +518,11 @@ class YMODEM(object):
                     while True:
                         char = self._getc(1, timeout)
                         if not char:  # handle rx errors
-                            print('TIMEOUT OCCURRED, RETRY...')
+                            print("TIMEOUT OCCURRED, RETRY...")
                             error_count += 1
                             break  # resend packet
                         elif char == ACK:
-                            print('<-- ACK')
+                            print("<-- ACK")
                             ackd = 1
                             success_count += 1
                             error_count = 0
@@ -524,19 +531,19 @@ class YMODEM(object):
                             sequence = (sequence + 1) % 0x100  # keep track of sequence
                             break  # send next packet
                         elif char == NAK:
-                            print('<-- NAK')
+                            print("<-- NAK")
                             error_count += 1
                             break  # resend packet
                         elif char == CAN:
-                            print('<-- CAN')
+                            print("<-- CAN")
                             if cancel:
-                                print('TRANSMISSION CANCELED BY RECEIVER')
+                                print("TRANSMISSION CANCELED BY RECEIVER")
                                 return False  # Exit
                             else:
                                 cancel = 1
                                 error_count = 0
                         else:
-                            print('UNATTENDED CHAR {}, RETRY...'.format(char))
+                            print("UNATTENDED CHAR {}, RETRY...".format(char))
                             error_count += 1
                             break  # resend packet
                     if ackd:
@@ -546,28 +553,28 @@ class YMODEM(object):
             #
             while True:
                 if error_count == retry:
-                    print('TOO MANY ERRORS, ABORTING...')
+                    print("TOO MANY ERRORS, ABORTING...")
                     return False  # Exit
                 if not self._putc(EOT):  # handle tx errors
                     error_count += 1
                     continue  # resend EOT
-                print('EOT -->')
+                print("EOT -->")
                 char = self._getc(1, timeout)  # waiting for reply
                 if not char:  # handle rx errors
-                    print('TIMEOUT OCCURRED, RETRY...')
+                    print("TIMEOUT OCCURRED, RETRY...")
                     error_count += 1
                 elif char == ACK:
-                    print('<-- ACK')
-                    print('FILE {} SUCCESSFULLY TRANSMITTED'.format(filename))
+                    print("<-- ACK")
+                    print("FILE {} SUCCESSFULLY TRANSMITTED".format(filename))
                     self._totally_sent(file, tmp_file, sent_file)
                     stream.close()
                     error_count = 0
                     break  # send next file
                 else:
-                    print('UNATTENDED CHAR {}, RETRY...'.format(char))
+                    print("UNATTENDED CHAR {}, RETRY...".format(char))
                     error_count += 1
 
-    def recv(self, datapath='/', crc_mode=1, retry=5 , timeout=10):
+    def recv(self, datapath="/", crc_mode=1, retry=5 , timeout=10):
         """Receives files according to ymodem protocol.
 
         Params:
@@ -585,15 +592,15 @@ class YMODEM(object):
                 #
                 while True:
                     if error_count > (retry // 2):
-                        print('TOO MANY ERRORS, USE STANDARD CHECKSUM...')
+                        print("TOO MANY ERRORS, USE STANDARD CHECKSUM...")
                         crc_mode = 0
                         error_count = 0
                         break
                     if not self._putc(C):  # handle tx errors
-                        print('ERROR SENDING C, RETRY...')
+                        print("ERROR SENDING C, RETRY...")
                         error_count += 1
                         continue
-                    print('C -->')
+                    print("C -->")
                     error_count = 0
                     break
             else:
@@ -620,35 +627,35 @@ class YMODEM(object):
                 pass
             char = self._getc(1,timeout)
             if error_count == retry:
-                print('TOO MANY ERRORS, ABORTING...')
+                print("TOO MANY ERRORS, ABORTING...")
                 self.abort(timeout=timeout)  # Cancels transmission
                 return False  # Exits
             elif not char:  # handle rx errors
-                print('TIMEOUT OCCURRED, RETRY...')
+                print("TIMEOUT OCCURRED, RETRY...")
                 error_count += 1
                 continue
             elif char == CAN:
-                print('<-- CAN')
+                print("<-- CAN")
                 if cancel:
-                    print('TRANSMISSION CANCELED BY SENDER')
+                    print("TRANSMISSION CANCELED BY SENDER")
                     return False  # Exits
                 else:
                     cancel = 1
                     error_count = 0
             elif char == SOH:
-                print('SOH <--')
+                print("SOH <--")
                 if packet_size != 128:
-                    print('USING 128 BYTES PACKET SIZE')
+                    print("USING 128 BYTES PACKET SIZE")
                     packet_size = 128
                 error_count = 0
             elif char == STX:
-                print('STX <--')
+                print("STX <--")
                 if packet_size != 1024:
-                    print('USING 1 KB PACKET SIZE')
+                    print("USING 1 KB PACKET SIZE")
                     packet_size = 1024
                 error_count = 0
             elif char == EOT:
-                print('EOT <--')
+                print("EOT <--")
                 #
                 # Acknowledge EOT
                 #
@@ -665,7 +672,7 @@ class YMODEM(object):
                 error_count = 0
                 continue
             else:
-                print('UNATTENDED CHAR {}'.format(char))
+                print("UNATTENDED CHAR {}".format(char))
                 error_count += 1
                 continue
             #
@@ -674,18 +681,18 @@ class YMODEM(object):
             while True:
                 seq1 = self._getc(1, timeout)
                 if not seq1:
-                    print('FAILED TO GET FIRST SEQUENCE BYTE')
+                    print("FAILED TO GET FIRST SEQUENCE BYTE")
                     seq2 = None
                 else:
                     seq1 = ord(seq1)
                     seq2 = self._getc(1, timeout)
                     if not seq2:
-                        print('FAILED TO GET SECOND SEQUENCE BYTE')
+                        print("FAILED TO GET SECOND SEQUENCE BYTE")
                     else:
                         seq2 = 0xff - ord(seq2)
-                        print('PACKET {} <--'.format(sequence))
+                        print("PACKET {} <--".format(sequence))
                 if not (seq1 == seq2 == sequence):
-                    print('SEQUENCE ERROR, EXPECTED {} GOT {}, DISCARD DATA'.format(sequence, seq1))
+                    print("SEQUENCE ERROR, EXPECTED {} GOT {}, DISCARD DATA".format(sequence, seq1))
                     self._getc(packet_size + 1 + crc_mode)  # Discard data packet
                     #
                     # Resend missed acknowledge
@@ -716,29 +723,29 @@ class YMODEM(object):
                         error_count = 0
                     else:
                         if sequence == 0:  # Sequence 0 contains file name
-                            if data[0:1] == b'\x00':  # Sequence 0 with null pathname state end of trasmission
+                            if data[0:1] == b"\x00":  # Sequence 0 with null pathname state end of trasmission
                                 #
                                 # Acknowledge EOT
                                 #
                                 if not self._ack(error_count, retry):
                                     return False  # Exits
-                                print('END OF TRANSMISSION')
+                                print("END OF TRANSMISSION")
                                 return True  # Exits end of transmission
                             data_string = []
-                            data_field = ''
+                            data_field = ""
                             for byte_ in data:
                                 if byte_ != 0:
                                     data_field += chr(byte_)
                                 elif len(data_field) > 0:
                                     data_string.append(data_field)
-                                    data_field = ''
+                                    data_field = ""
                             pathname = data_string[0]
-                            attributes = data_string[1].split(' ')  # Length, modification date, mode, serial number...
+                            attributes = data_string[1].split(" ")  # Length, modification date, mode, serial number...
                             length = int(attributes[0])
                             mod_date = int(attributes[1])
-                            stream = open(pathname, 'ab')
+                            stream = open(pathname, "ab")
                             if stream:
-                                print('RECEIVING FILE {}'.format(pathname))
+                                print("RECEIVING FILE {}".format(pathname))
                                 #
                                 # Acknowledge packet
                                 #
@@ -767,4 +774,4 @@ class YMODEM(object):
                         sequence = (sequence + 1) % 0x100
                 break
 
-YMODEM1k = partial(YMODEM, mode='Ymodem1k')
+YMODEM1k = partial(YMODEM, mode="Ymodem1k")

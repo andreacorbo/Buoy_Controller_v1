@@ -30,15 +30,14 @@ import constants
 class SESSION(object):
 
     def __init__(self, **kwargs):
-        self.input = kwargs['board'].input
-        self.timeout = kwargs['timeout']
+        self.input = kwargs["board"].input
+        self.timeout = kwargs["timeout"]
         self.logging = False
         self.loggedin = False
         self.loggedout = False
         self.authenticating = False
         self.active = False
         self.passwd = constants.PASSWD
-        self.esc_seq = constants.ESC_SEQ
 
     def init(self):
         self.loggedin = False
@@ -54,15 +53,15 @@ class SESSION(object):
         self.loggedin = False
         self.loggedout = False
         for i in range(attempts):
-            rx = ''
-            char = ''
+            rx = ""
+            char = ""
             utime.sleep_ms(250)
             print("ENTER PASSWORD:", end="")
             while True:
                 r, w, x = uselect.select(self.input, [], [], 10)
                 if r:
                     byte = r[0].read(1)
-                    if  byte == b'\r':
+                    if  byte == b"\r":
                         if rx[len(rx) - len(self.passwd):] == self.passwd:
                             _thread.start_new_thread(self._expire, (self.timeout,))
                             self.loggedin = True
@@ -95,7 +94,7 @@ class SESSION(object):
         t0 = utime.time()
         while utime.time() - t0 < timeout:
             pass
-        print('SESSION EXPIRED.')
+        print("SESSION EXPIRED.")
         self.loggedin = False
         self.loggedout = True
         return
