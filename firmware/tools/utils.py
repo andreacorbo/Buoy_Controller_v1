@@ -27,8 +27,21 @@ import utime
 import constants
 import _thread
 
-"""Creates a lock for data file secure handling."""
+"""Creates a lock to handling data file secure."""
 file_lock = _thread.allocate_lock()
+
+"""Creates a lock to manage the processes list access."""
+processes_access_lock = _thread.allocate_lock()
+
+"""List of active processes."""
+processes = []
+
+"""Contains pairs device:status."""
+status_table = {}
+
+unsent_files = []
+
+gps = ()
 
 def read_config(file, path=constants.CONFIG_PATH):
     """Parses a json configuration file.
@@ -38,10 +51,10 @@ def read_config(file, path=constants.CONFIG_PATH):
         path(str): default CONFIG_PATH
     """
     try:
-        with open(path + '/' + file) as file_:
+        with open(path + "/" + file) as file_:
             return ujson.load(file_)
     except:
-        log_file('SYSTEM => unable to read file {}'.format(file), constants.LOG_LEVEL)
+        log_file("Unable to read file {}".format(file), constants.LOG_LEVEL)
         return None
 
 def unix_epoch(epoch):
@@ -93,14 +106,14 @@ def time_display(timestamp):
     mins = timestamp % 86400 % 3600 // 60
     secs = timestamp % 86400 % 3600 % 60
     if days > 0:
-        timestring.append(str(days) + 'd')
+        timestring.append(str(days) + "d")
     if hours > 0:
-        timestring.append(str(hours) + 'h')
+        timestring.append(str(hours) + "h")
     if mins > 0:
-        timestring.append(str(mins) + '\'')
+        timestring.append(str(mins) + """)
     if secs >= 0:
-        timestring.append(str(secs) + '\"')
-    return ' '.join(timestring)
+        timestring.append(str(secs) + """)
+    return " ".join(timestring)
 
 def log_file(data_string, mode=0, new_line=True):
     """Creates a log and prints a messagge on screen.
@@ -110,32 +123,32 @@ def log_file(data_string, mode=0, new_line=True):
         mode(int): 0 print, 1 save, 2 print & save
         new_line(bool): if False overwrites messages
     """
-    log_string = time_string(utime.time()) + '\t' + data_string
+    log_string = time_string(utime.time()) + "\t" + data_string
     end_char = " "
     if new_line:
         end_char = "\n"
     if constants.LOG_LEVEL == 0:
         print(log_string, end=end_char)
     else:
-        with open('Log.txt', 'a') as file_:
+        with open("Log.txt", "a") as file_:
             file_.write(log_string + end_char)
         print(log_string, end=end_char)
 
 def _make_data_dir(dir):
     """Creates a dir structure."""
-    dir_list = dir.split('/')  # split path into a list
-    dir = '/'  # start from root
+    dir_list = dir.split("/")  # split path into a list
+    dir = "/"  # start from root
     for i in range(len(dir_list)-1):  # check for directories existence
         if i == 0:  # add a / to dir path
-            sep = ''
+            sep = ""
         else:
-            sep = '/'
+            sep = "/"
         if dir_list[i+1] not in uos.listdir(dir):  # checks for directory existance
-            log_file('CREATING {} DIRECTORY...'.format(dir + sep + dir_list[i+1]), constants.LOG_LEVEL)
+            log_file("Creating {} directory...".format(dir + sep + dir_list[i+1]), constants.LOG_LEVEL)
             try:
                 uos.mkdir(dir + sep + dir_list[i+1])  # creates directory
             except:
-                log_file('UNABLE TO CREATE DIRECTORY {}'.format(dir + sep + dir_list[i+1]), constants.LOG_LEVEL)
+                log_file("Unable to create directory {}".format(dir + sep + dir_list[i+1]), constants.LOG_LEVEL)
                 return False
         dir = dir + sep + dir_list[i+1]  # changes dir
     return True
@@ -148,17 +161,62 @@ def _get_data_dir():
         while True:
             try:
                 if constants.DATA_DIR in uos.listdir(media):
-                    return media + '/' + constants.DATA_DIR
+                    return media + "/" + constants.DATA_DIR
                 elif not made:
-                    _make_data_dir(media + '/' + constants.DATA_DIR)
+                    _make_data_dir(media + "/" + constants.DATA_DIR)
                     made = True
                     continue
                 else:
                     break
             except OSError as e:
                 err = errno.errorcode[e.args[0]]
-                if err == 'ENODEV':  # media is unavailable.
+                if err == "ENODEV":  # media is unavailable.
                     break
+    return False
+
+def clean_dir(file):
+    """Removes unwanted files.
+
+    Params:
+        file(str)
+    """
+    uos.remove(file)
+
+def too_old(file):
+    """Rename unsent files older than buffer days.
+
+    Params:
+        file(str)
+    Returns:
+        True or False
+    """
+    filename = file.split("/")[-1]
+    pathname = file.replace("/" + file.split("/")[-1], "")
+    if utime.mktime(utime.localtime()) - utime.mktime([int(filename[0:4]),int(filename[4:6]),int(filename[6:8]),0,0,0,0,0]) > constants.BUF_DAYS * 86400:
+        uos.rename(file, pathname + "/" + constants.SENT_FILE_PFX + filename)
+        if pathname + "/" + constants.TMP_FILE_PFX + filename in uos.listdir(pathname):
+            uos.remove(pathname + "/" + constants.TMP_FILE_PFX + filename)
+        return True
+    return False
+
+def files_to_send():
+    """Checks for files to send."""
+    global unsent_files
+    for media in constants.MEDIA:
+        try:
+            for file in uos.listdir(media + "/" + constants.DATA_DIR):
+                if file[0] not in (constants.TMP_FILE_PFX, constants.SENT_FILE_PFX):  # check for unsent files
+                    try:
+                        int(file)
+                    except:
+                        clean_dir(media + "/" + constants.DATA_DIR + "/" + file)
+                        continue
+                    if not too_old(media + "/" + constants.DATA_DIR + "/" + file):
+                        unsent_files.append(media + "/" + constants.DATA_DIR + "/" + file)
+        except:
+            pass
+    if unsent_files:
+        return True
     return False
 
 def log_data(data):
@@ -171,12 +229,12 @@ def log_data(data):
         continue
     file_lock.acquire()
     try:
-        file = _get_data_dir() + '/' + eval(constants.DATA_FILE_NAME)
-        with open(file, 'a') as data_file:  # append row to existing file
-            log_file('WRITING TO FILE {} => {}'.format(file, data), constants.LOG_LEVEL)
-            data_file.write(data + '\r\n')
+        file = _get_data_dir() + "/" + eval(constants.DATA_FILE_NAME)
+        with open(file, "a") as data_file:  # append row to existing file
+            log_file("Writing out to file {} => {}".format(file, data), constants.LOG_LEVEL)
+            data_file.write(data + "\r\n")
     except:
-        log_file('UNABLE TO WRITE TO FILE {}'.format(eval(constants.DATA_FILE_NAME)), constants.LOG_LEVEL)
+        log_file("Unable to write out to file {}".format(eval(constants.DATA_FILE_NAME)), constants.LOG_LEVEL)
     file_lock.release()
 
 def verbose(msg, enable=True):
@@ -188,3 +246,42 @@ def verbose(msg, enable=True):
     """
     if enable:
         print(msg)
+
+def mem_mon():
+    import gc
+    free = gc.mem_free()
+    alloc = gc.mem_alloc()
+    tot = free + alloc
+    print("free {:2.0f}%, alloc {:2.0f}%".format(100 * free / tot, 100 - 100 * free / tot), end="\r")
+
+def create_device(*args, **kwargs):
+    ls = []
+    for kwarg in kwargs:
+        ls.append(kwarg + "=" + str(kwargs[kwarg]))
+    ls = ",".join(ls)
+    if ls:
+        ls = "," + ls
+    exec("import " + args[0].split(".")[0], globals())  # Imports the module.
+    exec( args[0] + "=" + args[0].split(".")[0] + "." + args[0].split(".")[1].split("_")[0] + "(\"" + args[0].split(".")[1].split("_")[1] + "\"" + ls + ")", globals())  # Creates the object.
+    return eval(args[0])
+
+def delete_device(device):
+    exec("del " + device, globals())  # Deletes the object.
+
+def execute(device, tasks):
+    """Manages processes list at thread starting/ending.
+
+    Params:
+        device(str)
+        tasks(list)
+    """
+    global processes_access_lock, processes
+    timeout = constants.DATA_ACQUISITION_INTERVAL
+    if processes_access_lock.acquire(1, timeout):
+        processes.append(_thread.get_ident())
+        processes_access_lock.release()
+        create_device(device, tasks=tasks)
+        if processes_access_lock.acquire(1, timeout):
+            processes.remove(_thread.get_ident())
+            processes_access_lock.release()
+    return

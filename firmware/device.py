@@ -27,132 +27,104 @@ import constants
 
 class DEVICE(object):
 
-    def __init__(self):
-        self._get_config()
-        self._set_uart()
-        self._set_gpio()
-        self._set_led()
+    def __init__(self, *args, **kwargs):
+        self.instance = args[0]
+        self.name = self.__module__ + "." + self.__qualname__ + "_" + self.instance
+        self.get_config()
+        self.init_uart()
+        self.init_gpio()
+        self.init_led()
 
-    def _get_config(self):
+    def get_config(self):
         """Gets the device configuration."""
-        self.config = utils.read_config(self.config_file)[self.__qualname__]
-        utils.log_file('{} => configuration loaded'.format(self.__qualname__), constants.LOG_LEVEL)  # DEBUG
         try:
-          utils.log_file('{} => activation rate: {}, warmup time: {}, activation delay: {}'.format(self.__qualname__, utils.time_display(self.config['Activation_Rate']), utils.time_display(self.config['Warmup_Time']), utils.time_display(self.config['Activation_Delay'])), constants.LOG_LEVEL)
-        except KeyError:
-          pass
-        return self.config
-
-    def _set_uart(self):
-        """Creates the device uart object."""
-        try:
-            self.uart = pyb.UART(int(self.config['Uart']['Bus']), int(self.config['Uart']['Baudrate']))
-            return True
-        except (KeyError, ValueError):
-            return False
-        utils.log_file("{} => unable to open uart {}".format(self.__qualname__, self.config['Uart']['Bus']), constants.LOG_LEVEL)
-        return False
-
-    def _init_uart(self):
-        """Initializes the uart bus."""
-        try:
-            self.uart.init(int(self.config['Uart']['Baudrate']),
-                bits=int(self.config['Uart']['Bits']),
-                parity=eval(self.config['Uart']['Parity']),
-                stop=int(self.config['Uart']['Stop']),
-                timeout=int(self.config['Uart']['Timeout']),
-                flow=int(self.config['Uart']['Flow_Control']),
-                timeout_char=int(self.config['Uart']['Timeout_Char']),
-                read_buf_len=int(self.config['Uart']['Read_Buf_Len']))
+            self.config = utils.read_config(self.config_file)[self.__qualname__][self.instance]
+            return self.config
         except:
-            utils.log_file("{} => unable to init uart".format(self.__qualname__), constants.LOG_LEVEL)
+            utils.log_file("{} => unable to load configuration.".format(self.name), constants.LOG_LEVEL)  # DEBUG
             return False
-        return True
 
-    def _deinit_uart(self):
+    def init_uart(self):
+        """Initializes the uart bus."""
+        if "Uart" in self.config:
+            try:
+                self.uart = pyb.UART(int(constants.UARTS[constants.DEVICES[self.__qualname__ + "_" + self.instance]]), int(self.config["Uart"]["Baudrate"]))
+                self.uart.init(int(self.config["Uart"]["Baudrate"]),
+                    bits=int(self.config["Uart"]["Bits"]),
+                    parity=eval(self.config["Uart"]["Parity"]),
+                    stop=int(self.config["Uart"]["Stop"]),
+                    timeout=int(self.config["Uart"]["Timeout"]),
+                    flow=int(self.config["Uart"]["Flow_Control"]),
+                    timeout_char=int(self.config["Uart"]["Timeout_Char"]),
+                    read_buf_len=int(self.config["Uart"]["Read_Buf_Len"]))
+            except (ValueError) as err:
+                utils.log_file("{} => {}.".format(self.name, err), constants.LOG_LEVEL)
+
+    def deinit_uart(self):
         """Deinitializes the uart bus."""
         self.uart.deinit()
 
-    def _flush_uart(self):
+    def flush_uart(self):
         """Flushes the uart read buffer."""
         self.uart.read()
 
-    def _set_gpio(self):
+    def init_gpio(self):
         """Creates the device pin object."""
-        try:
-            self.gpio = pyb.Pin(self.config['Ctrl_Pin'], pyb.Pin.OUT)
-            self.gpio.off()  # set pin to off
-            return True
-        except ValueError:
-            self.gpio = None  # Needed for scheduling virtual devices
-            return True
-        except KeyError:
-            utils.log_file("{} => gpio not defined".format(self.__qualname__), constants.LOG_LEVEL)
-            return False
-        utils.log_file("{} => unable to set gpio {}".format(self.__qualname__, self.config['Ctrl_Pin']), constants.LOG_LEVEL)
-        return False
+        if "Ctrl_Pin" in self.config:
+            try:
+                self.gpio = pyb.Pin(self.config["Ctrl_Pin"], pyb.Pin.OUT)
+            except (ValueError) as err:
+                utils.log_file("{} => {}.".format(self.name, err), constants.LOG_LEVEL)
 
-    def _set_led(self):
+    def init_led(self):
         """Creates the device led object."""
         try:
-            self.led = pyb.LED(int(self.config['Led']))
-            return True
-        except (KeyError, ValueError):
-            return False
-        utils.log_file("{} => unable to led {}".format(self.__qualname__, self.config['Led']), constants.LOG_LEVEL)
-        return False
-
-    def _led_on(self):
-        """Power on the device led."""
-        if self.led:
-            self.led.on()
-
-    def _led_off(self):
-        """Power off the device led."""
-        if self.led:
+            self.led = pyb.LED(constants.LEDS["RUN"])
             self.led.off()
+        except ValueError as err:
+            utils.log_file("{} => {}.".format(self.name, err), constants.LOG_LEVEL)
+
+    def led_on(self):
+        """Power on the device led."""
+        self.led.on()
+
+    def led_on(self):
+        """Power off the device led."""
+        self.led.off()
 
     def init_power(self):
         """Initializes power status at startup."""
-        try:
-            if self.config['Status'] == 1:
-                utime.sleep_ms(100)
-                self.on()
-        except:
-            utils.log_file('{} => unable to get device status'.format(self.__qualname__), constants.LOG_LEVEL)  # DEBUG
-            return False
-        return True
-
-    def off(self):
-        """Turns off device."""
-        try:
-            self.gpio.off()  # set pin to off
-            self.config['Status'] = 0
-            utils.log_file('{} => OFF'.format(self.__qualname__), constants.LOG_LEVEL)  # DEBUG
-        except:
-            utils.log_file('{} => unable to power off device'.format(self.__qualname__), constants.LOG_LEVEL)  # DEBUG
-            return False
-        return True
+        if self.config["Status"] == 1:
+            utime.sleep_ms(100)
+            self.on()
+        else:
+            self.off()
 
     def on(self):
         """Turns on device."""
-        try:
+        if hasattr(self, "gpio"):
             self.gpio.on()  # set pin to off
-            self.config['Status'] = 1
-            utils.log_file('{} => ON'.format(self.__qualname__), constants.LOG_LEVEL)  # DEBUG
-        except:
-            utils.log_file('{} => unable to power on device'.format(self.__qualname__), constants.LOG_LEVEL)  # DEBUG
-            return False
-        return True
+        utils.status_table[self.name] = 1
+        utils.log_file("{} => ON".format(self.name), constants.LOG_LEVEL)  #
+        return
+
+    def off(self):
+        """Turns off device."""
+        if hasattr(self, "gpio"):
+            self.gpio.off()  # set pin to off
+        utils.status_table[self.name] = 0
+        utils.log_file("{} => OFF".format(self.name), constants.LOG_LEVEL)  # DEBUG
+        return
 
     def toggle(self):
-        if self.gpio.value():
-            self.gpio.off()
-        else:
-            self.gpio.on()
+        """Toggles the device status between on and off."""
+        if hasattr(self, "gpio"):
+            if self.gpio.value():
+                self.gpio.off()
+            else:
+                self.gpio.on()
+        return
 
     def status(self):
-        if self.gpio.value():
-            return 'on'
-        else:
-            return 'off'
+        """Returns the current device status."""
+        return constants.DEVICE_STATUS[utils.status_table[self.name]]

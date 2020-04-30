@@ -1,9 +1,0 @@
-# boot.py -- run on boot-up
-import pyb
-import uos
-pyb.freq(84000000)
-pyb.usb_mode('VCP') # act only as serial, necessary to map usb device to static /dev/tty
-try:
-    uos.mount(pyb.SDCard(), '/sd')
-except:
-    print("UNABLE TO MOUNT SD")

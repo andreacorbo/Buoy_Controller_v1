@@ -23,42 +23,40 @@
 import machine
 import pyb
 import utime
-import uos
 import uselect
-import sys
-from board import BOARD
+from pyboard import BOARD
 from scheduler import SCHEDULER
 from menu import MENU
 from tools.session import SESSION
-import tools.utils as utils
 import constants
-import gc
 import _thread
+import tools.utils as utils
+import gc
 
 for i in reversed(range(5)):  # DEBUG Delays main loop to stop before sleep.
-    print('{:> 2d}" TO STARTUP'.format(i), end='\r')
+    print("{:> 2d}\" to system startup...".format(i), end="\r")
     utime.sleep(1)
-print('\r')
+print("\r")
 
-utils.log_file('RESET CAUSE: {}'.format(machine.reset_cause()), constants.LOG_LEVEL)
+utils.log_file("Reset cause: {}".format(machine.reset_cause()), constants.LOG_LEVEL)  # DEBUG
 
 board = BOARD()  # Creates a board object.
 
-session = SESSION(board=board, timeout=constants.SESSION_TIMEOUT)  # Starts the remote session.
+session = SESSION(board=board, timeout=constants.SESSION_TIMEOUT)  # Starts up the remote session.
 
-wdt = machine.WDT(timeout=constants.WD_TIMEOUT)  # Starts the watchdog.
+#_wdt = machine.WDT(timeout=constants.WD_TIMEOUT)  # Startsup the watchdog timer.
 
-scheduler = SCHEDULER(board)  # Creates the scheduler object.
+scheduler = SCHEDULER()  # Creates the scheduler object.
 
-menu = MENU(board, scheduler)  # Creates the menu object.
+_poll = uselect.poll()  # Creates a poll object to listen to.
+for input in board.input:
+    _poll.register(input, uselect.POLLIN)
+esc_cnt = 0  # Initializes the escape character counter.
 
 t0 = utime.time()  # Gets timestamp at startup.
 
-rx = ''
-
-
 while True:
-    wdt.feed()  # Resets the watchdog timer.
+    #_wdt.feed()  # Resets the watchdog timer.
     if board.escaped:
         if not session.loggedin:
             pyb.repl_uart(board.uart)
@@ -78,6 +76,7 @@ while True:
     elif board.prompted:  # Prompts user for interactive or file mode.
         if board.set_mode(5):
             if board.interactive:
+                menu = MENU(board, scheduler)  # Creates the menu object.
                 _thread.start_new_thread(menu.main, ())
             elif board.connected:
                 pyb.repl_uart(None)  # Disables repl to avoid byte collision
@@ -89,28 +88,30 @@ while True:
             board.interactive = False
             session.init()
     else:
-        r, w, x = uselect.select(board.input,[],[],0)
-        if r:
-            try:
-                rx += chr(ord(r[0].read(1)))
-            except:
-                pass
-            if constants.ESC_SEQ in rx:
-                if r[0] == board.usb:
-                    board.prompted = True
-                else:
-                    board.escaped = True
-                board.interrupted = False
-                rx = ''
-                continue
+        poll = _poll.ipoll(0, 0)
+        for stream in poll:
+            if stream[0].read(1).decode("utf-8") == constants.ESC_CHAR:
+                esc_cnt += 1
+                if  esc_cnt  == 3:
+                    if stream[0] == board.usb:
+                        board.prompted = True
+                    else:
+                        board.escaped = True
+                    board.interrupted = False
+                    esc_cnt = 0
+                    continue
+
         utime.sleep_ms(100)  # Adds 100ms delay to allow threads startup.
         t0 = utime.time()  # Gets timestamp before sleep.
-        if not scheduler.threads and not board.interrupted and not board.usb.isconnected() :  # Waits for no running threads and no usb connetion before sleep.
-            if scheduler.next_event > t0:
-                utils.log_file('SLEEP FOR {}'.format(utils.time_display(scheduler.next_event - t0)), constants.LOG_LEVEL)  # DEBUG
+        if not utils.processes and not board.interrupted and not board.usb.isconnected():  # Waits for no running threads and no usb connetion before sleep.
+            if utils.files_to_send():  # Checks for data files to send.
+                _thread.start_new_thread(utils.execute, ("quasar_gsmq2403.MODEM_1", ["data_transfer"]))  # Sends data files before sleeping.
+            elif scheduler.next_event > t0:
+                utils.log_file("Sleeping for {}".format(utils.time_display(scheduler.next_event - t0)), constants.LOG_LEVEL)  # DEBUG
                 board.go_sleep(scheduler.next_event - t0)  # Puts board in sleep mode.
                 t0 = utime.time()  # Gets timestamp at wakeup.
         board.lastfeed = utime.time()
-        wdt.feed()  # Resets the watchdog timer.
-        scheduler.scheduled(t0)  # Checks for scheduled events in event table.
-        gc.collect()  # Frees ram.
+        #_wdt.feed()  # Resets the watchdog timer.
+        scheduler.scheduled(t0)  # Checks out for scheduled events in event table.
+    gc.collect()  # Frees ram.
+    utils.mem_mon()  # DEBUG
