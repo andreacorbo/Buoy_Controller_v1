@@ -45,7 +45,7 @@ class MENU(object):
     def _board_menu(self):
         """Writes board menu."""
         print("\r\n" +
-        "BOARD\r\n" +
+        "PYBOARD\r\n" +
         "[1] DEVICES\r\n" +
         "[2] DATA FILES\r\n" +
         "[3] NEXT EVENTS\r\n" +
@@ -147,7 +147,7 @@ class MENU(object):
         """Shows device configuration."""
         print("\r\n\r\nCONFIGURATION")
 
-        with open(constants.CONFIG_PATH + "/" + device.__qualname__ + "." + constants.CONFIG_TYPE, "r") as file:
+        with open(constants.CONFIG_DIR + "/" + device.__qualname__ + "." + constants.CONFIG_TYPE, "r") as file:
             print(file.read())
 
     def main(self):

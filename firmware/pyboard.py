@@ -24,14 +24,12 @@ import pyb
 import uos
 import utime
 import uselect
-from device import DEVICE
-import _thread
 import tools.utils as utils
 import constants
-import tools.inspect as inspect
-import sys
+from device import DEVICE
 
-class BOARD(object):
+class PYBOARD(object):
+    """Creates a board object."""
 
     rtc = pyb.RTC()
 
@@ -46,8 +44,8 @@ class BOARD(object):
         }
 
     def __init__(self):
-        self.config_path  = constants.CONFIG_PATH
-        self.config_file = __name__ + "." + constants.CONFIG_TYPE
+        self.config_path  = constants.CONFIG_DIR
+        #self.config_file = __name__ + "." + constants.CONFIG_TYPE
         self.lastfeed = utime.time()
         self.usb = None
         self.interrupt = None
@@ -82,7 +80,7 @@ class BOARD(object):
     def get_config(self):
         """Gets the device configuration."""
         try:
-            self.config = utils.read_config(self.config_file)[self.__qualname__]["1"]
+            self.config = utils.read_config(self.__module__ + "." + constants.CONFIG_TYPE)[self.__qualname__]["1"]
             return self.config
         except:
             utils.log_file("{} => unable to load configuration.".format(self.__qualname__), constants.LOG_LEVEL)  # DEBUG
@@ -146,10 +144,10 @@ class BOARD(object):
     def init_devices(self):
         """ Initializes all configured devices. """
         utils.log_file("Initializing devices...", constants.LOG_LEVEL)
-        for file in uos.listdir(constants.CONFIG_PATH):
+        for file in uos.listdir(constants.CONFIG_DIR):
             f_name = file.split(".")[0]
             f_ext =  file.split(".")[1]
-            if f_ext == constants.CONFIG_TYPE:  #  and f_name.split("_")[0] == "dev"
+            if f_ext == constants.CONFIG_TYPE and f_name[0] != "_":
                 cfg = utils.read_config(file)
                 for key in cfg.keys():
                     for obj in cfg[key]:
@@ -207,20 +205,18 @@ class BOARD(object):
         pyb.stop()
         self.pwr_led()
 
-
 class ADC(DEVICE):
 
-    def __init__(self, *args, **kwargs):
-        self.config_file = __name__ + "." + constants.CONFIG_TYPE
-        DEVICE.__init__(self, *args, **kwargs)
+    def __init__(self, instance, tasks=list()):
+        DEVICE.__init__(self, instance)
         data_tasks = ["log"]
-        if "tasks" in kwargs:
-            if any(elem in data_tasks for elem in kwargs["tasks"]):
+        if tasks:
+            if any(elem in data_tasks for elem in tasks):
                 if self.main():
-                    for task in kwargs["tasks"]:
+                    for task in tasks:
                         eval("self." + task + "()", {"self":self})
             else:
-                for task in kwargs["tasks"]:
+                for task in tasks:
                     eval("self." + task + "()", {"self":self})
 
     def start_up(self):

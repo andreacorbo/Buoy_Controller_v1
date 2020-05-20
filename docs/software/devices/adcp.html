@@ -1,0 +1,304 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>ADCP &mdash; Buoy Controller v1 1.1 stable documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/css/theme_overrides.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="CTD" href="ctd.html" />
+    <link rel="prev" title="Session" href="../session.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Buoy Controller v1
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.1 stable
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../general.html">General informations</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Software reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../index.html#base-system">Base system</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html#devices-modules">Devices modules</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">ADCP</a><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="ctd.html">CTD</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gps.html">GPS - Global Position System</a></li>
+<li class="toctree-l3"><a class="reference internal" href="meteo.html">METEO</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modem.html">MODEM</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#firmware-micropython">Firmware (Micropython)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../hardware/index.html">Hardware reference</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Buoy Controller v1</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Software reference</a> &raquo;</li>
+        
+      <li>ADCP</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../../_sources/software/devices/adcp.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="adcp">
+<h1>ADCP<a class="headerlink" href="#adcp" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<span class="target" id="module-dev_nortek"></span><dl class="class">
+<dt id="dev_nortek.AQUADOPP">
+<em class="property">class </em><code class="descclassname">dev_nortek.</code><code class="descname">AQUADOPP</code><span class="sig-paren">(</span><em>instance</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dev_nortek.html#AQUADOPP"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dev_nortek.AQUADOPP" title="Permalink to this definition">¶</a></dt>
+<dd><p>The summary line for a class docstring should fit on one line.</p>
+<p>If the class has public attributes, they may be documented here
+in an <code class="docutils literal notranslate"><span class="pre">Attributes</span></code> section and follow the same formatting as a
+function’s <code class="docutils literal notranslate"><span class="pre">Args</span></code> section. Alternatively, attributes may be documented
+inline with the attribute’s declaration (see __init__ method below).</p>
+<p>Properties created with the <code class="docutils literal notranslate"><span class="pre">&#64;property</span></code> decorator should be documented
+in the property’s getter method.</p>
+<dl class="docutils">
+<dt>Attributes:</dt>
+<dd>attr1 (str): Description of <cite>attr1</cite>.
+attr2 (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>, optional): Description of <cite>attr2</cite>.</dd>
+</dl>
+<dl class="method">
+<dt id="dev_nortek.AQUADOPP.cmd_iface">
+<code class="descname">cmd_iface</code><span class="sig-paren">(</span><em>cmd</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dev_nortek.html#AQUADOPP.cmd_iface"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dev_nortek.AQUADOPP.cmd_iface" title="Permalink to this definition">¶</a></dt>
+<dd><p>Command interface.
+Sends commands to instrument.</p>
+<dl class="docutils">
+<dt>Params:</dt>
+<dd>cmd(bytes)</dd>
+<dt>Returns:</dt>
+<dd>None</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="dev_nortek.AQUADOPP.data_iface">
+<code class="descname">data_iface</code><span class="sig-paren">(</span><em>reply</em>, <em>cmd=None</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dev_nortek.html#AQUADOPP.data_iface"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dev_nortek.AQUADOPP.data_iface" title="Permalink to this definition">¶</a></dt>
+<dd><p>Data interface.
+Parse instrument replies.</p>
+<dl class="docutils">
+<dt>Params:</dt>
+<dd>reply(bytes)
+cmd(bytes)</dd>
+<dt>Returns:</dt>
+<dd>True or False</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="dev_nortek.AQUADOPP.main">
+<code class="descname">main</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dev_nortek.html#AQUADOPP.main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dev_nortek.AQUADOPP.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>Captures instrument data.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="dev_nortek.AQUADOPP.start_up">
+<code class="descname">start_up</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dev_nortek.html#AQUADOPP.start_up"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dev_nortek.AQUADOPP.start_up" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class methods are similar to regular functions.</p>
+<dl class="docutils">
+<dt>Note:</dt>
+<dd>Do not include the <cite>self</cite> parameter in the <code class="docutils literal notranslate"><span class="pre">Args</span></code> section.</dd>
+<dt>Args:</dt>
+<dd>param1: The first parameter.
+param2: The second parameter.</dd>
+<dt>Returns:</dt>
+<dd>True if successful, False otherwise.</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="dev_nortek.AQUADOPP.verify_checksum">
+<code class="descname">verify_checksum</code><span class="sig-paren">(</span><em>reply</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dev_nortek.html#AQUADOPP.verify_checksum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dev_nortek.AQUADOPP.verify_checksum" title="Permalink to this definition">¶</a></dt>
+<dd><p>Verifies data checksum.</p>
+<dl class="docutils">
+<dt>Params:</dt>
+<dd>reply(bytes)</dd>
+<dt>Returns:</dt>
+<dd>True or False</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="ctd.html" class="btn btn-neutral float-right" title="CTD" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="../session.html" class="btn btn-neutral float-left" title="Session" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, Andrea Corbo
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

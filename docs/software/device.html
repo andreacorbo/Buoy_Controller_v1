@@ -1,0 +1,314 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Device &mdash; Buoy Controller v1 1.1 stable documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme_overrides.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Main" href="main.html" />
+    <link rel="prev" title="Constants" href="constants.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Buoy Controller v1
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.1 stable
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../general.html">General informations</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Software reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="index.html#base-system">Base system</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="configs/index.html">configs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tools/index.html">tools</a></li>
+<li class="toctree-l3"><a class="reference internal" href="boot.html">boot</a></li>
+<li class="toctree-l3"><a class="reference internal" href="constants.html">constants</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">device</a></li>
+<li class="toctree-l3"><a class="reference internal" href="main.html">main</a></li>
+<li class="toctree-l3"><a class="reference internal" href="menu.html">menu</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyboard.html">pyboard</a></li>
+<li class="toctree-l3"><a class="reference internal" href="scheduler.html">scheduler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="session.html">session</a></li>
+<li class="toctree-l3"><a class="reference internal" href="index.html#multithreading">Multithreading</a></li>
+<li class="toctree-l3"><a class="reference internal" href="index.html#watchdog">Watchdog</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#devices-modules">Devices modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#firmware-micropython">Firmware (Micropython)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../hardware/index.html">Hardware reference</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Buoy Controller v1</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Software reference</a> &raquo;</li>
+        
+      <li>Device</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/software/device.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="device">
+<h1>Device<a class="headerlink" href="#device" title="Permalink to this headline">¶</a></h1>
+<p>The <code class="xref py py-mod docutils literal notranslate"><span class="pre">device</span></code> module</p>
+<dl class="class">
+<dt id="device.DEVICE">
+<em class="property">class </em><code class="descclassname">device.</code><code class="descname">DEVICE</code><span class="sig-paren">(</span><em>instance</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/device.html#DEVICE"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#device.DEVICE" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a device object.</p>
+<dl class="docutils">
+<dt>Parameters:</dt>
+<dd><code class="docutils literal notranslate"><span class="pre">instance</span></code> <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a> The object instance number (if multiple devices
+are present) needs a correspondent section in the config_file.</dd>
+</dl>
+<dl class="method">
+<dt id="device.DEVICE.deinit_uart">
+<code class="descname">deinit_uart</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/device.html#DEVICE.deinit_uart"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#device.DEVICE.deinit_uart" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deinitializes the uart bus.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="device.DEVICE.flush_uart">
+<code class="descname">flush_uart</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/device.html#DEVICE.flush_uart"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#device.DEVICE.flush_uart" title="Permalink to this definition">¶</a></dt>
+<dd><p>Flushes the uart read buffer.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="device.DEVICE.get_config">
+<code class="descname">get_config</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/device.html#DEVICE.get_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#device.DEVICE.get_config" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets the device configuration.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="device.DEVICE.init_gpio">
+<code class="descname">init_gpio</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/device.html#DEVICE.init_gpio"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#device.DEVICE.init_gpio" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates the device pin object.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="device.DEVICE.init_led">
+<code class="descname">init_led</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/device.html#DEVICE.init_led"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#device.DEVICE.init_led" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates the device led object.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="device.DEVICE.init_power">
+<code class="descname">init_power</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/device.html#DEVICE.init_power"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#device.DEVICE.init_power" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initializes power status at startup.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="device.DEVICE.init_uart">
+<code class="descname">init_uart</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/device.html#DEVICE.init_uart"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#device.DEVICE.init_uart" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initializes the uart bus.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="device.DEVICE.led_on">
+<code class="descname">led_on</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/device.html#DEVICE.led_on"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#device.DEVICE.led_on" title="Permalink to this definition">¶</a></dt>
+<dd><p>Power off the device led.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="device.DEVICE.off">
+<code class="descname">off</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/device.html#DEVICE.off"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#device.DEVICE.off" title="Permalink to this definition">¶</a></dt>
+<dd><p>Turns off device.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="device.DEVICE.on">
+<code class="descname">on</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/device.html#DEVICE.on"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#device.DEVICE.on" title="Permalink to this definition">¶</a></dt>
+<dd><p>Turns on device.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="device.DEVICE.status">
+<code class="descname">status</code><span class="sig-paren">(</span><em>status=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/device.html#DEVICE.status"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#device.DEVICE.status" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns or sets the current device status.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="device.DEVICE.toggle">
+<code class="descname">toggle</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/device.html#DEVICE.toggle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#device.DEVICE.toggle" title="Permalink to this definition">¶</a></dt>
+<dd><p>Toggles the device status between on and off.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="main.html" class="btn btn-neutral float-right" title="Main" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="constants.html" class="btn btn-neutral float-left" title="Constants" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, Andrea Corbo
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

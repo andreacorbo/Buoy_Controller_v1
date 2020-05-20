@@ -1,0 +1,53 @@
+/* override table width restrictions */
+@media screen and (min-width: 767px) {
+    .wy-table-responsive table td {
+      /* !important prevents the common CSS stylesheets from overriding
+         this as on RTD they are loaded after this stylesheet */
+         white-space: normal !important;
+     }
+
+     .wy-table-responsive {
+         overflow: visible !important;
+     }
+}
+
+.rst-content dl dl.docutils dt {
+    margin-bottom: 6px;
+    border: none;
+    border-left: none;
+    background: none;
+    color: #555;
+    font-weight: bold;
+}
+
+.rst-content code.xref.py.py-obj {
+  font-style: italic;
+  color: #2980B9;
+}
+
+
+/* Styling directory trees */
+.dirtree ul li.toctree-l1,
+.dirtree ul li ul li.toctree-l2
+{
+    list-style-type: none;
+}
+
+.dirtree ul li.toctree-l1 a
+{
+    display: block;
+    width: 28px;
+    height: 35px;
+    padding-left: 30px;
+    background-repeat: no-repeat;
+}
+
+.dirtree ul li.toctree-l1 a:only-child
+{
+    background-image: url('../../source/images/file_icon.png');
+}
+
+.dirtree ul li.toctree-l1 a:not(:only-child)
+{
+    background-image: url('../../source/images/folder_icon.png');
+}

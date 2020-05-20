@@ -1,0 +1,1016 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>dev_nortek &mdash; Buoy Controller v1 1.1 stable documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme_overrides.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Buoy Controller v1
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.1 stable
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../general.html">General informations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../software/index.html">Software reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hardware/index.html">Hardware reference</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Buoy Controller v1</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Module code</a> &raquo;</li>
+        
+      <li>dev_nortek</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for dev_nortek</h1><div class="highlight"><pre>
+<span></span><span class="c1"># The MIT License (MIT)</span>
+<span class="c1">#</span>
+<span class="c1"># Copyright (c) 2018 OGS</span>
+<span class="c1">#</span>
+<span class="c1"># Permission is hereby granted, free of charge, to any person obtaining a copy</span>
+<span class="c1"># of this software and associated documentation files (the &quot;Software&quot;), to deal</span>
+<span class="c1"># in the Software without restriction, including without limitation the rights</span>
+<span class="c1"># to use, copy, modify, merge, publish, distribute, sublicense, and/or sell</span>
+<span class="c1"># copies of the Software, and to permit persons to whom the Software is</span>
+<span class="c1"># furnished to do so, subject to the following conditions:</span>
+<span class="c1">#</span>
+<span class="c1"># The above copyright notice and this permission notice shall be included in all</span>
+<span class="c1"># copies or substantial portions of the Software.</span>
+<span class="c1">#</span>
+<span class="c1"># THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR</span>
+<span class="c1"># IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,</span>
+<span class="c1"># FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE</span>
+<span class="c1"># AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER</span>
+<span class="c1"># LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,</span>
+<span class="c1"># OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE</span>
+<span class="c1"># SOFTWARE.</span>
+<span class="kn">import</span> <span class="nn">utime</span>
+<span class="kn">from</span> <span class="nn">device</span> <span class="k">import</span> <span class="n">DEVICE</span>
+<span class="kn">import</span> <span class="nn">tools.utils</span> <span class="k">as</span> <span class="nn">utils</span>
+<span class="kn">import</span> <span class="nn">constants</span>
+<span class="kn">import</span> <span class="nn">ubinascii</span>
+<span class="kn">import</span> <span class="nn">math</span>
+
+<span class="sd">&quot;&quot;&quot;Module text here&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="AQUADOPP"><a class="viewcode-back" href="../software/devices/adcp.html#dev_nortek.AQUADOPP">[docs]</a><span class="k">class</span> <span class="nc">AQUADOPP</span><span class="p">(</span><span class="n">DEVICE</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The summary line for a class docstring should fit on one line.</span>
+
+<span class="sd">    If the class has public attributes, they may be documented here</span>
+<span class="sd">    in an ``Attributes`` section and follow the same formatting as a</span>
+<span class="sd">    function&#39;s ``Args`` section. Alternatively, attributes may be documented</span>
+<span class="sd">    inline with the attribute&#39;s declaration (see __init__ method below).</span>
+
+<span class="sd">    Properties created with the ``@property`` decorator should be documented</span>
+<span class="sd">    in the property&#39;s getter method.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        attr1 (str): Description of `attr1`.</span>
+<span class="sd">        attr2 (:obj:`int`, optional): Description of `attr2`.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+
+    <span class="n">modes</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x00\x00</span><span class="s2">&quot;</span><span class="p">:</span><span class="s2">&quot;Firmware upgrade&quot;</span><span class="p">,</span>
+        <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x01\x00</span><span class="s2">&quot;</span><span class="p">:</span><span class="s2">&quot;Measurement&quot;</span><span class="p">,</span>
+        <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x02\x00</span><span class="s2">&quot;</span><span class="p">:</span><span class="s2">&quot;Command&quot;</span><span class="p">,</span>
+        <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x04\x00</span><span class="s2">&quot;</span><span class="p">:</span><span class="s2">&quot;Data retreival&quot;</span><span class="p">,</span>
+        <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x05\x00</span><span class="s2">&quot;</span><span class="p">:</span><span class="s2">&quot;Confirmation&quot;</span><span class="p">,</span>
+        <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x0a\x0d\x43\x6f\x6e\x66\x69\x72\x6d\x3a</span><span class="s2">&quot;</span><span class="p">:</span><span class="s2">&quot;Confirmation&quot;</span>
+        <span class="p">}</span>
+
+    <span class="n">coord_system</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="mi">0</span><span class="p">:</span><span class="s2">&quot;ENU&quot;</span><span class="p">,</span>
+        <span class="mi">1</span><span class="p">:</span><span class="s2">&quot;XYZ&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span><span class="s2">&quot;BEAM&quot;</span>
+        <span class="p">}</span>
+
+    <span class="n">head_cfg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Pressure sensor&quot;</span><span class="p">,</span> <span class="s2">&quot;Magnetometer sensor&quot;</span><span class="p">,</span> <span class="s2">&quot;Tilt sensor&quot;</span><span class="p">)</span>
+
+    <span class="n">hw_cfg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Recorder installed&quot;</span><span class="p">,</span> <span class="s2">&quot;Compass installed&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Example of docstring on the __init__ method.</span>
+
+<span class="sd">        The __init__ method may be documented in either the class level</span>
+<span class="sd">        docstring, or as a docstring on the __init__ method itself.</span>
+
+<span class="sd">        Either form is acceptable, but the two should not be mixed. Choose one</span>
+<span class="sd">        convention to document the __init__ method and be consistent with it.</span>
+
+<span class="sd">        Note:</span>
+<span class="sd">            Do not include the `self` parameter in the ``Args`` section.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            param1 (str): Description of `param1`.</span>
+<span class="sd">            param2 (:obj:`int`, optional): Description of `param2`. Multiple</span>
+<span class="sd">                lines are supported.</span>
+<span class="sd">            param3 (:obj:`list` of :obj:`str`): Description of `param3`.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">instance</span> <span class="o">=</span> <span class="n">instance</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config_file</span> <span class="o">=</span> <span class="vm">__name__</span> <span class="o">+</span> <span class="s2">&quot;.&quot;</span> <span class="o">+</span> <span class="n">constants</span><span class="o">.</span><span class="n">CONFIG_TYPE</span>
+        <span class="n">DEVICE</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">instance</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">timeout</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;Timeout&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">usr_cfg</span> <span class="o">=</span> <span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hw_cfg</span> <span class="o">=</span> <span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">head_cfg</span> <span class="o">=</span> <span class="p">()</span>
+
+<div class="viewcode-block" id="AQUADOPP.start_up"><a class="viewcode-back" href="../software/devices/adcp.html#dev_nortek.AQUADOPP.start_up">[docs]</a>    <span class="k">def</span> <span class="nf">start_up</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Class methods are similar to regular functions.</span>
+
+<span class="sd">        Note:</span>
+<span class="sd">            Do not include the `self` parameter in the ``Args`` section.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            param1: The first parameter.</span>
+<span class="sd">            param2: The second parameter.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            True if successful, False otherwise.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_power</span><span class="p">():</span>
+            <span class="n">utime</span><span class="o">.</span><span class="n">sleep_ms</span><span class="p">(</span><span class="mi">500</span><span class="p">)</span>  <span class="c1"># DEBUG Allows instrument to start properly prior to send commands</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_uart</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_set_clock</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_set_usr_cfg</span><span class="p">()</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_cfg</span><span class="p">():</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_parse_cfg</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_start_delayed</span><span class="p">()</span>
+                <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+    <span class="k">def</span> <span class="nf">_timeout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Checks if a ``timeout`` occourred</span>
+
+<span class="sd">        Params:</span>
+<span class="sd">            start(int)</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            True or False</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">timeout</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">timeout</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">timeout</span>
+        <span class="k">if</span> <span class="n">timeout</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">utime</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start</span> <span class="o">&gt;=</span> <span class="n">timeout</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">_get_reply</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns replies from instrument.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            bytes or None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">utime</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_timeout</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">timeout</span><span class="p">):</span>
+                <span class="k">return</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">uart</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">uart</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+                <span class="k">return</span> <span class="n">x</span>
+
+    <span class="k">def</span> <span class="nf">_ack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rx</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Parses acknowledge bytes sequence.</span>
+
+<span class="sd">        Params:</span>
+<span class="sd">            reply(bytes)</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            True or False</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">rx</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">rx</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="o">==</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x06\x06</span><span class="s2">&quot;</span><span class="p">:</span>
+                <span class="n">utils</span><span class="o">.</span><span class="n">verbose</span><span class="p">(</span><span class="s2">&quot;&lt;= ACK&quot;</span><span class="p">,</span> <span class="n">constants</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">)</span>
+                <span class="k">return</span> <span class="kc">True</span>
+            <span class="k">elif</span> <span class="n">rx</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="o">==</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x15\x15</span><span class="s2">&quot;</span><span class="p">:</span>
+                <span class="n">utils</span><span class="o">.</span><span class="n">verbose</span><span class="p">(</span><span class="s2">&quot;&lt;= NAK&quot;</span><span class="p">,</span> <span class="n">constants</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">)</span>
+                <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span>
+
+<div class="viewcode-block" id="AQUADOPP.cmd_iface"><a class="viewcode-back" href="../software/devices/adcp.html#dev_nortek.AQUADOPP.cmd_iface">[docs]</a>    <span class="k">def</span> <span class="nf">cmd_iface</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmd</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Command interface.</span>
+<span class="sd">        Sends commands to instrument.</span>
+
+<span class="sd">        Params:</span>
+<span class="sd">            cmd(bytes)</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">cmd</span> <span class="o">==</span> <span class="sa">b</span><span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_break</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">cmd</span> <span class="o">==</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x3F</span><span class="s2">&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_get_cmd_list</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">cmd</span> <span class="o">==</span> <span class="sa">b</span><span class="s2">&quot;SR&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_start_measurement</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">uart</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+            <span class="k">return</span></div>
+
+<div class="viewcode-block" id="AQUADOPP.data_iface"><a class="viewcode-back" href="../software/devices/adcp.html#dev_nortek.AQUADOPP.data_iface">[docs]</a>    <span class="k">def</span> <span class="nf">data_iface</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reply</span><span class="p">,</span> <span class="n">cmd</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Data interface.</span>
+<span class="sd">        Parse instrument replies.</span>
+
+<span class="sd">        Params:</span>
+<span class="sd">            reply(bytes)</span>
+<span class="sd">            cmd(bytes)</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            True or False</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ack</span><span class="p">(</span><span class="n">reply</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">reply</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="s2">&quot;self._&quot;</span> <span class="o">+</span> <span class="n">cmd</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;ascii&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot;(reply)&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;self&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;reply&quot;</span><span class="p">:</span> <span class="n">reply</span><span class="p">})</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;NO COMMAND SPECIFIC DATA PARSING METHOD DEFINED&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">reply</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">elif</span> <span class="n">reply</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x15</span><span class="s2">&quot;</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+    <span class="k">def</span> <span class="nf">_get_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Gets current instrument mode.&quot;&quot;&quot;</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">verbose</span><span class="p">(</span><span class="s2">&quot;=&gt; II&quot;</span><span class="p">,</span> <span class="n">constants</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">uart</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;II&quot;</span><span class="p">)</span>
+        <span class="n">rx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_reply</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ack</span><span class="p">(</span><span class="n">rx</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">modes</span><span class="p">[</span><span class="n">rx</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]]</span>
+        <span class="k">return</span>
+
+    <span class="k">def</span> <span class="nf">_break</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Sends break to instrument.&quot;&quot;&quot;</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">verbose</span><span class="p">(</span><span class="s2">&quot;=&gt; @@@@@@K1W%!Q&quot;</span><span class="p">,</span> <span class="n">constants</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">uart</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;@@@@@@&quot;</span><span class="p">)</span>
+        <span class="n">utime</span><span class="o">.</span><span class="n">sleep_ms</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">uart</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;K1W%!Q&quot;</span><span class="p">)</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">utime</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_timeout</span><span class="p">(</span><span class="n">start</span><span class="p">):</span>
+                <span class="k">return</span> <span class="kc">False</span>
+            <span class="n">rx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_reply</span><span class="p">()</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ack</span><span class="p">(</span><span class="n">rx</span><span class="p">):</span>
+                <span class="k">if</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x0a\x0d\x43\x6f\x6e\x66\x69\x72\x6d\x3a</span><span class="s2">&quot;</span> <span class="ow">in</span> <span class="n">rx</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_confirm</span><span class="p">()</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">utils</span><span class="o">.</span><span class="n">verbose</span><span class="p">(</span><span class="n">rx</span><span class="p">,</span> <span class="n">constants</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">_confirm</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Enters command mode</span>
+
+<span class="sd">        Preceded by a break command, this command is sent to force the</span>
+<span class="sd">        instrument to exit Measurement mode and enter Command</span>
+<span class="sd">        mode.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            true or False</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">verbose</span><span class="p">(</span><span class="s2">&quot;=&gt; MC&quot;</span><span class="p">,</span> <span class="n">constants</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">uart</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;MC&quot;</span><span class="p">)</span>
+        <span class="n">rx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_reply</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ack</span><span class="p">(</span><span class="n">rx</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">_calc_checksum</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reply</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Computes data checksum: b58c(hex) + sum of all words in structure.</span>
+
+<span class="sd">        Params:</span>
+<span class="sd">            reply(bytes)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">sum</span><span class="o">=</span><span class="mi">0</span>
+        <span class="n">j</span><span class="o">=</span><span class="mi">0</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">reply</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">4</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+            <span class="nb">sum</span> <span class="o">+=</span> <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">reply</span><span class="p">[</span><span class="n">j</span><span class="p">:</span><span class="n">j</span><span class="o">+</span><span class="mi">2</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">)</span>
+            <span class="n">j</span> <span class="o">=</span> <span class="n">j</span><span class="o">+</span><span class="mi">2</span>
+        <span class="k">return</span> <span class="p">(</span><span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;</span><span class="se">\xb5\x8c</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;big&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="nb">sum</span><span class="p">)</span> <span class="o">%</span> <span class="mi">65536</span>
+
+<div class="viewcode-block" id="AQUADOPP.verify_checksum"><a class="viewcode-back" href="../software/devices/adcp.html#dev_nortek.AQUADOPP.verify_checksum">[docs]</a>    <span class="k">def</span> <span class="nf">verify_checksum</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reply</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Verifies data checksum.</span>
+
+<span class="sd">        Params:</span>
+<span class="sd">            reply(bytes)</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            True or False</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">checksum</span> <span class="o">=</span> <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">reply</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:],</span> <span class="s2">&quot;little&quot;</span><span class="p">)</span>
+        <span class="n">calc_checksum</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_checksum</span><span class="p">(</span><span class="n">reply</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">checksum</span> <span class="o">==</span> <span class="n">calc_checksum</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">verbose</span><span class="p">(</span><span class="s2">&quot;checksum </span><span class="si">{}</span><span class="s2"> calc_checksum </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">checksum</span><span class="p">,</span> <span class="n">calc_checksum</span><span class="p">),</span> <span class="n">constants</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">)</span>  <span class="c1"># DEBUG</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+    <span class="k">def</span> <span class="nf">_get_cfg</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Reads complete configuration data</span>
+
+<span class="sd">        Reads the currently used hardware configuration, the head</span>
+<span class="sd">        configuration, and the deployment configuration from the</span>
+<span class="sd">        instrument.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">utime</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_timeout</span><span class="p">(</span><span class="n">start</span><span class="p">):</span>
+                <span class="k">break</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_break</span><span class="p">():</span>
+                <span class="n">utils</span><span class="o">.</span><span class="n">verbose</span><span class="p">(</span><span class="s2">&quot;=&gt; GA&quot;</span><span class="p">,</span> <span class="n">constants</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">uart</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;GA&quot;</span><span class="p">)</span>
+                <span class="n">rx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_reply</span><span class="p">()</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ack</span><span class="p">(</span><span class="n">rx</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">verify_checksum</span><span class="p">(</span><span class="n">rx</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">48</span><span class="p">])</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">verify_checksum</span><span class="p">(</span><span class="n">rx</span><span class="p">[</span><span class="mi">48</span><span class="p">:</span><span class="mi">272</span><span class="p">])</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">verify_checksum</span><span class="p">(</span><span class="n">rx</span><span class="p">[</span><span class="mi">272</span><span class="p">:</span><span class="mi">784</span><span class="p">]):</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;config/adcp.cfg&quot;</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">cfg</span><span class="p">:</span>
+                            <span class="n">cfg</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">rx</span><span class="p">)</span>
+                            <span class="n">utils</span><span class="o">.</span><span class="n">log_file</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> =&gt; retreived instrument config&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__qualname__</span><span class="p">))</span>  <span class="c1"># DEBUG</span>
+                            <span class="k">return</span> <span class="kc">True</span>
+                    <span class="k">except</span><span class="p">:</span>
+                        <span class="k">break</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">log_file</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> =&gt; unable to retreive instrument config&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__qualname__</span><span class="p">))</span>  <span class="c1"># DEBUG</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">_parse_cfg</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Parses configuration data.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;config/adcp.cfg&quot;</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">cfg</span><span class="p">:</span>
+                <span class="nb">bytes</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">hw_cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_hw_cfg</span><span class="p">(</span><span class="nb">bytes</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">48</span><span class="p">])</span>         <span class="c1"># Hardware config (48 bytes)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">head_cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_head_cfg</span><span class="p">(</span><span class="nb">bytes</span><span class="p">[</span><span class="mi">48</span><span class="p">:</span><span class="mi">272</span><span class="p">])</span>   <span class="c1"># Head config (224 bytes)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">usr_cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_usr_cfg</span><span class="p">(</span><span class="nb">bytes</span><span class="p">[</span><span class="mi">272</span><span class="p">:</span><span class="mi">784</span><span class="p">])</span>    <span class="c1"># Deployment config (512 bytes)</span>
+            <span class="n">utils</span><span class="o">.</span><span class="n">log_file</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> =&gt; parsed instrument config&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__qualname__</span><span class="p">))</span>  <span class="c1"># DEBUG</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">utils</span><span class="o">.</span><span class="n">log_file</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> =&gt; unable to parse instrument config&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__qualname__</span><span class="p">))</span>  <span class="c1"># DEBUG</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+
+    <span class="k">def</span> <span class="nf">_get_hw_cfg</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Reads the current hardware configuration from the instrument.&quot;&quot;&quot;</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">utime</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_timeout</span><span class="p">(</span><span class="n">start</span><span class="p">):</span>
+                <span class="n">utils</span><span class="o">.</span><span class="n">log_file</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> =&gt; unable to retreive hardware config&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__qualname__</span><span class="p">))</span>  <span class="c1"># DEBUG</span>
+                <span class="k">return</span> <span class="kc">False</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_break</span><span class="p">():</span>
+                <span class="n">vebose</span><span class="p">(</span><span class="s2">&quot;=&gt; GP&quot;</span><span class="p">,</span> <span class="n">constants</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">uart</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;GP&quot;</span><span class="p">)</span>
+                <span class="n">rx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_reply</span><span class="p">()</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ack</span><span class="p">(</span><span class="n">rx</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verify_checksum</span><span class="p">(</span><span class="n">rx</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]):</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">hw_cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_hw_cfg</span><span class="p">(</span><span class="n">rx</span><span class="p">)</span>
+                        <span class="n">utils</span><span class="o">.</span><span class="n">log_file</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> =&gt; retreived hardware config&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__qualname__</span><span class="p">))</span>  <span class="c1"># DEBUG</span>
+                        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">_parse_hw_cfg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reply</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Parses the hardware configuration</span>
+
+<span class="sd">        Params:</span>
+<span class="sd">            reply(bytes)</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            string</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="s2">&quot;</span><span class="si">{:02x}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">reply</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>                                         <span class="c1"># [0] Sync</span>
+            <span class="s2">&quot;</span><span class="si">{:02x}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">reply</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">)),</span>             <span class="c1"># [1] Id</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">reply</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">4</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">),</span>                              <span class="c1"># [2] Size</span>
+            <span class="n">reply</span><span class="p">[</span><span class="mi">4</span><span class="p">:</span><span class="mi">18</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;ascii&quot;</span><span class="p">),</span>                                       <span class="c1"># [3] SerialNo</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_decode_hw_cfg</span><span class="p">(</span><span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">reply</span><span class="p">[</span><span class="mi">18</span><span class="p">:</span><span class="mi">20</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">)),</span>       <span class="c1"># [4] Config</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">reply</span><span class="p">[</span><span class="mi">20</span><span class="p">:</span><span class="mi">22</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">),</span>                            <span class="c1"># [5] Frequency</span>
+            <span class="n">reply</span><span class="p">[</span><span class="mi">22</span><span class="p">:</span><span class="mi">24</span><span class="p">],</span>                                                      <span class="c1"># [6] PICVersion</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">reply</span><span class="p">[</span><span class="mi">24</span><span class="p">:</span><span class="mi">26</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">),</span>                            <span class="c1"># [7] HWRevision</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">reply</span><span class="p">[</span><span class="mi">26</span><span class="p">:</span><span class="mi">28</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">),</span>                            <span class="c1"># [8] RecSize</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_decode_hw_status</span><span class="p">(</span><span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">reply</span><span class="p">[</span><span class="mi">28</span><span class="p">:</span><span class="mi">30</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">)),</span>    <span class="c1"># [9] Status</span>
+            <span class="n">reply</span><span class="p">[</span><span class="mi">30</span><span class="p">:</span><span class="mi">42</span><span class="p">],</span>                                                      <span class="c1"># [10] Spare</span>
+            <span class="n">reply</span><span class="p">[</span><span class="mi">42</span><span class="p">:</span><span class="mi">46</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;ascii&quot;</span><span class="p">)</span>                                       <span class="c1"># [11] FWVersion</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_decode_hw_cfg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cfg</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Decodes hardware constants.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="s2">&quot;RECORDER </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;NO&quot;</span> <span class="k">if</span> <span class="n">cfg</span> <span class="o">&gt;&gt;</span> <span class="mi">0</span> <span class="o">&amp;</span> <span class="mi">1</span>  <span class="k">else</span> <span class="s2">&quot;YES&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;COMPASS </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;NO&quot;</span> <span class="k">if</span> <span class="n">cfg</span> <span class="o">&gt;&gt;</span> <span class="mi">1</span> <span class="o">&amp;</span> <span class="mi">1</span>  <span class="k">else</span> <span class="s2">&quot;YES&quot;</span><span class="p">)</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_decode_hw_status</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">status</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Decodes hardware status.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;VELOCITY RANGE </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;HIGH&quot;</span> <span class="k">if</span> <span class="n">status</span> <span class="o">&gt;&gt;</span> <span class="mi">0</span> <span class="o">&amp;</span> <span class="mi">1</span>  <span class="k">else</span> <span class="s2">&quot;NORMAL&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_set_usr_cfg</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Uploads a deployment config to the instrument and sets up the device</span>
+<span class="sd">        Activation_Rate and Warmup_Duration parameters according to the current</span>
+<span class="sd">        deployment constants.&quot;&quot;&quot;</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">utime</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_timeout</span><span class="p">(</span><span class="n">start</span><span class="p">):</span>
+                <span class="k">break</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_break</span><span class="p">():</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;Adcp&quot;</span><span class="p">][</span><span class="s2">&quot;Deployment_Config&quot;</span><span class="p">],</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">pdc</span><span class="p">:</span>
+                        <span class="n">cfg</span> <span class="o">=</span> <span class="n">pdc</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+                        <span class="n">rate</span> <span class="o">=</span> <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">cfg</span><span class="p">[</span><span class="mi">38</span><span class="p">:</span><span class="mi">40</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;Activation_Rate&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rate</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;Warmup_Duration&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rate</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;Samples&quot;</span><span class="p">]</span>
+                        <span class="n">usr_cfg</span> <span class="o">=</span> <span class="n">cfg</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">48</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_set_start</span><span class="p">()</span> <span class="o">+</span> <span class="n">cfg</span><span class="p">[</span><span class="mi">54</span><span class="p">:</span><span class="mi">510</span><span class="p">]</span>
+                        <span class="n">checksum</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_checksum</span><span class="p">(</span><span class="n">usr_cfg</span><span class="p">)</span>
+                        <span class="n">tx</span> <span class="o">=</span> <span class="n">usr_cfg</span> <span class="o">+</span> <span class="n">ubinascii</span><span class="o">.</span><span class="n">unhexlify</span><span class="p">(</span><span class="nb">hex</span><span class="p">(</span><span class="n">checksum</span><span class="p">)[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="o">+</span> <span class="nb">hex</span><span class="p">(</span><span class="n">checksum</span><span class="p">)[</span><span class="mi">2</span><span class="p">:</span><span class="mi">4</span><span class="p">])</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">uart</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x43\x43</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">uart</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">tx</span><span class="p">)</span>
+                        <span class="n">utils</span><span class="o">.</span><span class="n">verbose</span><span class="p">(</span><span class="s2">&quot;=&gt; CC&quot;</span><span class="p">,</span> <span class="n">constants</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">)</span>
+                        <span class="n">rx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_reply</span><span class="p">()</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ack</span><span class="p">(</span><span class="n">rx</span><span class="p">):</span>
+                            <span class="n">utils</span><span class="o">.</span><span class="n">log_file</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> =&gt; uploaded deployment config&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__qualname__</span><span class="p">))</span>  <span class="c1"># DEBUG</span>
+                            <span class="k">return</span> <span class="kc">True</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="k">break</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">log_file</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> =&gt; unable to upload deployment config&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__qualname__</span><span class="p">))</span>  <span class="c1"># DEBUG</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">_set_start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Computes the measurement starting time to be synced with scheduler.&quot;&quot;&quot;</span>
+        <span class="n">now</span> <span class="o">=</span> <span class="n">utime</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;Activation_Delay&quot;</span><span class="p">]</span>
+        <span class="nb">next</span> <span class="o">=</span> <span class="n">now</span> <span class="o">-</span> <span class="n">now</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;Activation_Rate&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;Activation_Rate&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">now</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;Activation_Rate&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;Activation_Rate&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;Samples&quot;</span><span class="p">]</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;Sample_Rate&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;Adcp&quot;</span><span class="p">][</span><span class="s2">&quot;Start_Delay&quot;</span><span class="p">]:</span>
+          <span class="nb">next</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;Activation_Rate&quot;</span><span class="p">]</span>
+        <span class="nb">next</span> <span class="o">+=</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;Samples&quot;</span><span class="p">]</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;Sample_Rate&quot;</span><span class="p">]</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;Adcp&quot;</span><span class="p">][</span><span class="s2">&quot;Start_Delay&quot;</span><span class="p">]</span>
+        <span class="nb">next</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;Activation_Delay&quot;</span><span class="p">]</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">utime</span><span class="o">.</span><span class="n">localtime</span><span class="p">(</span><span class="nb">next</span><span class="p">)</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">ubinascii</span><span class="o">.</span><span class="n">unhexlify</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:02d}{:02d}{:02d}{:02d}{:02d}{:02d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">start</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span> <span class="n">start</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span> <span class="n">start</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">start</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="nb">int</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">start</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">2</span><span class="p">:]),</span> <span class="n">start</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">log_file</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> =&gt; set start at </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__qualname__</span><span class="p">,</span> <span class="n">utils</span><span class="o">.</span><span class="n">time_string</span><span class="p">(</span><span class="nb">next</span><span class="p">)))</span>  <span class="c1"># DEBUG</span>
+        <span class="k">return</span> <span class="n">start</span>
+
+    <span class="k">def</span> <span class="nf">_get_usr_cfg</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Retreives the current deployment config from the instrument.&quot;&quot;&quot;</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">utime</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="n">utime</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_timeout</span><span class="p">(</span><span class="n">start</span><span class="p">):</span>
+                    <span class="n">utils</span><span class="o">.</span><span class="n">log_file</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> =&gt; unable to retreive deployment config&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__qualname__</span><span class="p">))</span>  <span class="c1"># DEBUG</span>
+                    <span class="k">return</span> <span class="kc">False</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_break</span><span class="p">():</span>
+                    <span class="n">utils</span><span class="o">.</span><span class="n">verbose</span><span class="p">(</span><span class="s2">&quot;=&gt; GC&quot;</span><span class="p">,</span> <span class="n">constants</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">uart</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;GC&quot;</span><span class="p">)</span>
+                    <span class="n">rx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_reply</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ack</span><span class="p">(</span><span class="n">rx</span><span class="p">):</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verify_checksum</span><span class="p">(</span><span class="n">rx</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]):</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">usr_cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_usr_cfg</span><span class="p">(</span><span class="n">rx</span><span class="p">)</span>
+                            <span class="n">utils</span><span class="o">.</span><span class="n">log_file</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> =&gt; retreived deployment config&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__qualname__</span><span class="p">))</span>  <span class="c1"># DEBUG</span>
+                            <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">_parse_usr_cfg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bytestring</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Parses the deployment constants.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="s2">&quot;</span><span class="si">{:02x}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>                                     <span class="c1"># [0] Sync</span>
+            <span class="s2">&quot;</span><span class="si">{:02x}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">((</span><span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">))),</span>       <span class="c1"># [1] Id</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">4</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">),</span>                          <span class="c1"># [2] Size</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">4</span><span class="p">:</span><span class="mi">6</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">),</span>                          <span class="c1"># [3] T1</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">6</span><span class="p">:</span><span class="mi">8</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">),</span>                          <span class="c1"># [4] T2, BlankingDistance</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">8</span><span class="p">:</span><span class="mi">10</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">),</span>                         <span class="c1"># [5] T3</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">10</span><span class="p">:</span><span class="mi">12</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">),</span>                        <span class="c1"># [6] T4</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">12</span><span class="p">:</span><span class="mi">14</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">),</span>                        <span class="c1"># [7] T5</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">14</span><span class="p">:</span><span class="mi">16</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">),</span>                        <span class="c1"># [8] NPings</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">16</span><span class="p">:</span><span class="mi">18</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">),</span>                        <span class="c1"># [9] AvgInterval</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">18</span><span class="p">:</span><span class="mi">20</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">),</span>                        <span class="c1"># [10] NBeams</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_decode_usr_timctrlreg</span><span class="p">(</span><span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">20</span><span class="p">:</span><span class="mi">22</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">)),</span>   <span class="c1"># [11] TimCtrlReg</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_decode_usr_pwrctrlreg</span><span class="p">(</span><span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">22</span><span class="p">:</span><span class="mi">24</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">)),</span>   <span class="c1"># [12] Pwrctrlreg</span>
+            <span class="n">bytestring</span><span class="p">[</span><span class="mi">24</span><span class="p">:</span><span class="mi">26</span><span class="p">],</span>                                                  <span class="c1"># [13] A1 Not used.</span>
+            <span class="n">bytestring</span><span class="p">[</span><span class="mi">26</span><span class="p">:</span><span class="mi">28</span><span class="p">],</span>                                                  <span class="c1"># [14] B0 Not used.</span>
+            <span class="n">bytestring</span><span class="p">[</span><span class="mi">28</span><span class="p">:</span><span class="mi">30</span><span class="p">],</span>                                                  <span class="c1"># [15] B1 Not used.</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">30</span><span class="p">:</span><span class="mi">32</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">),</span>                        <span class="c1"># [16] CompassUpdRate</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">coord_system</span><span class="p">[</span><span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">32</span><span class="p">:</span><span class="mi">34</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">)],</span>     <span class="c1"># [17] CoordSystem</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">34</span><span class="p">:</span><span class="mi">36</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">),</span>                        <span class="c1"># [18] Nbins</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">36</span><span class="p">:</span><span class="mi">38</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">),</span>                        <span class="c1"># [19] BinLength</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">38</span><span class="p">:</span><span class="mi">40</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">),</span>                        <span class="c1"># [20] MeasInterval</span>
+            <span class="n">bytestring</span><span class="p">[</span><span class="mi">40</span><span class="p">:</span><span class="mi">46</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">),</span>                                  <span class="c1"># [21] DeployName</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">46</span><span class="p">:</span><span class="mi">48</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">),</span>                        <span class="c1"># [22] WrapMode</span>
+            <span class="n">ubinascii</span><span class="o">.</span><span class="n">hexlify</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">48</span><span class="p">:</span><span class="mi">54</span><span class="p">])</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">),</span>               <span class="c1"># [23] ClockDeploy</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">54</span><span class="p">:</span><span class="mi">58</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">),</span>                        <span class="c1"># [24] DiagInterval</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_decode_usr_mode</span><span class="p">(</span><span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">58</span><span class="p">:</span><span class="mi">60</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">)),</span> <span class="c1"># [25] Mode</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">60</span><span class="p">:</span><span class="mi">62</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">),</span>                        <span class="c1"># [26] AdjSoundSpeed</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">62</span><span class="p">:</span><span class="mi">64</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">),</span>                        <span class="c1"># [27] NSampDiag</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">64</span><span class="p">:</span><span class="mi">66</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">),</span>                        <span class="c1"># [28] NbeamsCellDiag</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">66</span><span class="p">:</span><span class="mi">68</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">),</span>                        <span class="c1"># [29] NpingDiag</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_decode_usr_modetest</span><span class="p">(</span><span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">68</span><span class="p">:</span><span class="mi">70</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">)),</span>     <span class="c1"># [30] ModeTest</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">68</span><span class="p">:</span><span class="mi">72</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">),</span>                        <span class="c1"># [31] AnaInAddr</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">72</span><span class="p">:</span><span class="mi">74</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">),</span>                        <span class="c1"># [32] SWVersion</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">74</span><span class="p">:</span><span class="mi">76</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">),</span>                        <span class="c1"># [33] Salinity</span>
+            <span class="n">ubinascii</span><span class="o">.</span><span class="n">hexlify</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">76</span><span class="p">:</span><span class="mi">256</span><span class="p">]),</span>                              <span class="c1"># [34] VelAdjTable</span>
+            <span class="n">bytestring</span><span class="p">[</span><span class="mi">256</span><span class="p">:</span><span class="mi">336</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">),</span>                                <span class="c1"># [35] Comments</span>
+            <span class="n">ubinascii</span><span class="o">.</span><span class="n">hexlify</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">336</span><span class="p">:</span><span class="mi">384</span><span class="p">]),</span>                             <span class="c1"># [36] Spare</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">384</span><span class="p">:</span><span class="mi">386</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">),</span>                      <span class="c1"># [37] Processing Method</span>
+            <span class="n">ubinascii</span><span class="o">.</span><span class="n">hexlify</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">386</span><span class="p">:</span><span class="mi">436</span><span class="p">]),</span>                             <span class="c1"># [38] Spare</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_decode_usr_wavemode</span><span class="p">(</span><span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">436</span><span class="p">:</span><span class="mi">438</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">)),</span>   <span class="c1"># [39] Wave Measurement Mode</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">438</span><span class="p">:</span><span class="mi">440</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">),</span>                      <span class="c1"># [40] DynPercPos</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">440</span><span class="p">:</span><span class="mi">442</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">),</span>                      <span class="c1"># [41] T1</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">442</span><span class="p">:</span><span class="mi">444</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">),</span>                      <span class="c1"># [42] T2</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">444</span><span class="p">:</span><span class="mi">446</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">),</span>                      <span class="c1"># [43] T3</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">446</span><span class="p">:</span><span class="mi">448</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">),</span>                      <span class="c1"># [44] NSamp</span>
+            <span class="n">bytestring</span><span class="p">[</span><span class="mi">448</span><span class="p">:</span><span class="mi">450</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">),</span>                                <span class="c1"># [45] A1 Not used.</span>
+            <span class="n">bytestring</span><span class="p">[</span><span class="mi">450</span><span class="p">:</span><span class="mi">452</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">),</span>                                <span class="c1"># [46] B0 Not used.</span>
+            <span class="n">bytestring</span><span class="p">[</span><span class="mi">452</span><span class="p">:</span><span class="mi">454</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">),</span>                                <span class="c1"># [47] B1 Not used.</span>
+            <span class="n">ubinascii</span><span class="o">.</span><span class="n">hexlify</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">454</span><span class="p">:</span><span class="mi">456</span><span class="p">]),</span>                             <span class="c1"># [48] Spare</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">456</span><span class="p">:</span><span class="mi">458</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">),</span>                      <span class="c1"># [49] AnaOutScale</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">458</span><span class="p">:</span><span class="mi">460</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">),</span>                      <span class="c1"># [50] CorrThresh</span>
+            <span class="n">ubinascii</span><span class="o">.</span><span class="n">hexlify</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">460</span><span class="p">:</span><span class="mi">462</span><span class="p">]),</span>                             <span class="c1"># [51] Spare</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">462</span><span class="p">:</span><span class="mi">464</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">),</span>                      <span class="c1"># [52] TiLag2</span>
+            <span class="n">ubinascii</span><span class="o">.</span><span class="n">hexlify</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">464</span><span class="p">:</span><span class="mi">486</span><span class="p">]),</span>                             <span class="c1"># [53] Spare</span>
+            <span class="n">bytestring</span><span class="p">[</span><span class="mi">486</span><span class="p">:</span><span class="mi">510</span><span class="p">]</span>                                                 <span class="c1"># [54] QualConst</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_decode_usr_timctrlreg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bytestring</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Decodes timing control register.&quot;&quot;&quot;</span>
+        <span class="n">timctrlreg</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{:016b}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bytestring</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">timctrlreg</span>
+
+    <span class="k">def</span> <span class="nf">_decode_usr_pwrctrlreg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bytestring</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Decodes power control register.&quot;&quot;&quot;</span>
+        <span class="n">pwrctrlreg</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{:016b}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bytestring</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">pwrctrlreg</span>
+
+    <span class="k">def</span> <span class="nf">_decode_usr_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bytestring</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Decodes power control register.&quot;&quot;&quot;</span>
+        <span class="n">mode</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{:016b}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bytestring</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">mode</span>
+
+    <span class="k">def</span> <span class="nf">_decode_usr_modetest</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bytestring</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Decodes power control register.&quot;&quot;&quot;</span>
+        <span class="n">modetest</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{:016b}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bytestring</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">modetest</span>
+
+    <span class="k">def</span> <span class="nf">_decode_usr_wavemode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bytestring</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Decodes power control register.&quot;&quot;&quot;</span>
+        <span class="n">wavemode</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{:016b}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bytestring</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">wavemode</span>
+
+    <span class="k">def</span> <span class="nf">_get_head_cfg</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Retreives the current head config from the instrument.&quot;&quot;&quot;</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">utime</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_timeout</span><span class="p">(</span><span class="n">start</span><span class="p">):</span>
+                <span class="n">utils</span><span class="o">.</span><span class="n">log_file</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> =&gt; unable to retreive head config&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__qualname__</span><span class="p">))</span>  <span class="c1"># DEBUG</span>
+                <span class="k">return</span> <span class="kc">False</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_break</span><span class="p">():</span>
+                <span class="n">utils</span><span class="o">.</span><span class="n">verbose</span><span class="p">(</span><span class="s2">&quot;=&gt; GH&quot;</span><span class="p">,</span> <span class="n">constants</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">uart</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;GH&quot;</span><span class="p">)</span>
+                <span class="n">rx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_reply</span><span class="p">()</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ack</span><span class="p">(</span><span class="n">rx</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verify_checksum</span><span class="p">(</span><span class="n">rx</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]):</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">head_cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_head_cfg</span><span class="p">(</span><span class="n">rx</span><span class="p">)</span>
+                        <span class="n">utils</span><span class="o">.</span><span class="n">log_file</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> =&gt; retreived head config&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__qualname__</span><span class="p">))</span>  <span class="c1"># DEBUG</span>
+                        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">_parse_head_cfg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bytestring</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Parses the head constants.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="s2">&quot;</span><span class="si">{:02x}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>                                     <span class="c1"># [0] Sync</span>
+            <span class="s2">&quot;</span><span class="si">{:02x}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">)),</span>         <span class="c1"># [1] Id</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">4</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span>                      <span class="c1"># [2] Size</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_decode_head_cfg</span><span class="p">(</span><span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">4</span><span class="p">:</span><span class="mi">6</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">)),</span>   <span class="c1"># [3] Config</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">6</span><span class="p">:</span><span class="mi">8</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">),</span>                          <span class="c1"># [4] Frequency</span>
+            <span class="n">bytestring</span><span class="p">[</span><span class="mi">8</span><span class="p">:</span><span class="mi">10</span><span class="p">],</span>                                                   <span class="c1"># [5] Type</span>
+            <span class="n">bytestring</span><span class="p">[</span><span class="mi">10</span><span class="p">:</span><span class="mi">22</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;ascii&quot;</span><span class="p">),</span>                                  <span class="c1"># [6] SerialNo</span>
+            <span class="n">bytestring</span><span class="p">[</span><span class="mi">22</span><span class="p">:</span><span class="mi">198</span><span class="p">],</span>                                                 <span class="c1"># [7] System</span>
+            <span class="n">bytestring</span><span class="p">[</span><span class="mi">198</span><span class="p">:</span><span class="mi">220</span><span class="p">],</span>                                                <span class="c1"># [8] Spare</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">220</span><span class="p">:</span><span class="mi">222</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">)</span>                       <span class="c1"># [9] NBeams</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_decode_head_cfg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cfg</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Decodes the head constants.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="s2">&quot;PRESSURE SENSOR </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;YES&quot;</span> <span class="k">if</span> <span class="n">cfg</span> <span class="o">&gt;&gt;</span> <span class="mi">0</span> <span class="o">&amp;</span> <span class="mi">1</span>  <span class="k">else</span> <span class="s2">&quot;NO&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;MAGNETOMETER SENSOR </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;YES&quot;</span> <span class="k">if</span> <span class="n">cfg</span> <span class="o">&gt;&gt;</span> <span class="mi">1</span> <span class="o">&amp;</span> <span class="mi">1</span>  <span class="k">else</span> <span class="s2">&quot;NO&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;PRESSURE SENSOR </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;YES&quot;</span> <span class="k">if</span> <span class="n">cfg</span> <span class="o">&gt;&gt;</span> <span class="mi">2</span> <span class="o">&amp;</span> <span class="mi">1</span>  <span class="k">else</span> <span class="s2">&quot;NO&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;DOWN&quot;</span> <span class="k">if</span> <span class="n">cfg</span> <span class="o">&gt;&gt;</span> <span class="mi">3</span> <span class="o">&amp;</span> <span class="mi">1</span>  <span class="k">else</span> <span class="s2">&quot;UP&quot;</span><span class="p">)</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_status</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">status</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Decodes the tilt mounting.&quot;&quot;&quot;</span>
+        <span class="k">return</span><span class="p">(</span>
+            <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;DOWN&quot;</span> <span class="k">if</span> <span class="n">status</span> <span class="o">&gt;&gt;</span> <span class="mi">0</span> <span class="o">&amp;</span> <span class="mi">1</span> <span class="k">else</span> <span class="s2">&quot;UP&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;SCALING </span><span class="si">{}</span><span class="s2"> mm/s&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;0.1&quot;</span> <span class="k">if</span> <span class="n">status</span> <span class="o">&gt;&gt;</span> <span class="mi">1</span> <span class="o">&amp;</span> <span class="mi">1</span> <span class="k">else</span> <span class="s2">&quot;1&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;PITCH </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;OUT OF RANGE&quot;</span> <span class="k">if</span> <span class="n">status</span> <span class="o">&gt;&gt;</span> <span class="mi">2</span> <span class="o">&amp;</span> <span class="mi">2</span> <span class="k">else</span> <span class="s2">&quot;OK&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;ROLL </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;OUT OF RANGE&quot;</span> <span class="k">if</span> <span class="n">status</span> <span class="o">&gt;&gt;</span> <span class="mi">3</span> <span class="o">&amp;</span> <span class="mi">1</span> <span class="k">else</span> <span class="s2">&quot;OK&quot;</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_get_wkup_state</span><span class="p">(</span><span class="n">status</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_get_power_level</span><span class="p">(</span><span class="n">status</span><span class="p">)</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_wkup_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">status</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Decodes the wakeup state.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="s2">&quot;WKUP STATE </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="s2">&quot;BAD POWER&quot;</span> <span class="k">if</span> <span class="o">~</span> <span class="n">status</span> <span class="o">&gt;&gt;</span> <span class="mi">5</span> <span class="o">&amp;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="o">~</span> <span class="n">status</span> <span class="o">&gt;&gt;</span> <span class="mi">4</span> <span class="o">&amp;</span> <span class="mi">1</span> <span class="k">else</span>
+                <span class="s2">&quot;POWER APPLIED&quot;</span> <span class="k">if</span> <span class="o">~</span> <span class="n">status</span> <span class="o">&gt;&gt;</span> <span class="mi">5</span> <span class="o">&amp;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">status</span> <span class="o">&gt;&gt;</span> <span class="mi">4</span> <span class="o">&amp;</span> <span class="mi">1</span> <span class="k">else</span>
+                <span class="s2">&quot;BREAK&quot;</span> <span class="k">if</span> <span class="n">status</span> <span class="o">&gt;&gt;</span> <span class="mi">5</span> <span class="o">&amp;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="o">~</span> <span class="n">status</span> <span class="o">&gt;&gt;</span> <span class="mi">4</span> <span class="o">&amp;</span> <span class="mi">1</span> <span class="k">else</span>
+                <span class="s2">&quot;RTC ALARM&quot;</span> <span class="k">if</span> <span class="n">status</span> <span class="o">&gt;&gt;</span> <span class="mi">5</span> <span class="o">&amp;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">status</span> <span class="o">&gt;&gt;</span> <span class="mi">4</span> <span class="o">&amp;</span> <span class="mi">1</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_power_level</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">status</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Decodes the power level.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="s2">&quot;POWER LEVEL </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="s2">&quot;0&quot;</span> <span class="k">if</span> <span class="o">~</span> <span class="n">status</span> <span class="o">&gt;&gt;</span> <span class="mi">7</span> <span class="o">&amp;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="o">~</span> <span class="n">status</span> <span class="o">&gt;&gt;</span> <span class="mi">6</span> <span class="o">&amp;</span> <span class="mi">1</span> <span class="k">else</span>
+                <span class="s2">&quot;1&quot;</span> <span class="k">if</span> <span class="o">~</span> <span class="n">status</span> <span class="o">&gt;&gt;</span> <span class="mi">7</span> <span class="o">&amp;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">status</span> <span class="o">&gt;&gt;</span> <span class="mi">6</span> <span class="o">&amp;</span> <span class="mi">1</span> <span class="k">else</span>
+                <span class="s2">&quot;2&quot;</span> <span class="k">if</span> <span class="n">status</span> <span class="o">&gt;&gt;</span> <span class="mi">7</span> <span class="o">&amp;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="o">~</span> <span class="n">status</span> <span class="o">&gt;&gt;</span> <span class="mi">6</span> <span class="o">&amp;</span> <span class="mi">1</span> <span class="k">else</span>
+                <span class="s2">&quot;3&quot;</span> <span class="k">if</span> <span class="n">status</span> <span class="o">&gt;&gt;</span> <span class="mi">7</span> <span class="o">&amp;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">status</span> <span class="o">&gt;&gt;</span> <span class="mi">6</span> <span class="o">&amp;</span> <span class="mi">1</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">error</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Decodes the error codes.&quot;&quot;&quot;</span>
+        <span class="k">return</span><span class="p">(</span>
+            <span class="s2">&quot;COMPASS </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;ERROR&quot;</span> <span class="k">if</span> <span class="n">error</span> <span class="o">&gt;&gt;</span> <span class="mi">0</span> <span class="o">&amp;</span> <span class="mi">1</span> <span class="k">else</span> <span class="s2">&quot;OK&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;MEASUREMENT DATA </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;ERROR&quot;</span> <span class="k">if</span> <span class="n">error</span> <span class="o">&gt;&gt;</span> <span class="mi">1</span> <span class="o">&amp;</span> <span class="mi">1</span> <span class="k">else</span> <span class="s2">&quot;OK&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;SENSOR DATA </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;ERROR&quot;</span> <span class="k">if</span> <span class="n">error</span> <span class="o">&gt;&gt;</span> <span class="mi">2</span> <span class="o">&amp;</span> <span class="mi">2</span> <span class="k">else</span> <span class="s2">&quot;OK&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;TAG BIT </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;ERROR&quot;</span> <span class="k">if</span> <span class="n">error</span> <span class="o">&gt;&gt;</span> <span class="mi">3</span> <span class="o">&amp;</span> <span class="mi">1</span> <span class="k">else</span> <span class="s2">&quot;OK&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;FLASH </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;ERROR&quot;</span> <span class="k">if</span> <span class="n">error</span> <span class="o">&gt;&gt;</span> <span class="mi">4</span> <span class="o">&amp;</span> <span class="mi">1</span> <span class="k">else</span> <span class="s2">&quot;OK&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;BEAM NUMBER </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;ERROR&quot;</span> <span class="k">if</span> <span class="n">error</span> <span class="o">&gt;&gt;</span> <span class="mi">5</span> <span class="o">&amp;</span> <span class="mi">1</span> <span class="k">else</span> <span class="s2">&quot;OK&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;COORD. TRANSF. </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;ERROR&quot;</span> <span class="k">if</span> <span class="n">error</span> <span class="o">&gt;&gt;</span> <span class="mi">3</span> <span class="o">&amp;</span> <span class="mi">1</span> <span class="k">else</span> <span class="s2">&quot;OK&quot;</span><span class="p">)</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_dump_recorder</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span>  <span class="c1"># TODO</span>
+
+    <span class="k">def</span> <span class="nf">_format_recorder</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Erase all recorded data if it reached the maximum allowed files number (31)&quot;&quot;&quot;</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">utime</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_timeout</span><span class="p">(</span><span class="n">start</span><span class="p">):</span>
+                <span class="n">utils</span><span class="o">.</span><span class="n">log_file</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> =&gt; unable to format recorder&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__qualname__</span><span class="p">))</span>  <span class="c1"># DEBUG</span>
+                <span class="k">return</span> <span class="kc">False</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_break</span><span class="p">():</span>
+                <span class="n">utils</span><span class="o">.</span><span class="n">verbose</span><span class="p">(</span><span class="s2">&quot;=&gt; FO&quot;</span><span class="p">,</span> <span class="n">constants</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">uart</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x46\x4F\x12\xD4\x1E\xEF</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_reply</span><span class="p">()):</span>
+                    <span class="n">utils</span><span class="o">.</span><span class="n">log_file</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> =&gt; recorder formatted&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__qualname__</span><span class="p">))</span>  <span class="c1"># DEBUG</span>
+                    <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">_acquire_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Starts a single measurement based on the current configuration of the</span>
+<span class="sd">        instrument without storing data to the recorder. Instrument enters Power</span>
+<span class="sd">        Down Mode when measurement has been made.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">log_file</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> =&gt; acquiring 1 sample...&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__qualname__</span><span class="p">))</span>  <span class="c1"># DEBUG</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">utime</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_timeout</span><span class="p">(</span><span class="n">start</span><span class="p">):</span>
+                <span class="k">return</span> <span class="kc">False</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_break</span><span class="p">():</span>
+                <span class="n">utils</span><span class="o">.</span><span class="n">verbose</span><span class="p">(</span><span class="s2">&quot;=&gt; AD&quot;</span><span class="p">,</span> <span class="n">constants</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">uart</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;AD&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_reply</span><span class="p">()):</span>
+                    <span class="n">rx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_reply</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verify_checksum</span><span class="p">(</span><span class="n">rx</span><span class="p">):</span>
+                        <span class="k">return</span> <span class="n">rx</span>
+
+    <span class="k">def</span> <span class="nf">_start_delayed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Starts a measurement at a specified time based on the current</span>
+<span class="sd">        configuration of the instrument. Data is stored to a new file in</span>
+<span class="sd">        the recorder. Data is output on the serial port only if specified in</span>
+<span class="sd">        the configuration.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">utime</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_timeout</span><span class="p">(</span><span class="n">start</span><span class="p">):</span>
+                <span class="n">utils</span><span class="o">.</span><span class="n">log_file</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> =&gt; unable to start measurement&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__qualname__</span><span class="p">))</span>  <span class="c1"># DEBUG</span>
+                <span class="k">return</span> <span class="kc">False</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_break</span><span class="p">():</span>
+                <span class="n">utils</span><span class="o">.</span><span class="n">verbose</span><span class="p">(</span><span class="s2">&quot;=&gt; SD&quot;</span><span class="p">,</span> <span class="n">constants</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">uart</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;SD&quot;</span><span class="p">)</span>
+                <span class="n">rx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_reply</span><span class="p">()</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ack</span><span class="p">(</span><span class="n">rx</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_format_recorder</span><span class="p">()</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">utils</span><span class="o">.</span><span class="n">log_file</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> =&gt; measurement started&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__qualname__</span><span class="p">))</span>  <span class="c1"># DEBUG</span>
+                    <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">_conv_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bytestring</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Converts sample bytestring to ascii string.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">ubinascii</span><span class="o">.</span><span class="n">hexlify</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">9</span><span class="p">:</span><span class="mi">10</span><span class="p">]),</span>                                <span class="c1"># [0] Month</span>
+            <span class="n">ubinascii</span><span class="o">.</span><span class="n">hexlify</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">6</span><span class="p">:</span><span class="mi">7</span><span class="p">]),</span>                                 <span class="c1"># [1] Day</span>
+            <span class="n">ubinascii</span><span class="o">.</span><span class="n">hexlify</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">8</span><span class="p">:</span><span class="mi">9</span><span class="p">]),</span>                                 <span class="c1"># [2] Year</span>
+            <span class="n">ubinascii</span><span class="o">.</span><span class="n">hexlify</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">7</span><span class="p">:</span><span class="mi">8</span><span class="p">]),</span>                                 <span class="c1"># [3] Hour</span>
+            <span class="n">ubinascii</span><span class="o">.</span><span class="n">hexlify</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">4</span><span class="p">:</span><span class="mi">5</span><span class="p">]),</span>                                 <span class="c1"># [4] Minute</span>
+            <span class="n">ubinascii</span><span class="o">.</span><span class="n">hexlify</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">5</span><span class="p">:</span><span class="mi">6</span><span class="p">]),</span>                                 <span class="c1"># [5] Second</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_get_error</span><span class="p">(</span><span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">10</span><span class="p">:</span><span class="mi">12</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">)),</span>       <span class="c1"># [6] Error code</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_get_status</span><span class="p">(</span><span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">25</span><span class="p">:</span><span class="mi">26</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">)),</span>      <span class="c1"># [7] Status code</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">14</span><span class="p">:</span><span class="mi">16</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="mi">10</span><span class="p">,</span>                   <span class="c1"># [8] Battery voltage</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">16</span><span class="p">:</span><span class="mi">18</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="mi">10</span><span class="p">,</span>                   <span class="c1"># [9] Soundspeed</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">18</span><span class="p">:</span><span class="mi">20</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="mi">10</span><span class="p">,</span>                   <span class="c1"># [10] Heading</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">20</span><span class="p">:</span><span class="mi">22</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="mi">10</span><span class="p">,</span>                   <span class="c1"># [11] Pitch</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">22</span><span class="p">:</span><span class="mi">24</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="mi">10</span><span class="p">,</span>                   <span class="c1"># [12] Roll</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_calc_pressure</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">24</span><span class="p">:</span><span class="mi">25</span><span class="p">],</span> <span class="n">bytestring</span><span class="p">[</span><span class="mi">26</span><span class="p">:</span><span class="mi">28</span><span class="p">])</span> <span class="o">/</span> <span class="mi">1000</span><span class="p">,</span>   <span class="c1"># [13] Pressure</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">28</span><span class="p">:</span><span class="mi">30</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="mi">100</span><span class="p">,</span>                  <span class="c1"># [14] Temperature</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">12</span><span class="p">:</span><span class="mi">14</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="mi">10</span><span class="p">,</span>                   <span class="c1"># [15] Analog input 1</span>
+            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">16</span><span class="p">:</span><span class="mi">18</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="mi">10</span>                    <span class="c1"># [16] Analog input 2</span>
+            <span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_cells</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="mi">30</span><span class="p">:])</span>                                <span class="c1"># [17:] x1,y1,z1, x2, y2, z2, x3, y3, z3...</span>
+
+    <span class="k">def</span> <span class="nf">_calc_pressure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pressureMSB</span><span class="p">,</span> <span class="n">pressureLSW</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculates pressure value.</span>
+
+<span class="sd">        Params:</span>
+<span class="sd">            pressureMSB, pressureLSW(float)</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            pressure(float)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="mi">65536</span> <span class="o">*</span> <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">pressureMSB</span><span class="p">,</span> <span class="s2">&quot;little&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">pressureLSW</span><span class="p">,</span> <span class="s2">&quot;little&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_cells</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bytestring</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Extracts cells data from sample bytestring.</span>
+
+<span class="sd">        Params:</span>
+<span class="sd">            bytestring</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            list(x1, x2, x3... y1, y2, y3... z1, z2, z3..., a11, a12 , a13..., a21, a22, a23..., a31, a32, a33...)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cells</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">usr_cfg</span><span class="p">:</span>
+            <span class="n">nbins</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">usr_cfg</span><span class="p">[</span><span class="mi">18</span><span class="p">]</span>
+            <span class="n">nbeams</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">usr_cfg</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span>
+            <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">beam</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbeams</span><span class="p">):</span>
+                <span class="k">for</span> <span class="nb">bin</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbins</span><span class="p">):</span>
+                    <span class="n">cells</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="n">j</span><span class="p">:</span><span class="n">j</span><span class="o">+</span><span class="mi">2</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">))</span>
+                    <span class="n">j</span> <span class="o">+=</span> <span class="mi">2</span>
+            <span class="k">for</span> <span class="n">beam</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbeams</span><span class="p">):</span>
+                <span class="k">for</span> <span class="nb">bin</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbins</span><span class="p">):</span>
+                    <span class="n">cells</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">bytestring</span><span class="p">[</span><span class="n">j</span><span class="p">:</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">))</span>
+                    <span class="n">j</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">cells</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_format_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Formats data according to output format.&quot;&quot;&quot;</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">&quot;</span><span class="si">{:2s}</span><span class="s2">/</span><span class="si">{:2s}</span><span class="s2">/20</span><span class="si">{:2s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sample</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">sample</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">sample</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span>  <span class="c1"># dd/mm/yyyy</span>
+            <span class="s2">&quot;</span><span class="si">{:2s}</span><span class="s2">:</span><span class="si">{:2s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sample</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">sample</span><span class="p">[</span><span class="mi">4</span><span class="p">]),</span>                     <span class="c1"># hh:mm</span>
+            <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sample</span><span class="p">[</span><span class="mi">8</span><span class="p">]),</span>                                         <span class="c1"># Battery</span>
+            <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sample</span><span class="p">[</span><span class="mi">9</span><span class="p">]),</span>                                         <span class="c1"># SoundSpeed</span>
+            <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sample</span><span class="p">[</span><span class="mi">10</span><span class="p">]),</span>                                        <span class="c1"># Heading</span>
+            <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sample</span><span class="p">[</span><span class="mi">11</span><span class="p">]),</span>                                        <span class="c1"># Pitch</span>
+            <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sample</span><span class="p">[</span><span class="mi">12</span><span class="p">]),</span>                                        <span class="c1"># Roll</span>
+            <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sample</span><span class="p">[</span><span class="mi">13</span><span class="p">]),</span>                                        <span class="c1"># Pressure</span>
+            <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sample</span><span class="p">[</span><span class="mi">14</span><span class="p">]),</span>                                        <span class="c1"># Temperature</span>
+            <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_flow</span><span class="p">()),</span>                                  <span class="c1"># Flow</span>
+            <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">usr_cfg</span><span class="p">[</span><span class="mi">17</span><span class="p">]),</span>                                  <span class="c1"># CoordSystem</span>
+            <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">usr_cfg</span><span class="p">[</span><span class="mi">4</span><span class="p">]),</span>                                   <span class="c1"># BlankingDistance</span>
+            <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">usr_cfg</span><span class="p">[</span><span class="mi">20</span><span class="p">]),</span>                                  <span class="c1"># MeasInterval</span>
+            <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">usr_cfg</span><span class="p">[</span><span class="mi">19</span><span class="p">]),</span>                                  <span class="c1"># BinLength</span>
+            <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">usr_cfg</span><span class="p">[</span><span class="mi">18</span><span class="p">]),</span>                                  <span class="c1"># NBins</span>
+            <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">head_cfg</span><span class="p">[</span><span class="mi">3</span><span class="p">][</span><span class="mi">3</span><span class="p">]),</span>                               <span class="c1"># TiltSensorMounting</span>
+            <span class="p">]</span>
+        <span class="n">j</span> <span class="o">=</span> <span class="mi">17</span>
+        <span class="k">for</span> <span class="nb">bin</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">usr_cfg</span><span class="p">[</span><span class="mi">18</span><span class="p">]):</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;#</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">bin</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>                              <span class="c1"># (#Cell number)</span>
+            <span class="k">for</span> <span class="n">beam</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">usr_cfg</span><span class="p">[</span><span class="mi">10</span><span class="p">]):</span>
+                <span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sample</span><span class="p">[</span><span class="n">j</span><span class="p">]))</span>                         <span class="c1"># East, North, Up/Down</span>
+                <span class="n">j</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="n">data</span>
+
+    <span class="k">def</span> <span class="nf">_get_flow</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculates the fluid flow (rivers only).&quot;&quot;&quot;</span>
+        <span class="c1"># TODO</span>
+        <span class="k">pass</span>
+
+    <span class="sd">&quot;&quot;&quot;def _rel_sample(self, sample):</span>
+<span class="sd">        velocity = []</span>
+<span class="sd">        direction = []</span>
+<span class="sd">        nbins = self.usr_cfg[18]</span>
+<span class="sd">        nbeams = self.usr_cfg[10]</span>
+<span class="sd">        if sample:</span>
+<span class="sd">            sample = sample[17:]</span>
+<span class="sd">            i = 0</span>
+<span class="sd">            for bin in range(nbins):</span>
+<span class="sd">                velocity.append(math.sqrt(math.pow(sample[i],2)+math.pow(sample[i+nbins],2)))</span>
+<span class="sd">                dir = math.degrees(math.acos(sample[i+nbins]/math.sqrt(math.pow(sample[i],2)+math.pow(sample[i+nbins],2))))</span>
+<span class="sd">                if sample[i] &lt; 0:</span>
+<span class="sd">                    dir = 360 - dir</span>
+<span class="sd">                direction.append(dir)</span>
+<span class="sd">                i += 1</span>
+<span class="sd">        return velocity, direction&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bytestring</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Response to break commmand.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">bytestring</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_clock</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Reads the instrument RTC.&quot;&quot;&quot;</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">utime</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_timeout</span><span class="p">(</span><span class="n">start</span><span class="p">):</span>
+                <span class="k">return</span> <span class="kc">False</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_break</span><span class="p">():</span>
+                <span class="n">utils</span><span class="o">.</span><span class="n">verbose</span><span class="p">(</span><span class="s2">&quot;=&gt; RC&quot;</span><span class="p">,</span> <span class="n">constants</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">uart</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;RC&quot;</span><span class="p">)</span>
+                <span class="n">rx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_reply</span><span class="p">()</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ack</span><span class="p">(</span><span class="n">rx</span><span class="p">):</span>
+                    <span class="n">rx</span> <span class="o">=</span> <span class="n">ubinascii</span><span class="o">.</span><span class="n">hexlify</span><span class="p">(</span><span class="n">rx</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="s2">&quot;20</span><span class="si">{:2s}</span><span class="s2">-</span><span class="si">{:2s}</span><span class="s2">-</span><span class="si">{:2s}</span><span class="s2"> </span><span class="si">{:2s}</span><span class="s2">:</span><span class="si">{:2s}</span><span class="s2">:</span><span class="si">{:2s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">rx</span><span class="p">[</span><span class="mi">8</span><span class="p">:</span><span class="mi">10</span><span class="p">],</span> <span class="c1"># Year</span>
+                        <span class="n">rx</span><span class="p">[</span><span class="mi">10</span><span class="p">:</span><span class="mi">12</span><span class="p">],</span><span class="c1"># Month</span>
+                        <span class="n">rx</span><span class="p">[</span><span class="mi">4</span><span class="p">:</span><span class="mi">6</span><span class="p">],</span>  <span class="c1"># Day</span>
+                        <span class="n">rx</span><span class="p">[</span><span class="mi">6</span><span class="p">:</span><span class="mi">8</span><span class="p">],</span>  <span class="c1"># Hour</span>
+                        <span class="n">rx</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">],</span>  <span class="c1"># Minute</span>
+                        <span class="n">rx</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">4</span><span class="p">])</span>  <span class="c1"># Seconds</span>
+
+    <span class="k">def</span> <span class="nf">_set_clock</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Sets up the instrument RTC.</span>
+
+<span class="sd">        mm ss DD hh YY MM (3 words of 2 bytes each)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">utime</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_timeout</span><span class="p">(</span><span class="n">start</span><span class="p">):</span>
+                <span class="n">utils</span><span class="o">.</span><span class="n">log_file</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> =&gt; unable to sync clock&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__qualname__</span><span class="p">))</span>  <span class="c1"># DEBUG</span>
+                <span class="k">return</span> <span class="kc">False</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_break</span><span class="p">():</span>
+                <span class="n">now</span> <span class="o">=</span> <span class="n">utime</span><span class="o">.</span><span class="n">localtime</span><span class="p">()</span>
+                <span class="n">tx</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{:02d}{:02d}{:02d}{:02d}{:02d}{:02d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">now</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span> <span class="n">now</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span> <span class="n">now</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">now</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="nb">int</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">now</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">2</span><span class="p">:]),</span> <span class="n">now</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">uart</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;SC&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">uart</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">ubinascii</span><span class="o">.</span><span class="n">unhexlify</span><span class="p">(</span><span class="n">tx</span><span class="p">))</span>
+                <span class="n">utils</span><span class="o">.</span><span class="n">verbose</span><span class="p">(</span><span class="s2">&quot;=&gt; SC&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">tx</span><span class="p">),</span> <span class="n">constants</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_reply</span><span class="p">()):</span>
+                    <span class="n">utils</span><span class="o">.</span><span class="n">log_file</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> =&gt; clock synced (dev: </span><span class="si">{}</span><span class="s2"> board: </span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__qualname__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_clock</span><span class="p">(),</span> <span class="n">utils</span><span class="o">.</span><span class="n">time_string</span><span class="p">(</span><span class="n">utime</span><span class="o">.</span><span class="n">mktime</span><span class="p">(</span><span class="n">now</span><span class="p">))))</span>  <span class="c1"># DEBUG</span>
+                    <span class="k">return</span> <span class="kc">True</span>
+
+<div class="viewcode-block" id="AQUADOPP.main"><a class="viewcode-back" href="../software/devices/adcp.html#dev_nortek.AQUADOPP.main">[docs]</a>    <span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Captures instrument data.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_uart</span><span class="p">():</span>
+            <span class="k">return</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">log_file</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> =&gt; acquiring data...&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__qualname__</span><span class="p">))</span>  <span class="c1"># DEBUG</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">led_on</span><span class="p">()</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="s2">&quot;$ADCP&quot;</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">utime</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">utime</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;Samples&quot;</span><span class="p">]</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;Sample_Rate&quot;</span><span class="p">]:</span>
+                <span class="n">utils</span><span class="o">.</span><span class="n">log_file</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> =&gt; timeout occourred&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__qualname__</span><span class="p">))</span>  <span class="c1"># DEBUG</span>
+                <span class="k">break</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">uart</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="s2">&quot;;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;String_Label&quot;</span><span class="p">]]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_format_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_conv_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uart</span><span class="o">.</span><span class="n">read</span><span class="p">())))</span>
+                <span class="k">break</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">log_data</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">led_on</span><span class="p">()</span>
+        <span class="k">return</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, Andrea Corbo
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
