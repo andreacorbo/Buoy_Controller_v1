@@ -43,12 +43,12 @@ unsent_files = []
 
 gps = ()
 
-def read_config(file, path=constants.CONFIG_PATH):
+def read_config(file, path=constants.CONFIG_DIR):
     """Parses a json configuration file.
 
     Params:
         file(str)
-        path(str): default CONFIG_PATH
+        path(str): default CONFIG_DIR
     """
     try:
         with open(path + "/" + file) as file_:
@@ -261,8 +261,8 @@ def create_device(*args, **kwargs):
     ls = ",".join(ls)
     if ls:
         ls = "," + ls
-    exec("import " + args[0].split(".")[0], globals())  # Imports the module.
-    exec( args[0] + "=" + args[0].split(".")[0] + "." + args[0].split(".")[1].split("_")[0] + "(\"" + args[0].split(".")[1].split("_")[1] + "\"" + ls + ")", globals())  # Creates the object.
+    exec("import " + args[0].split(".")[0] + " as " + args[0].split(".")[0], globals())  # Imports the module.
+    exec(args[0] + "=" + args[0].split(".")[0] + "." + args[0].split(".")[1].split("_")[0] + "(\"" + args[0].split(".")[1].split("_")[1] + "\"" + ls + ")", globals())  # Creates the object.
     return eval(args[0])
 
 def delete_device(device):

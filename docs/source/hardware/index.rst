@@ -1,5 +1,5 @@
-Hardware Documentation
-----------------------
+Hardware reference
+******************
 
 .. toctree::
    :maxdepth: 2

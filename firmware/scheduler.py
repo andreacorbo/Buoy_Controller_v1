@@ -26,6 +26,7 @@ import constants
 import _thread
 
 class SCHEDULER(object):
+    """Scheduler class docstring."""
 
     def __init__(self):
         utils.log_file("Initializing the event table...", constants.LOG_LEVEL)
@@ -64,21 +65,22 @@ class SCHEDULER(object):
             utils.create_device(device, tasks=["off"])
         else:
             utils.status_table[device] = 2  # Sets device ready.
+            _thread.stack_size(8 * 1024)  # Icreases thread stack size to avoid RuntimeError: maximum recursion depth exceeded
             _thread.start_new_thread(utils.execute, (device, tasks,))
             utils.log_file("{} => {}".format(device, constants.DEVICE_STATUS[utils.status_table[device]]), constants.LOG_LEVEL)
 
     def calc_data_acquisition_interval(self, device):
         tmp = [constants.DATA_ACQUISITION_INTERVAL]
-        if device.split(".")[1] in constants.SCHEDULER:
-            for event in constants.SCHEDULER[device.split(".")[1]]:
+        if device.split(".")[1] in constants.TASK_SCHEDULER:
+            for event in constants.TASK_SCHEDULER[device.split(".")[1]]:
                 if event == "log":
-                    tmp = constants.SCHEDULER[device.split(".")[1]]["log"]
+                    tmp = constants.TASK_SCHEDULER[device.split(".")[1]]["log"]
                 else:
-                    tmp.append(constants.SCHEDULER[device.split(".")[1]][event])
+                    tmp.append(constants.TASK_SCHEDULER[device.split(".")[1]][event])
         return min(tmp)
 
     def calc_event_table(self):
-        """Calculates the subsequent event for all defined devices."""
+        """Calculates the subsequent events for all defined devices."""
         self.event_table = {} # {timestamp:{device1:[task1, task2,...],...}
         now = utime.time()
         for device in utils.status_table:
@@ -99,21 +101,21 @@ class SCHEDULER(object):
                 task = "on"
                 self.add_event(timestamp, device, task)
             elif status == 1:  # device is on / warming up
-                if not device.split(".")[1] in constants.SCHEDULER:
+                if not device.split(".")[1] in constants.TASK_SCHEDULER:
                     data_aquisition_interval = constants.DATA_ACQUISITION_INTERVAL
                     next_acquisition = now - now % data_aquisition_interval + data_aquisition_interval
                     timestamp = next_acquisition - sampling_duration + activation_delay
                     task = "log"
                     self.add_event(timestamp, device, task)
                 else:
-                    if not "log" in constants.SCHEDULER[device.split(".")[1]]:
+                    if not "log" in constants.TASK_SCHEDULER[device.split(".")[1]]:
                         data_aquisition_interval = constants.DATA_ACQUISITION_INTERVAL
                         next_acquisition = now - now % data_aquisition_interval + data_aquisition_interval
                         timestamp = next_acquisition - sampling_duration + activation_delay
                         task = "log"
                         self.add_event(timestamp, device, task)
-                    for event in constants.SCHEDULER[device.split(".")[1]]:
-                        data_aquisition_interval = int(constants.SCHEDULER[device.split(".")[1]][event])
+                    for event in constants.TASK_SCHEDULER[device.split(".")[1]]:
+                        data_aquisition_interval = int(constants.TASK_SCHEDULER[device.split(".")[1]][event])
                         next_acquisition = now - now % data_aquisition_interval + data_aquisition_interval
                         timestamp = next_acquisition - sampling_duration + activation_delay
                         task = event

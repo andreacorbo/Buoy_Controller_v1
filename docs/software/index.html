@@ -1,0 +1,336 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Software reference &mdash; Buoy Controller v1 1.1 stable documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme_overrides.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Configurations" href="configs/index.html" />
+    <link rel="prev" title="General informations" href="../general.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Buoy Controller v1
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.1 stable
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../general.html">General informations</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Software reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#base-system">Base system</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="configs/index.html">configs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tools/index.html">tools</a></li>
+<li class="toctree-l3"><a class="reference internal" href="boot.html">boot</a></li>
+<li class="toctree-l3"><a class="reference internal" href="constants.html">constants</a></li>
+<li class="toctree-l3"><a class="reference internal" href="device.html">device</a></li>
+<li class="toctree-l3"><a class="reference internal" href="main.html">main</a></li>
+<li class="toctree-l3"><a class="reference internal" href="menu.html">menu</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyboard.html">pyboard</a></li>
+<li class="toctree-l3"><a class="reference internal" href="scheduler.html">scheduler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="session.html">session</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#multithreading">Multithreading</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#watchdog">Watchdog</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#devices-modules">Devices modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="devices/adcp.html">ADCP</a></li>
+<li class="toctree-l3"><a class="reference internal" href="devices/ctd.html">CTD</a></li>
+<li class="toctree-l3"><a class="reference internal" href="devices/gps.html">GPS - Global Position System</a></li>
+<li class="toctree-l3"><a class="reference internal" href="devices/meteo.html">METEO</a></li>
+<li class="toctree-l3"><a class="reference internal" href="devices/modem.html">MODEM</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#firmware-micropython">Firmware (Micropython)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../firmware_uploader.html">Firmware uploader</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../hardware/index.html">Hardware reference</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Buoy Controller v1</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+      <li>Software reference</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/software/index.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="software-reference">
+<h1>Software reference<a class="headerlink" href="#software-reference" title="Permalink to this headline">¶</a></h1>
+<p>The <code class="docutils literal notranslate"><span class="pre">Buoy</span> <span class="pre">Controller</span> <span class="pre">v1</span></code> software is composed of a <a class="reference internal" href="#base-system"><span class="std std-ref">Base system</span></a> that provides
+the basic functionalities to run a fully autonomous telemetry system and an
+extensible collection of instrument specific modules. Both globals and
+instruments related parameters are kept separate from the source code allowing
+the change of the system behavior by simply uploading a new configuration file.</p>
+<div class="section" id="base-system">
+<h2>Base system<a class="headerlink" href="#base-system" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper dirtree compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="configs/index.html">configs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="configs/pyboard.html">pyboard</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tools/index.html">tools</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tools/functools.html">functools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tools/nmea.html">nmea</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tools/utils.html">utils</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tools/ymodem.html">ymodem</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="boot.html">boot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="constants.html">constants</a></li>
+<li class="toctree-l1"><a class="reference internal" href="device.html">device</a></li>
+<li class="toctree-l1"><a class="reference internal" href="main.html">main</a></li>
+<li class="toctree-l1"><a class="reference internal" href="menu.html">menu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pyboard.html">pyboard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scheduler.html">scheduler</a></li>
+<li class="toctree-l1"><a class="reference internal" href="session.html">session</a></li>
+</ul>
+</div>
+<div class="section" id="multithreading">
+<h3>Multithreading<a class="headerlink" href="#multithreading" title="Permalink to this headline">¶</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">Buoy</span> <span class="pre">Controller</span> <span class="pre">v1</span></code> software takes advantage of the <code class="docutils literal notranslate"><span class="pre">MicroPython</span></code>
+native support to the <a class="reference external" href="https://docs.python.org/3/library/_thread.html" title="(in Python v3.8)"><span class="xref std std-doc">multithreading</span></a> programming
+to parallelize instruments tasks. This reduce the total duration of the data
+acquisition session, allowing the system to stay in sleep mode for the majority
+of the time saving precious energy. Furthermore in a big instrument set scenario
+the time gap between the first and the last instrument data acquisition session
+is drastically reduced.</p>
+</div>
+<div class="section" id="watchdog">
+<h3>Watchdog<a class="headerlink" href="#watchdog" title="Permalink to this headline">¶</a></h3>
+<p>A software <code class="docutils literal notranslate"><span class="pre">watchdog</span></code> object is created at system boot up and “fed” every 30
+seconds during normal conditions. An unexpected exception that produce the stall
+of the <code class="docutils literal notranslate"><span class="pre">main</span></code> routine, cause the watchdog to restart the system.</p>
+<div class="admonition attention">
+<p class="first admonition-title">Attention</p>
+<p class="last">Because of the system normally goes to sleep mode if no tasks are running,
+it wakes up periodically before the watchdog timeout get expired just to
+feed it and then goes back to sleep mode.</p>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The watchdog timeout has to be great than 1000ms and less than 32000ms.</p>
+</div>
+</div>
+</div>
+<div class="section" id="devices-modules">
+<h2>Devices modules<a class="headerlink" href="#devices-modules" title="Permalink to this headline">¶</a></h2>
+<p>Devices modules extend the <a class="reference internal" href="#base-system"><span class="std std-ref">Base system</span></a>.
+The module file name corresponds to the instrument manufacturer and contains a
+<code class="docutils literal notranslate"><span class="pre">class</span></code> for each instrument model.
+A configuration file with the same name is included in the <code class="docutils literal notranslate"><span class="pre">config</span></code> directory
+as at system startup all the modules with a valid configuration will be loaded
+and one or more instances of the correspondent device object created.</p>
+<div class="admonition hint">
+<p class="first admonition-title">Hint</p>
+<p class="last">To keep things ordered and easily identify a device module in the directory
+tree, a prefix <em>dev_</em> has been added both to the module and its configuration
+file name.</p>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="devices/adcp.html">ADCP</a></li>
+<li class="toctree-l1"><a class="reference internal" href="devices/ctd.html">CTD</a></li>
+<li class="toctree-l1"><a class="reference internal" href="devices/gps.html">GPS - Global Position System</a></li>
+<li class="toctree-l1"><a class="reference internal" href="devices/meteo.html">METEO</a></li>
+<li class="toctree-l1"><a class="reference internal" href="devices/modem.html">MODEM</a></li>
+</ul>
+</div>
+</div>
+<div class="section" id="firmware-micropython">
+<h2>Firmware (Micropython)<a class="headerlink" href="#firmware-micropython" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+</div>
+<div class="admonition attention">
+<p class="first admonition-title">Attention</p>
+<p>Due to the restricted hardware resource (RAM and FLASH) of the Pyboard,
+the software must be compiled and loaded toghether with the Micropython
+firmware , this way the compiler does not allocate precious RAM to load
+modules into. This process has been automated with a bash script
+<a class="reference internal" href="../firmware_uploader.html"><span class="doc">firmware_uploader.sh</span></a>.</p>
+<p class="last">To boot up the system from the internal flash, instead of the SD card, an empty
+file named SKIPSD has to be created in the software root.
+The SD card should acts only as a data acquisition files storage under the
+<code class="docutils literal notranslate"><span class="pre">data</span></code> directory .</p>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="configs/index.html" class="btn btn-neutral float-right" title="Configurations" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="../general.html" class="btn btn-neutral float-left" title="General informations" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, Andrea Corbo
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

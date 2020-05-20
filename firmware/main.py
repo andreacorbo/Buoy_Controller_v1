@@ -24,14 +24,16 @@ import machine
 import pyb
 import utime
 import uselect
-from pyboard import BOARD
+from pyboard import PYBOARD
 from scheduler import SCHEDULER
 from menu import MENU
-from tools.session import SESSION
+from session import SESSION
 import constants
 import _thread
 import tools.utils as utils
 import gc
+
+"""Main file."""
 
 for i in reversed(range(5)):  # DEBUG Delays main loop to stop before sleep.
     print("{:> 2d}\" to system startup...".format(i), end="\r")
@@ -40,7 +42,7 @@ print("\r")
 
 utils.log_file("Reset cause: {}".format(machine.reset_cause()), constants.LOG_LEVEL)  # DEBUG
 
-board = BOARD()  # Creates a board object.
+board = PYBOARD()  # Creates a board object.
 
 session = SESSION(board=board, timeout=constants.SESSION_TIMEOUT)  # Starts up the remote session.
 

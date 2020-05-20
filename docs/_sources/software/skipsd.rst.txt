@@ -1,0 +1,7 @@
+######
+SKIPSD
+######
+
+SKIPSD is an empty file located in the software root needed to skip the SD card
+and boot up the system from the internal flash.
+The SD card contains only the acquisition data files under the directory ``data``.

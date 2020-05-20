@@ -20,15 +20,23 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+"""This module contains standard device tools."""
+
 import pyb
 import utime
 import tools.utils as utils
 import constants
 
 class DEVICE(object):
+    """Creates a device object.
 
-    def __init__(self, *args, **kwargs):
-        self.instance = args[0]
+    Parameters:
+        ``instance`` :obj:`str` The object instance number (if multiple devices
+        are present) needs a correspondent section in the config_file.
+    """
+
+    def __init__(self, instance):
+        self.instance = instance
         self.name = self.__module__ + "." + self.__qualname__ + "_" + self.instance
         self.get_config()
         self.init_uart()
@@ -38,7 +46,7 @@ class DEVICE(object):
     def get_config(self):
         """Gets the device configuration."""
         try:
-            self.config = utils.read_config(self.config_file)[self.__qualname__][self.instance]
+            self.config = utils.read_config(self.__module__ + "." + constants.CONFIG_TYPE)[self.__qualname__][self.instance]
             return self.config
         except:
             utils.log_file("{} => unable to load configuration.".format(self.name), constants.LOG_LEVEL)  # DEBUG
@@ -125,6 +133,9 @@ class DEVICE(object):
                 self.gpio.on()
         return
 
-    def status(self):
-        """Returns the current device status."""
+    def status(self, status=None):
+        """Returns or sets the current device status."""
+        for key, value in constants.DEVICE_STATUS.items():
+            if status and value == status.upper():
+                utils.status_table[self.__name__] = key
         return constants.DEVICE_STATUS[utils.status_table[self.name]]

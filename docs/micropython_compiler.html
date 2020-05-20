@@ -1,0 +1,293 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Micropython compiler &mdash; Buoy Controller v1 1.1 stable documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme_overrides.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Configs" href="software/configs/index.html" />
+    <link rel="prev" title="Software reference" href="software/index.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Buoy Controller v1
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.1 stable
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="general.html">General informations</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="software/index.html">Software reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="software/index.html#micropython">Micropython</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Micropython compiler</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#requirements">Requirements</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#use">Use</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#source-code">Source code</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="software/index.html#base-system">Base system</a></li>
+<li class="toctree-l2"><a class="reference internal" href="software/index.html#multithreading">Multithreading</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="hardware/index.html">Hardware reference</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Buoy Controller v1</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="software/index.html">Software reference</a> &raquo;</li>
+        
+      <li>Micropython compiler</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/micropython_compiler.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="micropython-compiler">
+<h1>Micropython compiler<a class="headerlink" href="#micropython-compiler" title="Permalink to this headline">¶</a></h1>
+<p>This script compiles ad flashes the micropython firmware to the pyboard v1.1.
+All the python files located under the <a class="reference internal" href="software/index.html"><span class="doc">software</span></a> directory will be compiled as
+frozen bytecode (to save ram) and uploaded to the board toghether with the
+micropython firmware.
+To flash the firmware to the pyboard, it must be in DFU mode, to enter DFU mode, connect DFU pin with 3v3 and push the reset button.</p>
+<div class="section" id="requirements">
+<h2>Requirements<a class="headerlink" href="#requirements" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ sudo apt install python-usb python3-usb gcc-arm-none-eabi binutils-arm-none-eabi openocd
+</pre></div>
+</div>
+</div>
+<div class="section" id="use">
+<h2>Use<a class="headerlink" href="#use" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ sudo sh micropython_compiler.sh
+</pre></div>
+</div>
+</div>
+<div class="section" id="source-code">
+<h2>Source code<a class="headerlink" href="#source-code" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="ch">#!/bin/bash</span>
+<span class="c1"># This script compiles ad flashes the micropython firmware to the pyboard v1.1.</span>
+<span class="c1"># All the python files located under the software directory will be compiled as frozen bytecode (to save ram) and uploaded to the board toghether with the</span>
+<span class="c1"># micropython firmware.</span>
+<span class="c1"># To flash the firmware to the pyboard, it must be in DFU mode, to enter DFU mode, connect DFU pin with 3v3 and push the reset button.</span>
+<span class="c1"># Requirements:</span>
+<span class="c1">#   sudo apt install python-usb python3-usb</span>
+<span class="c1">#   sudo apt install gcc-arm-none-eabi binutils-arm-none-eabi openocd</span>
+
+<span class="nv">board</span><span class="o">=</span><span class="s2">&quot;PYBV11&quot;</span>
+<span class="nv">source</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$PWD</span><span class="s2">/software&quot;</span>
+<span class="nv">dest</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$PWD</span><span class="s2">/micropython&quot;</span>
+<span class="nv">modules</span><span class="o">=</span><span class="s2">&quot;/modules&quot;</span>
+<span class="nv">mpy</span><span class="o">=</span><span class="s2">&quot;/mpy-cross&quot;</span>
+<span class="nv">port</span><span class="o">=</span><span class="s2">&quot;/ports/stm32&quot;</span>
+<span class="nv">manifest</span><span class="o">=</span><span class="s2">&quot;/boards/manifest.py&quot;</span>
+
+<span class="c1"># Enables _thread module in ports/stm32/mpconfigport.h</span>
+sed -i <span class="s2">&quot;s|#define MICROPY_PY_THREAD           (0)|#define MICROPY_PY_THREAD           (1)|g&quot;</span> <span class="nv">$dest$port</span>/mpconfigport.h
+
+rm -rv <span class="nv">$dest$modules</span>/*
+
+<span class="k">for</span> dir in <span class="k">$(</span>find <span class="nv">$source</span> -type d<span class="k">)</span><span class="p">;</span> <span class="k">do</span>
+    <span class="nb">cd</span> <span class="nv">$dir</span>
+    <span class="k">for</span> file in <span class="k">$(</span>find -maxdepth <span class="m">1</span> -type f -name <span class="s2">&quot;*.p_&quot;</span><span class="k">)</span><span class="p">;</span> <span class="k">do</span>
+            <span class="nv">basename</span><span class="o">=</span><span class="k">$(</span>basename <span class="nv">$file</span><span class="k">)</span>
+            <span class="nv">dirname</span><span class="o">=</span><span class="k">$(</span><span class="nb">echo</span> <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> <span class="p">|</span> sed <span class="s2">&quot;s|&quot;</span><span class="nv">$source</span><span class="s2">&quot;||g&quot;</span><span class="k">)</span>
+            mkdir -p <span class="nv">$dest$modules$dirname</span>
+            cp -fv <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>/<span class="nv">$basename</span> <span class="nv">$dest$modules$dirname</span>/<span class="nv">$basename</span>
+            mv -v <span class="nv">$dest$modules$dirname</span>/<span class="nv">$basename</span> <span class="nv">$dest$modules$dirname</span>/<span class="k">$(</span>basename <span class="nv">$basename</span> .p_<span class="k">)</span>.py
+            <span class="k">done</span>
+    <span class="k">done</span>
+<span class="nb">cd</span> <span class="nv">$dest</span>
+rm -v <span class="nv">$dest$port$manifest</span>
+<span class="k">for</span> dir in <span class="k">$(</span>find <span class="nv">$dest$modules</span> -type d<span class="k">)</span><span class="p">;</span> <span class="k">do</span>
+    <span class="nb">cd</span> <span class="nv">$dir</span>
+    <span class="k">for</span> file in <span class="k">$(</span>find -maxdepth <span class="m">1</span> -type f -name <span class="s2">&quot;*.py&quot;</span><span class="k">)</span><span class="p">;</span> <span class="k">do</span>
+            <span class="nb">echo</span> freeze<span class="se">\(\&quot;\$\(</span>MPY_DIR<span class="se">\)\/</span><span class="k">$(</span>basename <span class="nv">$modules</span><span class="k">)</span><span class="se">\&quot;</span>, <span class="se">\&quot;</span><span class="k">$(</span><span class="nb">echo</span> <span class="nv">$dir</span>/<span class="k">$(</span>basename <span class="nv">$file</span><span class="k">)</span> <span class="p">|</span> sed <span class="s2">&quot;s|&quot;</span><span class="nv">$dest$modules</span>/<span class="s2">&quot;||g&quot;</span><span class="k">)</span><span class="se">\&quot;\)</span> &gt;&gt; <span class="nv">$dest$port$manifest</span>
+            <span class="k">done</span>
+    <span class="k">done</span>
+<span class="nb">cd</span> <span class="nv">$dest$mpy</span>
+make
+<span class="nb">cd</span> <span class="nv">$dest$port</span>
+make submodules
+make <span class="nv">BOARD</span><span class="o">=</span><span class="nv">$board</span> clean
+make <span class="nv">BOARD</span><span class="o">=</span><span class="nv">$board</span>
+make <span class="nv">BOARD</span><span class="o">=</span><span class="nv">$board</span> deploy
+</pre></div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="software/configs/index.html" class="btn btn-neutral float-right" title="Configs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="software/index.html" class="btn btn-neutral float-left" title="Software reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, Andrea Corbo
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
