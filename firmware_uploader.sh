@@ -22,12 +22,13 @@ rm -rv $dest$modules/*
 
 for dir in $(find $source -type d); do
 	cd $dir
-	for file in $(find -maxdepth 1 -type f -name "*.p_"); do
+	for file in $(find -maxdepth 1 -type f -name "*.p_"); do  # uncomment if file extension p_
+	#for file in $(find -maxdepth 1 -type f -name "*.py"); do
 		basename=$(basename $file)
 		dirname=$(echo $(pwd) | sed "s|"$source"||g")
 		mkdir -p $dest$modules$dirname
 		cp -fv $(pwd)/$basename $dest$modules$dirname/$basename
-		mv -v $dest$modules$dirname/$basename $dest$modules$dirname/$(basename $basename .p_).py
+		mv -v $dest$modules$dirname/$basename $dest$modules$dirname/$(basename $basename .p_).py  # uncomment if file extension p_
 		done
 	done
 cd $dest
@@ -35,7 +36,7 @@ rm -v $dest$port$manifest
 for dir in $(find $dest$modules -type d); do
 	cd $dir
 	for file in $(find -maxdepth 1 -type f -name "*.py"); do
-		echo freeze\(\"\$\(MPY_DIR\)\/$(basename $modules)\", \"$(echo $dir/$(basename $file) | sed "s|"$dest$modules/"||g")\"\) >> $dest$port$manifest		
+		echo freeze\(\"\$\(MPY_DIR\)\/$(basename $modules)\", \"$(echo $dir/$(basename $file) | sed "s|"$dest$modules/"||g")\"\) >> $dest$port$manifest
 		done
 	done
 cd $dest$mpy
@@ -43,5 +44,5 @@ make
 cd $dest$port
 make submodules
 make BOARD=$board clean
-make BOARD=$board 
+make BOARD=$board
 make BOARD=$board deploy

@@ -111,7 +111,8 @@ class DEVICE(object):
     def on(self):
         """Turns on device."""
         if hasattr(self, "gpio"):
-            self.gpio.on()  # set pin to off
+            if self.gpio.value() == 0:
+                self.gpio.on()  # set pin to off
         utils.status_table[self.name] = 1
         utils.log_file("{} => ON".format(self.name), constants.LOG_LEVEL)  #
         return
@@ -119,7 +120,8 @@ class DEVICE(object):
     def off(self):
         """Turns off device."""
         if hasattr(self, "gpio"):
-            self.gpio.off()  # set pin to off
+            if self.gpio.value() == 1:
+                self.gpio.off()  # set pin to off
         utils.status_table[self.name] = 0
         utils.log_file("{} => OFF".format(self.name), constants.LOG_LEVEL)  # DEBUG
         return

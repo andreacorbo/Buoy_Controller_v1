@@ -99,6 +99,7 @@ class GPS(NMEA, DEVICE):
                 return True
             else:
                 utils.log_file("{} => invalid data received".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
+                return False
 
     def _i2c_read_reg(self):
         """Reads the data form the i2c register."""

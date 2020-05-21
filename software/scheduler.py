@@ -122,11 +122,10 @@ class SCHEDULER(object):
                         self.add_event(timestamp, device, task)
             elif status == 2:  # device is ready / acquiring data
                 timestamp =  next_acquisition + activation_delay
-                '''if data_aquisition_interval - sampling_duration - warmup_duration == 0:
-                    task = "on"
+                if data_aquisition_interval - sampling_duration - warmup_duration > 0:
+                    task = "off"
                 else:
-                    task = "off'''
-                task = "off"
+                    task = "on"
                 self.add_event(timestamp, device, task)
 
     def add_event(self, timestamp, device, task):
