@@ -22,10 +22,8 @@
 		"1":{
 			"Device":1,
 			"Async":1,
-			"Activation_Rate":60,
 			"Warmup_Duration":0,
 			"Samples":10,
-			"Activation_Delay":0,
 			"Sample_Rate":10,
 			"Data_Format":"",
 			"String_To_Acquire":"",

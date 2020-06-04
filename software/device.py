@@ -56,7 +56,8 @@ class DEVICE(object):
         """Initializes the uart bus."""
         if "Uart" in self.config:
             try:
-                self.uart = pyb.UART(int(constants.UARTS[constants.DEVICES[self.__qualname__ + "_" + self.instance]]), int(self.config["Uart"]["Baudrate"]))
+                inv_devs = {v: k for k, v in constants.DEVICES.items()}  # Inverts DEVICES key,value mapping.
+                self.uart = pyb.UART(int(constants.UARTS[inv_devs[self.name] % len(constants.UARTS)]), int(self.config["Uart"]["Baudrate"]))
                 self.uart.init(int(self.config["Uart"]["Baudrate"]),
                     bits=int(self.config["Uart"]["Bits"]),
                     parity=eval(self.config["Uart"]["Parity"]),
@@ -96,7 +97,7 @@ class DEVICE(object):
         """Power on the device led."""
         self.led.on()
 
-    def led_on(self):
+    def led_off(self):
         """Power off the device led."""
         self.led.off()
 
@@ -139,5 +140,5 @@ class DEVICE(object):
         """Returns or sets the current device status."""
         for key, value in constants.DEVICE_STATUS.items():
             if status and value == status.upper():
-                utils.status_table[self.__name__] = key
+                utils.status_table[self.name] = key
         return constants.DEVICE_STATUS[utils.status_table[self.name]]

@@ -110,9 +110,9 @@ def time_display(timestamp):
     if hours > 0:
         timestring.append(str(hours) + "h")
     if mins > 0:
-        timestring.append(str(mins) + """)
+        timestring.append(str(mins) + "\"")
     if secs >= 0:
-        timestring.append(str(secs) + """)
+        timestring.append(str(secs) + "\"")
     return " ".join(timestring)
 
 def log_file(data_string, mode=0, new_line=True):
@@ -261,7 +261,7 @@ def create_device(*args, **kwargs):
     ls = ",".join(ls)
     if ls:
         ls = "," + ls
-    exec("import " + args[0].split(".")[0] + " as " + args[0].split(".")[0], globals())  # Imports the module.
+    exec("import " + args[0].split(".")[0], globals())  # Imports the module.
     exec(args[0] + "=" + args[0].split(".")[0] + "." + args[0].split(".")[1].split("_")[0] + "(\"" + args[0].split(".")[1].split("_")[1] + "\"" + ls + ")", globals())  # Creates the object.
     return eval(args[0])
 

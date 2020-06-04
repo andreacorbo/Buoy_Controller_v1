@@ -20,8 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-"""Module docstring."""
-
 import utime
 from device import DEVICE
 from tools.nmea import NMEA
@@ -40,13 +38,13 @@ class Y32500(DEVICE, NMEA):
         DEVICE.__init__(self, instance)
         NMEA.__init__(self, instance)
         data_tasks = ["log"]
-        if "tasks" in kwargs:
-            if any(elem in data_tasks for elem in kwargs["tasks"]):
+        if tasks:
+            if any(elem in data_tasks for elem in tasks):
                 if self.main():
-                    for task in kwargs["tasks"]:
+                    for task in tasks:
                         eval("self." + task + "()", {"self":self})
             else:
-                for task in kwargs["tasks"]:
+                for task in tasks:
                     eval("self." + task + "()", {"self":self})
 
     def start_up(self):
@@ -297,9 +295,8 @@ class Y32500(DEVICE, NMEA):
         string = ""
         strings = []
         self.data = []
-        start = utime.time()
         while string_count < self.config["Samples"]:
-            if not self.status() == "READY":
+            if not self.status() == "READY":  # Exits if the device has been switched off by scheduler.
                 utils.log_file("{} => timeout occourred".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
                 return False
             if self.uart.any():

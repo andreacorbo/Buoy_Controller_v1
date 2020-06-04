@@ -29,22 +29,29 @@ import constants
 class METRECX(DEVICE):
     """Creates an aml metrecx multiparametric probe object."""
 
-    def __init__(self, instance):
+    def __init__(self, instance, tasks=[]):
         DEVICE.__init__(self, instance)
         self.timeout = constants.TIMEOUT
         self.prompt = ">"
+        data_tasks = ["log"]
+        for task in tasks:
+            if task in data_tasks:
+                if self.main():
+                    eval("self." + task + "()", {"self":self})
+            else:
+                eval("self." + task + "()", {"self":self})
 
     def start_up(self):
         """Performs device specific initialization sequence."""
-        if self.init_power():
-            if self.init_uart():
-                if self._break():
-                    self._stop_logging()
-                    self._set_clock()
-                    self._set_sample_rate()
-                    self._start_logging()
-                    self.off()
-                    return True
+        self.init_power()
+        self.init_uart()
+        if self._break():
+            self._stop_logging()
+            self._set_clock()
+            self._set_sample_rate()
+            self._start_logging()
+            self.off()
+            return True
         return False
 
     def _timeout(self, start, timeout=None):
@@ -76,13 +83,13 @@ class METRECX(DEVICE):
     def _break(self):
         utils.log_file("{} => waiting for instrument getting ready...".format(self.__qualname__))  # DEBUG
         while True:
-            self._flush_uart()
+            self.flush_uart()
             self.uart.write(b"\x03")  # <CTRL+C>
             if self._get_prompt(120):
                 return True
 
     def _get_prompt(self, timeout=None):
-        self._flush_uart()
+        self.flush_uart()
         self.uart.write(b"\r")
         rx = self._get_reply(timeout)
         if rx == self.prompt:
@@ -176,17 +183,14 @@ class METRECX(DEVICE):
 
     def main(self):
         """Captures instrument data."""
-        if not self.init_uart():
-            return
         utils.log_file("{} => acquiring data...".format(self.__qualname__))  # DEBUG
         self.led_on()
-        sample = ""
+        sample = []
         new_line = False
-        start = utime.time()
         while True:
-            if utime.time() - start > self.config["Samples"] // self.config["Sample_Rate"]:
-                utils.log_file("{} => no data coming from serial".format(self.__qualname__))  # DEBUG
-                break
+            if not self.status() == "READY":  # Exits if the device has been switched off by scheduler.
+                utils.log_file("{} => timeout occourred".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
+                return False
             if self.uart.any():
                 byte = self.uart.read(1)
                 if byte == b"\n":
@@ -194,20 +198,21 @@ class METRECX(DEVICE):
                 elif byte == b"\r" and new_line:
                     break
                 elif new_line:
-                    sample += byte.decode("utf-8")
-        utils.log_data(self._format_data(sample))
-        self.led_on()
-        return
+                    sample.append(byte.decode("utf-8"))
+        utils.log_data(self._format_data("".join(sample)))
+        self.led_off()
+        return True
 
 
 class UVXCHANGE(DEVICE):
     """Creates an aml uvxchange untifouling object."""
 
-    def __init__(self, instance):
+    def __init__(self, instance, tasks=[]):
         DEVICE.__init__(self, instance)
-        
+        if tasks:
+            for task in tasks:
+                eval("self." + task + "()", {"self":self})
+
     def start_up(self):
         """Performs device specific initialization sequence."""
-        if self.init_power():
-          return True
-        return False
+        self.init_power()

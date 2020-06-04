@@ -152,10 +152,10 @@ class PYBOARD(object):
                 for key in cfg.keys():
                     for obj in cfg[key]:
                         if cfg[key][obj]["Device"]:
-                            try:
-                                utils.create_device(f_name + "." + key + "_" + obj, tasks=["start_up"])
-                            except ImportError:
-                                pass
+                            #try:
+                            utils.create_device(f_name + "." + key + "_" + obj, tasks=["start_up"])
+                            #except ImportError:
+                            #    pass
 
 
     def set_mode(self, timeout):
@@ -210,14 +210,12 @@ class ADC(DEVICE):
     def __init__(self, instance, tasks=list()):
         DEVICE.__init__(self, instance)
         data_tasks = ["log"]
-        if tasks:
-            if any(elem in data_tasks for elem in tasks):
+        for task in tasks:
+            if task in data_tasks:
                 if self.main():
-                    for task in tasks:
-                        eval("self." + task + "()", {"self":self})
-            else:
-                for task in tasks:
                     eval("self." + task + "()", {"self":self})
+            else:
+                eval("self." + task + "()", {"self":self})
 
     def start_up(self):
         """Performs device specific initialization sequence."""

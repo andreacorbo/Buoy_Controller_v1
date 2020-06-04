@@ -26,107 +26,136 @@ import constants
 import _thread
 
 class SCHEDULER(object):
-    """Scheduler class docstring."""
+    """Creates a scheduler object."""
 
     def __init__(self):
         utils.log_file("Initializing the event table...", constants.LOG_LEVEL)
         self.calc_event_table()
 
     def scheduled(self, timestamp):
-        """Executes any event defined at occurred timestamp.
+        """Runs all tasks defined at the current timestamp.
 
-        Params:
-            timestamp(int)
+        Parameters:
+            ``timestamp`` :obj:`int` unix epoch timestamp
         """
-        self.calc_next_event()
+        self.get_next_event()
         if timestamp > self.next_event:  # Executes missed event.
             timestamp = self.next_event
         if timestamp in self.event_table:
-            for device in self.event_table[timestamp]:
-                self.manage_task(device, self.event_table[timestamp][device])
+            self.manage_event(self.event_table[timestamp])
             self.calc_event_table()
-            self.calc_next_event()
+            self.get_next_event()
 
-    def calc_next_event(self):
-        """Gets the earlier event from the event table."""
+    def get_next_event(self):
+        """Gets the timestamp of the next event from the event table."""
         self.next_event = min(self.event_table)
 
-    def manage_task(self, device, tasks):
-        """Manages the device status after a event event.
+    def manage_event(self, event):
+        """Manages all the tasks defined for a device at the current timestamp.
 
-        |--OFF--> ON--> WARMING UP--> READY-->|--OFF--|->
-
-        Params:
-            task(str)
+        Parameters:
+            ``event`` :obj:`dict` {device1:[task1,...],...}
         """
-        if "on" in tasks:
-            utils.create_device(device, tasks=["on"])
-        elif "off" in tasks:
-            utils.create_device(device, tasks=["off"])
-        else:
-            utils.status_table[device] = 2  # Sets device ready.
-            _thread.stack_size(8 * 1024)  # Icreases thread stack size to avoid RuntimeError: maximum recursion depth exceeded
-            _thread.start_new_thread(utils.execute, (device, tasks,))
-            utils.log_file("{} => {}".format(device, constants.DEVICE_STATUS[utils.status_table[device]]), constants.LOG_LEVEL)
+        for device in event:
+            if "on" in event[device]:
+                utils.create_device(device, tasks=["on"])
+            elif "off" in event[device]:
+                utils.create_device(device, tasks=["off"])
+            else:
+                utils.status_table[device] = 2  # Sets the device status as READY.
+                utils.log_file("{} => {}".format(device, constants.DEVICE_STATUS[utils.status_table[device]]), constants.LOG_LEVEL)
+                _thread.stack_size(8 * 1024)  # Icreases thread stack size to avoid RuntimeError: maximum recursion depth exceeded
+                _thread.start_new_thread(utils.execute, (device, event[device],))
 
-    def calc_data_acquisition_interval(self, device):
+    def calc_activation_interval(self, device):
+        """Calculates the minimum activation interval for the specified device.
+
+        Parameters:
+            ``device`` :obj:`str` The device FQN `module.device_#instancenumber`
+        """
         tmp = [constants.DATA_ACQUISITION_INTERVAL]
-        if device.split(".")[1] in constants.TASK_SCHEDULER:
-            for event in constants.TASK_SCHEDULER[device.split(".")[1]]:
-                if event == "log":
-                    tmp = constants.TASK_SCHEDULER[device.split(".")[1]]["log"]
-                else:
-                    tmp.append(constants.TASK_SCHEDULER[device.split(".")[1]][event])
+        if device in constants.TASK_SCHEDULER:
+            for event in constants.TASK_SCHEDULER[device]:
+                tmp.append(constants.TASK_SCHEDULER[device][event])
         return min(tmp)
 
+    def calc_activation_delay(self, device):
+        """Calculates the activation delay for the specified serial device.
+
+        Multiplexed uarts form `n-`virtual time slots.
+        The activation of a serial device is delayed based on the slot the
+        device belong to.
+        Tasks for devices connected on the same slot are executed asyncronously
+        while slots are activated sequentially with a delay defined by the
+        SLOT_DELAY parameter.
+
+        Parameters:
+            ``device`` :obj:`str` The device FQN `module.device_#instancenumber`
+        """
+        if hasattr(device, "uart"):
+            slot = self.inv_devices[device.name] // len(constants.UARTS)
+            return slot * constants.SLOT_DELAY
+        return 0
+
     def calc_event_table(self):
-        """Calculates the subsequent events for all defined devices."""
-        self.event_table = {} # {timestamp:{device1:[task1, task2,...],...}
-        now = utime.time()
+        """Calculates the subsequent events for all the connected devices.
+
+        ``event_table`` :obj:`dict` {timestamp1:{device1:[task1, task2,...],...},...}
+        """
+        self.event_table = {}
+        start = utime.time()
         for device in utils.status_table:
             status = utils.status_table[device]
-            data_aquisition_interval = self.calc_data_acquisition_interval(device)
-            next_acquisition = now - now % data_aquisition_interval + data_aquisition_interval
+            # Creates a reversed mapping DEVICES dict.
+            self.inv_devices = dict(map(reversed, constants.DEVICES.items()))
             obj = utils.create_device(device)
-            activation_delay = obj.config["Activation_Delay"]
+            activation_delay = self.calc_activation_delay(obj)
+            # Substracts the activation_delay from the actual timestamp
+            # before calculates the next activation otherwise it misses a cycle.
+            now = start - activation_delay
             warmup_duration = obj.config["Warmup_Duration"]
             samples = obj.config["Samples"]
             sample_rate = obj.config["Sample_Rate"]
-            try:
-                sampling_duration = samples // sample_rate
-            except:
-                sampling_duration = 0
-            if status in [0]:  # device is off
-                timestamp =  next_acquisition - sampling_duration - warmup_duration + activation_delay
+            # Calculates the sampling_duration and rounds up the value. 
+            sampling_duration = 0
+            if sample_rate > 0:
+                sampling_duration = samples // sample_rate + (samples % sample_rate > 0)
+            activation_interval = self.calc_activation_interval(device)
+            next_activation = now - now  % activation_interval + activation_interval + activation_delay
+            if status == 0:  # device is off
+                timestamp =  next_activation - sampling_duration - warmup_duration
                 task = "on"
                 self.add_event(timestamp, device, task)
             elif status == 1:  # device is on / warming up
-                if not device.split(".")[1] in constants.TASK_SCHEDULER:
-                    data_aquisition_interval = constants.DATA_ACQUISITION_INTERVAL
-                    next_acquisition = now - now % data_aquisition_interval + data_aquisition_interval
-                    timestamp = next_acquisition - sampling_duration + activation_delay
-                    task = "log"
-                    self.add_event(timestamp, device, task)
-                else:
-                    if not "log" in constants.TASK_SCHEDULER[device.split(".")[1]]:
-                        data_aquisition_interval = constants.DATA_ACQUISITION_INTERVAL
-                        next_acquisition = now - now % data_aquisition_interval + data_aquisition_interval
-                        timestamp = next_acquisition - sampling_duration + activation_delay
+                if samples > 0:
+                    if not device in constants.TASK_SCHEDULER:
+                        activation_interval = constants.DATA_ACQUISITION_INTERVAL
+                        next_activation = now - now % activation_interval + activation_interval + activation_delay
+                        timestamp = next_activation - sampling_duration
                         task = "log"
                         self.add_event(timestamp, device, task)
-                    for event in constants.TASK_SCHEDULER[device.split(".")[1]]:
-                        data_aquisition_interval = int(constants.TASK_SCHEDULER[device.split(".")[1]][event])
-                        next_acquisition = now - now % data_aquisition_interval + data_aquisition_interval
-                        timestamp = next_acquisition - sampling_duration + activation_delay
-                        task = event
-                        self.add_event(timestamp, device, task)
+                    else:
+                        if not "log" in constants.TASK_SCHEDULER[device]:
+                            activation_interval = constants.DATA_ACQUISITION_INTERVAL
+                            next_activation = now - now % activation_interval + activation_interval + activation_delay
+                            timestamp = next_activation - sampling_duration
+                            task = "log"
+                            self.add_event(timestamp, device, task)
+                        for event in constants.TASK_SCHEDULER[device]:
+                            activation_interval = int(constants.TASK_SCHEDULER[device][event])
+                            next_activation = now - now % activation_interval + activation_interval + activation_delay
+                            timestamp = next_activation - sampling_duration
+                            task = event
+                            self.add_event(timestamp, device, task)
             elif status == 2:  # device is ready / acquiring data
-                timestamp =  next_acquisition + activation_delay
-                if data_aquisition_interval - sampling_duration - warmup_duration > 0:
+                timestamp =  next_activation
+                timestamp += 1 // sample_rate + (1 % sample_rate > 0)  # Adds a delay to capturing complete samples strings.
+                if activation_interval - sampling_duration - warmup_duration > 0:
                     task = "off"
                 else:
                     task = "on"
                 self.add_event(timestamp, device, task)
+        self.print_event_table()
 
     def add_event(self, timestamp, device, task):
         """Adds an event {timestamp:{device1:[task1, task2,...],...} to the event table.
@@ -143,3 +172,16 @@ class SCHEDULER(object):
                 self.event_table[timestamp][device]=[task]
         else:
             self.event_table[timestamp] = {device:[task]}
+
+    def print_event_table(self):
+        tmp1 = ["\r\n############################################################"]
+        for event in sorted(self.event_table):
+            tmp2 = []
+            tmp2.append("# " + utils.timestamp(event))
+            for device in self.event_table[event]:
+                for task in self.event_table[event][device]:
+                    tmp2.append(device)
+                    tmp2.append("[" + task + "]")
+                tmp1.append(" ".join(tmp2))
+        tmp1.append("############################################################\r\n")
+        print("\r\n".join(tmp1))

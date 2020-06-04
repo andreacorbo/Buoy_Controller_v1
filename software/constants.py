@@ -26,8 +26,12 @@ LOG_DIR = "log"
 LOG_LEVEL = 0  # 0 screen output, 1 log to file
 VERBOSE = 0  # 0 nothing, 1 shows device activity
 DEVICE_STATUS = {0:"OFF", 1:"ON", 2:"READY"}
-DEVICES = {"L80M39_1":1, "Y32500_1":1, "METRECX_1":2, "AQUADOPP_1":3}
-UARTS = {1:2, 2:4, 3:6, 4:1}
+DEVICES = {
+    0:"dev_quectel.L80M39_1",
+    4:"dev_meteo.Y32500_1"
+}
+UARTS = {0:2, 1:4, 2:6, 3:1}  # uart number to uart channel mapping
+                              # uart number = device number % number of uart channels
 LEDS = {"IO":1, "PWR":2, "RUN":3, "SLEEP":4}  # red, green, yellow, blue
 TIMEOUT = 60  # sec.
 WD_TIMEOUT = 30000  # 1000ms < watchdog timer timeout < 32000ms
@@ -41,8 +45,13 @@ MEDIA = ["/sd", "/flash"]
 DATA_DIR = "data"
 DATA_FILE_NAME = "\"{:04d}{:02d}{:02d}\".format(utime.localtime()[0], utime.localtime()[1], utime.localtime()[2])"
 DATA_SEPARATOR = ","
-DATA_ACQUISITION_INTERVAL = 60  # sec.
-TASK_SCHEDULER = {"L80M39_1":{"sync_rtc":120, "last_fix":30}}
+DATA_ACQUISITION_INTERVAL = 900  # sec.
+TASK_SCHEDULER = {"dev_quectel.L80M39_1":{"sync_rtc":3600, "last_fix":300}}
+SLOT_DELAY = 60  # beacuse meteo and gps share the same uart
+                 # meteo must remain OFF until gps finishes its tasks to
+                 # avoid byte collision.
+                 # This parameter can be drastically reduced to few seconds when
+                 # uarts will be multiplexed.
 TMP_FILE_PFX = "$"
 SENT_FILE_PFX = "_"
 BUF_DAYS = 3
