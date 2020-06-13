@@ -31,7 +31,7 @@ from tools.nmea import NMEA
 from math import sin, cos, sqrt, atan2, radians
 
 class GPS(NMEA, DEVICE):
-    """Creates a GPS device object.
+    """Creates a gps device object.
 
     Extends the :class:`device` and the :class:`tools.nmea` classes.
 
@@ -58,18 +58,11 @@ class GPS(NMEA, DEVICE):
                     eval("self." + task + "()", {"self":self})
 
     def start_up(self):
-        """Performs the device specific initialization sequence.
-
-        Return:
-            ``True`` or ``False`` depends on startup sequence successfull
-            completion.
-        """
-        if self.init_power():
-          return True
-        return False
+        """Performs the device specific initialization sequence."""
+        self.init_power()
 
     def main(self, sentence="RMC"):
-        """Retreives data either from a UART or I2C gps device.
+        """Retreives data from a serial gps device.
 
         Passes  data char by char to :func:`tools.nmea.NMEA.get_sentence` to get a valid
         :download:`NMEA <../../media/NV08C_RTK_NMEA_Protocol_Specification_V16_ENG_1.pdf>` string.
@@ -78,35 +71,36 @@ class GPS(NMEA, DEVICE):
             ``sentence`` :obj:`str` The desired NMEA sentence.
 
         Return:
-            ``True`` or ``False`` depends on gps got a valid fix.
+            ``True`` or ``False`` depends on the desired sentence has been acquired.
         """
         utils.log_file("{} => acquiring data...".format(self.name), constants.LOG_LEVEL)
         while True:
             if not self.status() == "READY":  # Exits if the device has been switched off by scheduler.
                 utils.log_file("{} => timeout occourred".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
-                return False
-            if self.config["I2C_Address"]:  # Retreives data from an I2C device.
-                for char in self._i2c_read_reg():
-                    if self.get_sentence(char, sentence):
-                        continue
-            else:  # Retreives data from a serial device.
-                if self.uart.any():
-                    if not self.get_sentence(self.uart.readchar(), sentence):
-                        continue
+                if not self.sentence:
+                    utils.log_file("{} => no data received".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
                 else:
-                    continue
-            if self.fixed():
-                return True
-            else:
-                utils.log_file("{} => invalid data received".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
+                    utils.log_file("{} => no {} string received".format(self.name, sentence), constants.LOG_LEVEL, True)  # DEBUG
                 return False
+            if self.uart.any():
+                if not self.get_sentence(self.uart.readchar(), sentence):
+                    continue
+                return True
 
-    def _i2c_read_reg(self):
-        """Reads the data form the i2c register."""
-        pass
+    def fixed(self):
+        """Checks for a valid position.
+
+        Returns:
+          True or False
+        """
+        if not self.sentence[2] == "A":
+            utils.log_file("{} => no fix".format(self.name), constants.LOG_LEVEL)
+            return False
+        return True
 
     def log(self):
-        """Writes out acquired data to a file."""
+        """Writes out acquired data to file."""
+        self.fixed()
         utils.log_data("$" + ",".join(map(str, self.sentence)))
         return
 
@@ -125,11 +119,11 @@ class GPS(NMEA, DEVICE):
         return
 
     def last_fix(self):
-        """Stores last gps valid position and utc timestamp in
-        :attr:`tools.utils.gps`.
-        """
+        """Stores last gps fix in :attr:`tools.utils.gps_fix`."""
         if self.fixed():
             utils.log_file("{} => saving last gps fix...".format(self.name), constants.LOG_LEVEL)
+            self.displacement()
+            utils.gps_fix = self.sentence
             utc_time = self.sentence[1]
             utc_date = self.sentence[9]
             lat = "{}{}".format(self.sentence[3], self.sentence[4])
@@ -137,25 +131,18 @@ class GPS(NMEA, DEVICE):
             utc = "{}-{}-{} {}:{}:{}".format("20"+utc_date[4:6], utc_date[2:4], utc_date[0:2], utc_time[0:2], utc_time[2:4], utc_time[4:6])
             speed = "{}".format(self.sentence[7])
             heading = "{}".format(self.sentence[8])
-            utils.gps = (utc, lat, lon, speed, heading)
             utils.log_file("{} => last fix (UTC: {} POSITION: {} {}, SPEED: {}, HEADING: {})".format(self.name, utc, lat, lon, speed, heading), constants.LOG_LEVEL)  # DEBUG
         return
 
     def displacement(self):
-        # approximate radius of earth in km
-        R = 6373.0
-        lat1 = radians(utils.gps())
-        lon1 = radians(21.0122287)
-        lat2 = radians(52.406374)
-        lon2 = radians(16.9251681)
-
-        dlon = lon2 - lon1
-        dlat = lat2 - lat1
-
-        a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
-        c = 2 * atan2(sqrt(a), sqrt(1 - a))
-
-        distance = R * c
-
-        print("Result:", distance)
-        print("Should be:", 278.546, "km")
+        """Calculates THE displacement from last fix and store it in :attr:`tools.utils.gps_displacement`."""
+        if self.fixed() and utils.gps_fix:
+            R = 6373.0  # Approximate radius of earth in km.
+            prev_lat = radians(int(utils.gps_fix[3][0:2]) + float(utils.gps_fix[3][2:]) / 60)
+            prev_lon = radians(int(utils.gps_fix[5][0:2]) + float(utils.gps_fix[5][2:]) / 60)
+            last_lat = radians(int(self.sentence[3][0:2]) + float(self.sentence[3][2:]) / 60)
+            last_lon = radians(int(self.sentence[5][0:2]) + float(self.sentence[5][2:]) / 60)
+            a = sin((last_lat - prev_lat) / 2)**2 + cos(prev_lat) * cos(last_lat) * sin((last_lon - prev_lon) / 2)**2
+            c = 2 * atan2(sqrt(a), sqrt(1 - a))
+            utils.gps_displacement = R * c
+        return

@@ -22,7 +22,7 @@
 		"1":{
 			"Device":1,
 			"Async":1,
-			"Warmup_Duration":0,
+			"Warmup_Interval":0,
 			"Samples":10,
 			"Sample_Rate":10,
 			"Data_Format":"",

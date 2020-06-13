@@ -26,7 +26,7 @@ import constants
 import ubinascii
 import math
 
-class AQUADOP(DEVICE):
+class AQUADOPP(DEVICE):
 
     modes = {
         b"\x00\x00":"Firmware upgrade",
@@ -50,32 +50,30 @@ class AQUADOP(DEVICE):
     def __init__(self, instance, tasks=[]):
         """Constructor method."""
         DEVICE.__init__(self, instance)
-        data_tasks = ["log"]
-        for task in tasks:
-            if task in data_tasks:
-                if self.main():
-                    eval("self." + task + "()", {"self":self})
-            else:
-                eval("self." + task + "()", {"self":self})
-
         self.timeout = self.config["Timeout"]
         self.usr_cfg = ()
         self.hw_cfg = ()
         self.head_cfg = ()
+        data_tasks = ["log"]
+        if tasks:
+            if any(elem in data_tasks for elem in tasks):
+                if self.main():
+                    for task in tasks:
+                        eval("self." + task + "()", {"self":self})
+            else:
+                for task in tasks:
+                    eval("self." + task + "()", {"self":self})
 
 
     def start_up(self):
-        if self.init_power():
-            utime.sleep_ms(500)  # DEBUG Allows instrument to start properly prior to send commands
-            if self.init_uart():
-                self._set_clock()
-                self._set_usr_cfg()
-                if self._get_cfg():
-                    self._parse_cfg()
-                self._start_delayed()
-                return True
-        return False
-
+        self.init_power()
+        utime.sleep_ms(500)  # DEBUG Allows instrument to start properly prior to send commands
+        utils.log_file("{} => initializing...z=t".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
+        self._set_clock()
+        self._set_usr_cfg()
+        if self._get_cfg():
+            self._parse_cfg()
+        self._start_delayed()
 
     def _timeout(self, start, timeout=None):
         """Checks if a ``timeout`` occourred
@@ -251,27 +249,27 @@ class AQUADOP(DEVICE):
                 rx = self._get_reply()
                 if self._ack(rx) and self.verify_checksum(rx[0:48]) and self.verify_checksum(rx[48:272]) and self.verify_checksum(rx[272:784]):
                     try:
-                        with open("config/adcp.cfg", "wb") as cfg:
+                        with open(constants.CONFIG_DIR + "/" + self.config["Adcp"]["Instrument_Config"], "wb") as cfg:
                             cfg.write(rx)
-                            utils.log_file("{} => retreived instrument config".format(self.__qualname__))  # DEBUG
+                            utils.log_file("{} => retreived instrument config".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
                             return True
                     except:
                         break
-        utils.log_file("{} => unable to retreive instrument config".format(self.__qualname__))  # DEBUG
+        utils.log_file("{} => unable to retreive instrument config".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
         return False
 
     def _parse_cfg(self):
         """Parses configuration data."""
         try:
-            with open("config/adcp.cfg", "rb") as cfg:
+            with open(constants.CONFIG_DIR + "/" + self.config["Adcp"]["Instrument_Config"], "rb") as cfg:
                 bytes = cfg.read()
                 self.hw_cfg = self._parse_hw_cfg(bytes[0:48])         # Hardware config (48 bytes)
                 self.head_cfg = self._parse_head_cfg(bytes[48:272])   # Head config (224 bytes)
                 self.usr_cfg = self._parse_usr_cfg(bytes[272:784])    # Deployment config (512 bytes)
-            utils.log_file("{} => parsed instrument config".format(self.__qualname__))  # DEBUG
+            utils.log_file("{} => parsed instrument config".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
             return True
         except:
-            utils.log_file("{} => unable to parse instrument config".format(self.__qualname__))  # DEBUG
+            utils.log_file("{} => unable to parse instrument config".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
             return False
 
 
@@ -280,16 +278,16 @@ class AQUADOP(DEVICE):
         start = utime.time()
         while True:
             if self._timeout(start):
-                utils.log_file("{} => unable to retreive hardware config".format(self.__qualname__))  # DEBUG
+                utils.log_file("{} => unable to retreive hardware config".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
                 return False
             if self._break():
-                vebose("=> GP", constants.VERBOSE)
+                utils.verbose("=> GP", constants.VERBOSE)
                 self.uart.write("GP")
                 rx = self._get_reply()
                 if self._ack(rx):
                     if self.verify_checksum(rx[:-2]):
                         self.hw_cfg = self._parse_hw_cfg(rx)
-                        utils.log_file("{} => retreived hardware config".format(self.__qualname__))  # DEBUG
+                        utils.log_file("{} => retreived hardware config".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
                         return True
 
     def _parse_hw_cfg(self, reply):
@@ -328,7 +326,7 @@ class AQUADOP(DEVICE):
 
     def _set_usr_cfg(self):
         """Uploads a deployment config to the instrument and sets up the device
-        Activation_Rate and Warmup_Duration parameters according to the current
+        Activation_Rate and Warmup_Interval parameters according to the current
         deployment constants."""
         start = utime.time()
         while True:
@@ -336,11 +334,11 @@ class AQUADOP(DEVICE):
                 break
             if self._break():
                 try:
-                    with open(self.config["Adcp"]["Deployment_Config"], "rb") as pdc:
+                    with open(constants.CONFIG_DIR + "/" + self.config["Adcp"]["Deployment_Config"], "rb") as pdc:
                         cfg = pdc.read()
                         rate = int.from_bytes(cfg[38:40], "little")
                         self.config["Activation_Rate"] = rate
-                        self.config["Warmup_Duration"] = rate - self.config["Samples"]
+                        self.config["Warmup_Interval"] = rate - self.config["Samples"]
                         usr_cfg = cfg[0:48] + self._set_start() + cfg[54:510]
                         checksum = self._calc_checksum(usr_cfg)
                         tx = usr_cfg + ubinascii.unhexlify(hex(checksum)[-2:] + hex(checksum)[2:4])
@@ -349,24 +347,24 @@ class AQUADOP(DEVICE):
                         utils.verbose("=> CC", constants.VERBOSE)
                         rx = self._get_reply()
                         if self._ack(rx):
-                            utils.log_file("{} => uploaded deployment config".format(self.__qualname__))  # DEBUG
+                            utils.log_file("{} => uploaded deployment config".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
                             return True
                 except:
                     break
-        utils.log_file("{} => unable to upload deployment config".format(self.__qualname__))  # DEBUG
+        utils.log_file("{} => unable to upload deployment config".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
         return False
 
     def _set_start(self):
         """Computes the measurement starting time to be synced with scheduler."""
-        now = utime.time() - self.config["Activation_Delay"]
-        next = now - now % self.config["Activation_Rate"] + self.config["Activation_Rate"]
-        if now % self.config["Activation_Rate"] > self.config["Activation_Rate"] - self.config["Samples"] // self.config["Sample_Rate"] - self.config["Adcp"]["Start_Delay"]:
-          next += self.config["Activation_Rate"]
-        next += - self.config["Samples"] // self.config["Sample_Rate"] // 2 - self.config["Adcp"]["Start_Delay"]
-        next += self.config["Activation_Delay"]
+        now = utime.time() - self.activation_delay
+        next = now - now % constants.SCHEDULE + constants.SCHEDULE
+        if now % constants.SCHEDULE > constants.SCHEDULE - self.samples // self.sample_rate - self.config["Adcp"]["Start_Delay"]:
+          next += constants.SCHEDULE
+        next += - self.samples // self.sample_rate // 2 - self.config["Adcp"]["Start_Delay"]
+        next += self.activation_delay
         start = utime.localtime(next)
         start = ubinascii.unhexlify("{:02d}{:02d}{:02d}{:02d}{:02d}{:02d}".format(start[4], start[5], start[2], start[3], int(str(start[0])[2:]), start[1]))
-        utils.log_file("{} => set start at {}".format(self.__qualname__, utils.time_string(next)))  # DEBUG
+        utils.log_file("{} => set start at {}".format(self.name, utils.time_string(next)), constants.LOG_LEVEL, True)  # DEBUG
         return start
 
     def _get_usr_cfg(self):
@@ -376,7 +374,7 @@ class AQUADOP(DEVICE):
             start = utime.time()
             while True:
                 if self._timeout(start):
-                    utils.log_file("{} => unable to retreive deployment config".format(self.__qualname__))  # DEBUG
+                    utils.log_file("{} => unable to retreive deployment config".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
                     return False
                 if self._break():
                     utils.verbose("=> GC", constants.VERBOSE)
@@ -385,7 +383,7 @@ class AQUADOP(DEVICE):
                     if self._ack(rx):
                         if self.verify_checksum(rx[:-2]):
                             self.usr_cfg = self._parse_usr_cfg(rx)
-                            utils.log_file("{} => retreived deployment config".format(self.__qualname__))  # DEBUG
+                            utils.log_file("{} => retreived deployment config".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
                             return True
 
     def _parse_usr_cfg(self, bytestring):
@@ -478,7 +476,7 @@ class AQUADOP(DEVICE):
         start = utime.time()
         while True:
             if self._timeout(start):
-                utils.log_file("{} => unable to retreive head config".format(self.__qualname__))  # DEBUG
+                utils.log_file("{} => unable to retreive head config".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
                 return False
             if self._break():
                 utils.verbose("=> GH", constants.VERBOSE)
@@ -487,7 +485,7 @@ class AQUADOP(DEVICE):
                 if self._ack(rx):
                     if self.verify_checksum(rx[:-2]):
                         self.head_cfg = self._parse_head_cfg(rx)
-                        utils.log_file("{} => retreived head config".format(self.__qualname__))  # DEBUG
+                        utils.log_file("{} => retreived head config".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
                         return True
 
     def _parse_head_cfg(self, bytestring):
@@ -565,13 +563,13 @@ class AQUADOP(DEVICE):
         start = utime.time()
         while True:
             if self._timeout(start):
-                utils.log_file("{} => unable to format recorder".format(self.__qualname__))  # DEBUG
+                utils.log_file("{} => unable to format recorder".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
                 return False
             if self._break():
                 utils.verbose("=> FO", constants.VERBOSE)
                 self.uart.write(b"\x46\x4F\x12\xD4\x1E\xEF")
                 if self._ack(self._get_reply()):
-                    utils.log_file("{} => recorder formatted".format(self.__qualname__))  # DEBUG
+                    utils.log_file("{} => recorder formatted".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
                     return True
 
     def _acquire_data(self):
@@ -579,7 +577,7 @@ class AQUADOP(DEVICE):
         instrument without storing data to the recorder. Instrument enters Power
         Down Mode when measurement has been made.
         """
-        utils.log_file("{} => acquiring 1 sample...".format(self.__qualname__))  # DEBUG
+        utils.log_file("{} => acquiring 1 sample...".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
         start = utime.time()
         while True:
             if self._timeout(start):
@@ -601,7 +599,7 @@ class AQUADOP(DEVICE):
         start = utime.time()
         while True:
             if self._timeout(start):
-                utils.log_file("{} => unable to start measurement".format(self.__qualname__))  # DEBUG
+                utils.log_file("{} => unable to start measurement".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
                 return False
             if self._break():
                 utils.verbose("=> SD", constants.VERBOSE)
@@ -610,7 +608,7 @@ class AQUADOP(DEVICE):
                 if not self._ack(rx):
                     self._format_recorder()
                 else:
-                    utils.log_file("{} => measurement started".format(self.__qualname__))  # DEBUG
+                    utils.log_file("{} => measurement started".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
                     return True
 
     def _conv_data(self, bytestring):
@@ -750,7 +748,7 @@ class AQUADOP(DEVICE):
         start = utime.time()
         while True:
             if self._timeout(start):
-                utils.log_file("{} => unable to sync clock".format(self.__qualname__))  # DEBUG
+                utils.log_file("{} => unable to sync clock".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
                 return False
             if self._break():
                 now = utime.localtime()
@@ -759,24 +757,24 @@ class AQUADOP(DEVICE):
                 self.uart.write(ubinascii.unhexlify(tx))
                 utils.verbose("=> SC" + str(tx), constants.VERBOSE)
                 if self._ack(self._get_reply()):
-                    utils.log_file("{} => clock synced (dev: {} board: {})".format(self.__qualname__, self._get_clock(), utils.time_string(utime.mktime(now))))  # DEBUG
+                    utils.log_file("{} => clock synced (dev: {} board: {})".format(self.name, self._get_clock(), utils.time_string(utime.mktime(now))), constants.LOG_LEVEL, True)  # DEBUG
                     return True
 
     def main(self):
         """Captures instrument data."""
-        if not self.init_uart():
-            return
-        utils.log_file("{} => acquiring data...".format(self.__qualname__))  # DEBUG
+        utils.log_file("{} => acquiring data...".format(self.name), constants.LOG_LEVEL)
         self.led_on()
-        data = "$ADCP"
+        self.data = [self.config["String_Label"]]
         start = utime.time()
-        while True:
-            if utime.time() - start > self.config["Samples"] // self.config["Sample_Rate"]:
-                utils.log_file("{} => timeout occourred".format(self.__qualname__))  # DEBUG
-                break
+        while string_count < self.samples:
+            if not self.status() == "READY":  # Exits if the device has been switched off by scheduler.
+                utils.log_file("{} => timeout occourred".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
+                return False
             if self.uart.any():
-                data = ";".join([self.config["String_Label"]] + self._format_data(self._conv_data(self.uart.read())))
-                break
-        utils.log_data(data)
-        self.led_on()
+                self.data += self._format_data(self._conv_data(self.uart.read()))
+        return True
+
+    def log(self):
+        """Writes out acquired data to a file."""
+        utils.log_data(",".join(map(str, self.data)))
         return

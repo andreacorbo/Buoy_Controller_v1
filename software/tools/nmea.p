@@ -80,13 +80,3 @@ class NMEA(object):
                 else:
                     self.word = self.word + ascii_char
         return False
-
-    def fixed(self):
-        """Checks if a RMC sentence contains valid data.
-
-        Returns:
-          True or False
-        """
-        if self.sentence[2] == "A":
-            return True
-        return False

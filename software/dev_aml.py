@@ -19,7 +19,8 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-"""Aml ctds."""
+
+"""This module contains specific Aml ctd devices tools."""
 
 import utime
 from device import DEVICE
@@ -34,25 +35,24 @@ class METRECX(DEVICE):
         self.timeout = constants.TIMEOUT
         self.prompt = ">"
         data_tasks = ["log"]
-        for task in tasks:
-            if task in data_tasks:
+        if tasks:
+            if any(elem in data_tasks for elem in tasks):
                 if self.main():
-                    eval("self." + task + "()", {"self":self})
+                    for task in tasks:
+                        eval("self." + task + "()", {"self":self})
             else:
-                eval("self." + task + "()", {"self":self})
+                for task in tasks:
+                    eval("self." + task + "()", {"self":self})
 
     def start_up(self):
         """Performs device specific initialization sequence."""
         self.init_power()
-        self.init_uart()
         if self._break():
             self._stop_logging()
             self._set_clock()
             self._set_sample_rate()
             self._start_logging()
             self.off()
-            return True
-        return False
 
     def _timeout(self, start, timeout=None):
         """Checks if a timeout occourred
@@ -81,7 +81,7 @@ class METRECX(DEVICE):
         return
 
     def _break(self):
-        utils.log_file("{} => waiting for instrument getting ready...".format(self.__qualname__))  # DEBUG
+        utils.log_file("{} => initializing...".format(self.name))  # DEBUG
         while True:
             self.flush_uart()
             self.uart.write(b"\x03")  # <CTRL+C>
@@ -128,9 +128,9 @@ class METRECX(DEVICE):
     def _set_clock(self):
         """Syncs the intrument clock."""
         if self._set_date() and self._set_time():
-            utils.log_file("{} => clock synced (dev: {} {} board: {})".format(self.__qualname__, self._get_date(), self._get_time(), utils.time_string(utime.mktime(utime.localtime()))))  # DEBUG
+            utils.log_file("{} => clock synced (dev: {} {} board: {})".format(self.name, self._get_date(), self._get_time(), utils.time_string(utime.mktime(utime.localtime()))), constants.LOG_LEVEL, True)  # DEBUG
             return True
-        utils.log_file("{} => unable to sync clock".format(self.__qualname__))  # DEBUG
+        utils.log_file("{} => unable to sync clock".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
         return False
 
     def _set_sample_rate(self):
@@ -140,30 +140,30 @@ class METRECX(DEVICE):
             if self._get_reply() ==  self.prompt:
                 self._get_sample_rate()
                 return True
-        utils.log_file("{} => unable to set sampling rate".format(self.__qualname__))  # DEBUG
+        utils.log_file("{} => unable to set sampling rate".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
         return False
 
     def _get_sample_rate(self):
         if self._get_prompt():
             self.uart.write("DIS S\r")
-            utils.log_file("{} => {}".format(self.__qualname__, self._get_reply()))  # DEBUG
+            utils.log_file("{} => {}".format(self.name, self._get_reply()), constants.LOG_LEVEL, True)  # DEBUG
 
     def _stop_logging(self):
         if self._get_prompt():
             self.uart.write("SET SCAN NOLOGGING\r")
             if self._get_prompt():
-                utils.log_file("{} => logging stopped".format(self.__qualname__))  # DEBUG
+                utils.log_file("{} => logging stopped".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
                 return True
-        utils.log_file("{} => unable to stop logging".format(self.__qualname__))  # DEBUG
+        utils.log_file("{} => unable to stop logging".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
         return False
 
     def _start_logging(self):
         if self._get_prompt():
             self.uart.write("SET SCAN LOGGING\r")
             if self._get_prompt():
-                utils.log_file("{} => logging started".format(self.__qualname__))  # DEBUG
+                utils.log_file("{} => logging started".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
                 return True
-        utils.log_file("{} => unable to start logging".format(self.__qualname__))  # DEBUG
+        utils.log_file("{} => unable to start logging".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
         return False
 
     def _format_data(self, sample):
@@ -183,9 +183,9 @@ class METRECX(DEVICE):
 
     def main(self):
         """Captures instrument data."""
-        utils.log_file("{} => acquiring data...".format(self.__qualname__))  # DEBUG
+        utils.log_file("{} => acquiring data...".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
         self.led_on()
-        sample = []
+        self.data = []
         new_line = False
         while True:
             if not self.status() == "READY":  # Exits if the device has been switched off by scheduler.
@@ -198,10 +198,17 @@ class METRECX(DEVICE):
                 elif byte == b"\r" and new_line:
                     break
                 elif new_line:
-                    sample.append(byte.decode("utf-8"))
-        utils.log_data(self._format_data("".join(sample)))
+                    try:
+                        self.data.append(byte.decode("utf-8"))
+                    except:
+                        pass
         self.led_off()
         return True
+
+    def log(self):
+        """Writes out acquired data to a file."""
+        utils.log_data(self._format_data("".join(self.data)))
+        return
 
 
 class UVXCHANGE(DEVICE):

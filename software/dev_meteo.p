@@ -20,38 +20,35 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import utime
+"""This module contains standard METEO devices tools."""
+
 from device import DEVICE
 from tools.nmea import NMEA
 import tools.utils as utils
 import constants
 from math import sin, cos, radians, atan2, degrees, pow, sqrt
 
-#define PRESS_CONV_FACT(X) (X*0.075+800.00) //per barometro young modello 61201 VECCHIA !!!!
-#define PRESS_CONV_FACT(X) (X*0.125+600.00)   //per barometro young modello 61202V NUOVA !!!!
+class METEO(DEVICE, NMEA):
+    """Creates a meteo device object.
 
-class Y32500(DEVICE, NMEA):
-    """Creates a young_32500 meteo object."""
+    Extends the :class:`device` and the :class:`tools.nmea` classes.
+
+    Parameters:
+        ``instance`` :obj:`str` The object instance number (if multiple devices
+        are present) needs a correspondent section in the config_file.
+
+        ``tasks`` :obj:`list` (optional) A list of methods to be executed at
+        object creation.
+    """
 
     def __init__(self, instance, tasks=[]):
         """Constructor method."""
         DEVICE.__init__(self, instance)
         NMEA.__init__(self, instance)
-        data_tasks = ["log"]
-        if tasks:
-            if any(elem in data_tasks for elem in tasks):
-                if self.main():
-                    for task in tasks:
-                        eval("self." + task + "()", {"self":self})
-            else:
-                for task in tasks:
-                    eval("self." + task + "()", {"self":self})
 
     def start_up(self):
         """Performs device specific initialization sequence."""
-        if self.init_power():
-            return True
-        return False
+        self.init_power()
 
     def _wd_vect_avg(self, strings):
         """Calculates wind vector average direction.
@@ -254,92 +251,6 @@ class Y32500(DEVICE, NMEA):
         except:
             pass
         return avg
-
-    def main(self):
-        """Gets data from weather station
-
-                                       $WIMWV,ddd,a,sss.s,N,A,*hh<CR/LF>
-                                          |    |  |   |   | |  |
-         NMEA HEADER----------------------|    |  |   |   | |  |
-         DIRECTION (0-360 DEGREES)-------------|  |   |   | |  |
-         DIRECTION REFERENCE (T)RUE OR (R)ELATIVE-|   |   | |  |
-         WIND SPEED (KNOTS)---------------------------|   | |  |
-         WIND SPEED UNITS N=KNOTS (NAUTICAL MPH)----------| |  |
-         DESIGNATES GOOD DATA-------------------------------|  |
-         CHECKSUM FIELD----------------------------------------|
-
-                                       $WIXDR,C,000.0,C,TEMP,H,000,P,%RH,P,0.000,B,BARO,*hh<CR/LF>
-         NMEA HEADER----------------------|   |   |   |  |   |  |  |  |  |   |   |  |    |
-         TRANSDUCER TYPE = TEMPERATURE--------|   |   |  |   |  |  |  |  |   |   |  |    |
-         TEMPERATURE------------------------------|   |  |   |  |  |  |  |   |   |  |    |
-         UNITS = CELSIUS------------------------------|  |   |  |  |  |  |   |   |  |    |
-         TRANSDUCER ID-----------------------------------|   |  |  |  |  |   |   |  |    |
-         TRANSDUCER TYPE = HUMIDITY--------------------------|  |  |  |  |   |   |  |    |
-         RELATIVE HUMIDITY--------------------------------------|  |  |  |   |   |  |    |
-         UNITS = PERCENT-------------------------------------------|  |  |   |   |  |    |
-         TRANSDUCER ID------------------------------------------------|  |   |   |  |    |
-         TRANSDUCER TYPE = PRESSURE--------------------------------------|   |   |  |    |
-         BAROMETRIC PRESSURE-------------------------------------------------|   |  |    |
-         UNITS = BARS------------------------------------------------------------|  |    |
-         TRANSDUCER ID--------------------------------------------------------------|    |
-         CHECKSUM FIELD------------------------------------------------------------------|
-
-        Returns:
-            None.
-        """
-
-        utils.log_file("{} => acquiring data...".format(self.name), constants.LOG_LEVEL)
-        self.led_on()
-        string_count = 0
-        new_string = False
-        string = ""
-        strings = []
-        self.data = []
-        while string_count < self.config["Samples"]:
-            if not self.status() == "READY":  # Exits if the device has been switched off by scheduler.
-                utils.log_file("{} => timeout occourred".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
-                return False
-            if self.uart.any():
-                char = self.uart.readchar()
-                if self.config["Data_Format"] == "STRING":
-                    if chr(char) == "\n":
-                        new_string = True
-                    elif chr(char) == "\r":
-                        if new_string:
-                            strings.append(string.split(self.config["Data_Separator"]))
-                            string = ""
-                            new_string = False
-                            string_count += 1
-                    else:
-                        if new_string:
-                            string = string + chr(char)
-                elif self.config["Data_Format"] == "NMEA":
-                    self.get_sentence(char)
-                    if self.checksum_verified:
-                        if self.sentence[0] in self.config["String_To_Acquire"]:
-                            if self.sentence[0] == "WIMWV":
-                                valid_data = False
-                                if self.sentence[5] == "A":
-                                    return True
-                                else:
-                                    utils.log_file("{} => invalid data received".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
-        epoch = utime.time()
-        self.data.append(self.config["String_Label"])
-        self.data.append(utils.unix_epoch(epoch))
-        self.data.append(utils.datestamp(epoch))  # YYMMDD
-        self.data.append(utils.timestamp(epoch))  # hhmmss
-        self.data.append("{:.1f}".format(self._wd_vect_avg(strings)))  # vectorial avg wind direction
-        self.data.append("{:.1f}".format(self._ws_avg(strings)))  # avg wind speed
-        self.data.append("{:.1f}".format(self._temp_avg(strings)))  # avg temp
-        self.data.append("{:.1f}".format(self._press_avg(strings)))  # avg pressure
-        self.data.append("{:.1f}".format(self._hum_avg(strings)))  # avg relative humidity
-        self.data.append("{:.1f}".format(self._compass_avg(strings)))  # avg heading
-        self.data.append("{:.1f}".format(self._ws_vect_avg(strings)))  # vectorial avg wind speed
-        self.data.append("{:.1f}".format(self._ws_max(strings)))  # gust speed
-        self.data.append("{:.1f}".format(self._wd_max(strings)))  # gust direction
-        self.data.append("{:0d}".format(len(strings)))  # number of strings
-        self.data.append("{:.1f}".format(self._radiance_avg(strings)))  # solar radiance (optional)
-        return True
 
     def log(self):
         """Writes out acquired data to file."""

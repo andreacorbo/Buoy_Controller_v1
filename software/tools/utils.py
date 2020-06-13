@@ -41,7 +41,9 @@ status_table = {}
 
 unsent_files = []
 
-gps = ()
+gps_fix = []
+
+gps_displacement = 0
 
 def read_config(file, path=constants.CONFIG_DIR):
     """Parses a json configuration file.
@@ -124,7 +126,7 @@ def log_file(data_string, mode=0, new_line=True):
         new_line(bool): if False overwrites messages
     """
     log_string = time_string(utime.time()) + "\t" + data_string
-    end_char = " "
+    end_char = ""
     if new_line:
         end_char = "\n"
     if constants.LOG_LEVEL == 0:
@@ -202,6 +204,7 @@ def too_old(file):
 def files_to_send():
     """Checks for files to send."""
     global unsent_files
+    unsent_files = []
     for media in constants.MEDIA:
         try:
             for file in uos.listdir(media + "/" + constants.DATA_DIR):
@@ -209,12 +212,20 @@ def files_to_send():
                     try:
                         int(file)
                     except:
-                        clean_dir(media + "/" + constants.DATA_DIR + "/" + file)
+                        clean_dir(media + "/" + constants.DATA_DIR + "/" + file)  # Deletes all except data files.
                         continue
                     if not too_old(media + "/" + constants.DATA_DIR + "/" + file):
-                        unsent_files.append(media + "/" + constants.DATA_DIR + "/" + file)
+                        # Checks if new data has been added to the file since the last transmission.
+                        pointer = 0
+                        try:
+                            with open(media + "/" + constants.DATA_DIR + "/" + constants.TMP_FILE_PFX + file, "r") as tmp:
+                                pointer = int(tmp.read())
+                        except:
+                            pass  # Tmp file does not exist.
+                        if uos.stat(media + "/" + constants.DATA_DIR + "/" + file)[6] > pointer:
+                            unsent_files.append(media + "/" + constants.DATA_DIR + "/" + file)
         except:
-            pass
+            pass  # Data dir does not exist.
     if unsent_files:
         return True
     return False
@@ -276,7 +287,7 @@ def execute(device, tasks):
         tasks(list)
     """
     global processes_access_lock, processes
-    timeout = constants.DATA_ACQUISITION_INTERVAL
+    timeout = constants.SCHEDULE
     if processes_access_lock.acquire(1, timeout):
         processes.append(_thread.get_ident())
         processes_access_lock.release()

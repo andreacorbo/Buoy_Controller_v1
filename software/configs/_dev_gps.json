@@ -1,10 +1,9 @@
 {
-	"L80M39":{
+	"GPS":{
 		"1":{
 				"Device":1,
 				"Async":1,
 				"Uart":{
-					"Bus":2 ,
 					"Baudrate":9600,
 					"Bits":8,
 					"Parity":"None",
@@ -16,20 +15,11 @@
 					"Write_Buf_Len":0,
 					"Read_Char_Attempt":10
 				},
-				"I2C_Address":"",
 				"Ctrl_Pin":"Y7",
-				"Warmup_Duration":178,
-				"Samples":8,
-				"Sample_Rate":4,
-				"Data_Format":"NMEA",
-				"Data_Separator":" ",
 				"Status":0,
-				"String_Label":"$GPRMC",
-				"Gps":{
-					"String_To_Acquire":"GPRMC",
-					"Last_Fix":"",
-					"Last_Position":""
-				}
+				"Warmup_Interval":178,
+				"Samples":8,
+				"Sample_Rate":4
 			}
 		}
 	}

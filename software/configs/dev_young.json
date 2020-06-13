@@ -4,7 +4,6 @@
 			"Device":1,
 			"Async":1,
 			"Uart":{
-				"Bus":2,
 				"Baudrate":9600,
 				"Bits":8,
 				"Parity":"None",
@@ -18,7 +17,7 @@
 			},
 			"Led":"3",
 			"Ctrl_Pin":"X12",
-			"Warmup_Duration":50,
+			"Warmup_Interval":50,
 			"Samples":20,
 			"Sample_Rate":2,
 			"Data_Format":"STRING",

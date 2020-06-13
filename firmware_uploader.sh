@@ -22,13 +22,13 @@ rm -rv $dest$modules/*
 
 for dir in $(find $source -type d); do
 	cd $dir
-	for file in $(find -maxdepth 1 -type f -name "*.p_"); do  # uncomment if file extension p_
+	for file in $(find -maxdepth 1 -type f -name "*.p"); do  # uncomment if file extension p
 	#for file in $(find -maxdepth 1 -type f -name "*.py"); do
 		basename=$(basename $file)
 		dirname=$(echo $(pwd) | sed "s|"$source"||g")
 		mkdir -p $dest$modules$dirname
 		cp -fv $(pwd)/$basename $dest$modules$dirname/$basename
-		mv -v $dest$modules$dirname/$basename $dest$modules$dirname/$(basename $basename .p_).py  # uncomment if file extension p_
+		mv -v $dest$modules$dirname/$basename $dest$modules$dirname/$(basename $basename .p).py  # uncomment if file extension p
 		done
 	done
 cd $dest

@@ -38,7 +38,17 @@ class DEVICE(object):
     def __init__(self, instance):
         self.instance = instance
         self.name = self.__module__ + "." + self.__qualname__ + "_" + self.instance
+        self.uart_bus = 0
+        self.uart_slot = 0
+        self.activation_delay = 0
         self.get_config()
+        self.warmup_interval = self.config["Warmup_Interval"]
+        self.samples = None
+        if "Samples" in self.config:
+            self.samples = self.config["Samples"]
+        self.sample_rate = None
+        if "Sample_Rate" in self.config:
+            self.sample_rate = self.config["Sample_Rate"]
         self.init_uart()
         self.init_gpio()
         self.init_led()
@@ -55,9 +65,14 @@ class DEVICE(object):
     def init_uart(self):
         """Initializes the uart bus."""
         if "Uart" in self.config:
+            if "Bus" in self.config["Uart"]:
+                self.uart_bus = self.config["Uart"]["Bus"]
+            else:
+                self.uart_bus = int(constants.UARTS[dict(map(reversed, constants.DEVICES.items()))[self.name] % len(constants.UARTS)])
+                self.uart_slot = int(dict(map(reversed, constants.DEVICES.items()))[self.name] // len(constants.UARTS))
+            self.activation_delay = self.uart_slot * constants.SLOT_DELAY
             try:
-                inv_devs = {v: k for k, v in constants.DEVICES.items()}  # Inverts DEVICES key,value mapping.
-                self.uart = pyb.UART(int(constants.UARTS[inv_devs[self.name] % len(constants.UARTS)]), int(self.config["Uart"]["Baudrate"]))
+                self.uart = pyb.UART(self.uart_bus, int(self.config["Uart"]["Baudrate"]))
                 self.uart.init(int(self.config["Uart"]["Baudrate"]),
                     bits=int(self.config["Uart"]["Bits"]),
                     parity=eval(self.config["Uart"]["Parity"]),
@@ -73,9 +88,16 @@ class DEVICE(object):
         """Deinitializes the uart bus."""
         self.uart.deinit()
 
-    def flush_uart(self):
-        """Flushes the uart read buffer."""
-        self.uart.read()
+    def flush_uart(self, chars=None):
+        """Flushes the whole uart read buffer or the specified number of chars.
+
+        Parameters:
+            ``chars`` :obj:`int` (optional) The number of chars to be flushed.
+        """
+        if chars:
+            self.uart.read(chars)
+        else:
+            self.uart.read()
 
     def init_gpio(self):
         """Creates the device pin object."""
@@ -103,11 +125,10 @@ class DEVICE(object):
 
     def init_power(self):
         """Initializes power status at startup."""
+        self.off()
         if self.config["Status"] == 1:
             utime.sleep_ms(100)
             self.on()
-        else:
-            self.off()
 
     def on(self):
         """Turns on device."""

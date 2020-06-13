@@ -122,6 +122,7 @@ class PYBOARD(object):
         """Sets board to interactive mode"""
         self.disable_interrupts()
         self.interrupt = line
+        print(self.interrupt)
         self.interrupted = True
 
     def init_interrupts(self):
@@ -202,7 +203,10 @@ class PYBOARD(object):
         if interval - remain > -3000:
             interval = remain - 3000
         self.rtc.wakeup(interval)  # Set next rtc wakeup (ms).
-        pyb.stop()
+        if self.usb.isconnected():
+          pyb.delay(interval)  # RBF
+        else:
+            pyb.stop()
         self.pwr_led()
 
 class ADC(DEVICE):
