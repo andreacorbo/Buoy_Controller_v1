@@ -108,10 +108,9 @@ class MODEM(DEVICE, YMODEM):
 
     def _send(self):
         """Sends files."""
-        if self.send(utils.unsent_files, constants.TMP_FILE_PFX, constants.SENT_FILE_PFX):
-            self.sent = True
-            return True
-        return False
+        self.send(utils.unsent_files, constants.TMP_FILE_PFX, constants.SENT_FILE_PFX):
+        self.sent = True
+        return
 
     def receive(self, attempts):
         """Receives files.

@@ -54,9 +54,7 @@ TASK_SCHEDULE = {
     "dev_modem.MODEM_1":{"off":3600, "start_up":3600},
     "dev_gps.GPS_1":{"sync_rtc":3600, "last_fix":300},
     "dev_nortek.AQUADOPP_1":{"log":300},
-    "dev_aml.METRECX_1":{"log":180},
-    "dev_aml.UVXCHANGE_1":{"off":600},
-    "dev_young.Y32500_1":{"log":180}
+    "dev_aml.UVXCHANGE_1":{"off":600}
     }
 SLOT_DELAY = 60  # because meteo and gps share the same uart
                  # meteo must remain OFF until gps finishes its tasks to

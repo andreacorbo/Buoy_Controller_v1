@@ -105,15 +105,14 @@ while True:
                         continue
             except:
                 pass
-
         utime.sleep_ms(100)  # Adds 100ms delay to allow threads startup.
         t0 = utime.time()  # Gets timestamp before sleep.
         #if not utils.processes and not board.interrupted and not board.usb.isconnected():  # Waits for no running threads and no usb connection before sleep.
         if not utils.processes and not board.interrupted:  # Waits for no running threads and no usb connection before sleep.
             if utils.files_to_send():  # Checks for data files to send.
-                utils.create_device("dev_modem.MODEM_1", tasks=["data_transfer"])  # Sends data files before sleeping.
-                #_thread.start_new_thread(utils.execute, ("dev_modem.MODEM_1", ["data_transfer"],))
-                board.interrupted = False
+                #utils.create_device("dev_modem.MODEM_1", tasks=["data_transfer"])  # Sends data files before sleeping.
+                _thread.start_new_thread(utils.execute, ("dev_modem.MODEM_1", ["data_transfer"],))
+                #board.interrupted = False
             elif scheduler.next_event > t0:
                 utils.log_file("Sleeping for {}".format(utils.time_display(scheduler.next_event - t0)), constants.LOG_LEVEL)  # DEBUG
                 board.go_sleep(scheduler.next_event - t0)  # Puts board in sleep mode.

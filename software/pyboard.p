@@ -27,6 +27,7 @@ import uselect
 import tools.utils as utils
 import constants
 from device import DEVICE
+import _thread
 
 class PYBOARD(object):
     """Creates a board object."""
@@ -122,8 +123,15 @@ class PYBOARD(object):
         """Sets board to interactive mode"""
         self.disable_interrupts()
         self.interrupt = line
-        print(self.interrupt)
+        _thread.start_new_thread(self.timeout_interrupted,)
+
+    def timeout_interrupted(self):
+        """Reset interrupted condition after 5 secs."""
         self.interrupted = True
+        t0 = utime.time()
+        while utime.time() - t0 < 5:
+            continue
+        self.interrupted = False
 
     def init_interrupts(self):
         """Initializes all external interrupts to wakes up board from sleep mode."""
