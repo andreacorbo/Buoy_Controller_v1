@@ -30,43 +30,20 @@ import constants
 class METRECX(DEVICE):
     """Creates an aml metrecx multiparametric probe object."""
 
-    def __init__(self, instance, tasks=[]):
-        DEVICE.__init__(self, instance)
-        self.timeout = constants.TIMEOUT
+    def __init__(self, instance, tasks=[], data_tasks = ["log"]):
         self.prompt = ">"
-        data_tasks = ["log"]
-        if tasks:
-            if any(elem in data_tasks for elem in tasks):
-                if self.main():
-                    for task in tasks:
-                        eval("self." + task + "()", {"self":self})
-            else:
-                for task in tasks:
-                    eval("self." + task + "()", {"self":self})
+        DEVICE.__init__(self, instance, tasks, data_tasks)
 
     def start_up(self):
         """Performs device specific initialization sequence."""
-        self.init_power()
+        self.on()
         if self._break():
             self._stop_logging()
             self._set_clock()
             self._set_sample_rate()
             self._start_logging()
-            self.off()
-
-    def _timeout(self, start, timeout=None):
-        """Checks if a timeout occourred
-
-        Params:
-            start(int)
-        Returns:
-            True or False
-        """
-        if timeout is None:
-            timeout = self.timeout
-        if timeout > 0 and utime.time() - start >= timeout:
-            return True
-        return False
+        self.off()
+        return
 
     def _get_reply(self, timeout=None):
         """Returns replies from instrument.
@@ -81,14 +58,22 @@ class METRECX(DEVICE):
         return
 
     def _break(self):
-        utils.log_file("{} => initializing...".format(self.name))  # DEBUG
-        while True:
+        """Sends the escape sequence to the instrument ``CTRL+C``.
+
+        Returns:
+            True or False
+        """
+
+        start = utime.time()
+        while not self._timeout(start, self.config["Ctd"]["Break_Timeout"]):
             self.flush_uart()
-            self.uart.write(b"\x03")  # <CTRL+C>
-            if self._get_prompt(120):
+            self.uart.write(self.config["Ctd"]["Break_Sequence"])
+            if self._get_prompt(self.config["Ctd"]["Prompt_Timeout"]):
                 return True
+        return False
 
     def _get_prompt(self, timeout=None):
+        """Gets the instrument prompt."""
         self.flush_uart()
         self.uart.write(b"\r")
         rx = self._get_reply(timeout)
@@ -116,98 +101,102 @@ class METRECX(DEVICE):
         return False
 
     def _get_date(self):
+        """Gets the instrument real time clock date."""
         if self._get_prompt():
             self.uart.write("DISPLAY DATE\r")
             return self._get_reply()[-13:]
+        utils.log("{} => unable to retreive instrument date".format(self.name), "e")  # DEBUG
 
     def _get_time(self):
+        """Gets the instrument real time clock time."""
         if self._get_prompt():
             self.uart.write("DISPLAY TIME\r")
             return self._get_reply()[-14:-3]
+        utils.log("{} => unable to retreive instrument time".format(self.name), "e")  # DEBUG
 
     def _set_clock(self):
-        """Syncs the intrument clock."""
+        """Synchronizes the intrument real time clock."""
         if self._set_date() and self._set_time():
-            utils.log_file("{} => clock synced (dev: {} {} board: {})".format(self.name, self._get_date(), self._get_time(), utils.time_string(utime.mktime(utime.localtime()))), constants.LOG_LEVEL, True)  # DEBUG
+            utils.log("{} => instrument clock successfully synchronized (instrument: {} {} controller: {})".format(self.name, self._get_date(), self._get_time(), utils.time_string(utime.mktime(utime.localtime()))))  # DEBUG
             return True
-        utils.log_file("{} => unable to sync clock".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
+        utils.log("{} => unable to synchronize the real time clock".format(self.name), "e")  # DEBUG
         return False
 
     def _set_sample_rate(self):
-        """Sets intrument sampling rate."""
+        """Sets intrument sample rate."""
         if self._get_prompt():
-            self.uart.write("SET S {:0d} S\r".format(self.config["Sample_Rate"]))
+            self.uart.write("SET S {:0d} S\r".format(self.sample_rate))
             if self._get_reply() ==  self.prompt:
                 self._get_sample_rate()
                 return True
-        utils.log_file("{} => unable to set sampling rate".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
+        utils.log("{} => unable to set sample rate".format(self.name), "e")  # DEBUG
         return False
 
     def _get_sample_rate(self):
         if self._get_prompt():
             self.uart.write("DIS S\r")
-            utils.log_file("{} => {}".format(self.name, self._get_reply()), constants.LOG_LEVEL, True)  # DEBUG
+            utils.log("{} => {}".format(self.name, self._get_reply()))  # DEBUG
 
     def _stop_logging(self):
+        """Stops logging."""
         if self._get_prompt():
             self.uart.write("SET SCAN NOLOGGING\r")
             if self._get_prompt():
-                utils.log_file("{} => logging stopped".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
+                utils.log("{} => logging successfully stopped".format(self.name))  # DEBUG
                 return True
-        utils.log_file("{} => unable to stop logging".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
+        utils.log("{} => unable to stop logging".format(self.name), "e")  # DEBUG
         return False
 
     def _start_logging(self):
+        """Starts logging."""
         if self._get_prompt():
             self.uart.write("SET SCAN LOGGING\r")
             if self._get_prompt():
-                utils.log_file("{} => logging started".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
+                utils.log("{} => logging successfully started".format(self.name))  # DEBUG
                 return True
-        utils.log_file("{} => unable to start logging".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
+        utils.log("{} => unable to start logging".format(self.name), "e")  # DEBUG
         return False
 
     def _format_data(self, sample):
         """Formats data according to output format."""
         epoch = utime.time()
-        data = [
-            self.config["String_Label"],
-            utils.unix_epoch(epoch),
-            utils.datestamp(epoch),  # YYMMDD
-            utils.timestamp(epoch)  # hhmmss
-            ]
-        sample = sample.split(self.config["Data_Separator"])
-        data.append(",".join(sample[0].split(" ")))
-        for field in sample[1:]:
-            data.append(field)
-        return constants.DATA_SEPARATOR.join(data)
+        try:
+            data = [
+                self.config["String_Label"],
+                str(utils.unix_epoch(epoch)),
+                utils.datestamp(epoch),  # YYMMDD
+                utils.timestamp(epoch)  # hhmmss
+                ]
+        except Exception as err:
+            utils.log("{} => {} while formatting data".format(self.name, err), "e")  # DEBUG
+            return
+        return data + sample
 
     def main(self):
         """Captures instrument data."""
-        utils.log_file("{} => acquiring data...".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
+        utils.log("{} => acquiring data...".format(self.name))  # DEBUG
         self.led_on()
         self.data = []
         new_line = False
         while True:
-            if not self.status() == "READY":  # Exits if the device has been switched off by scheduler.
-                utils.log_file("{} => timeout occourred".format(self.name), constants.LOG_LEVEL, True)  # DEBUG
-                return False
+            if not self.status() == 'ready':  # Exits if the device has been switched off by scheduler.
+                utils.log("{} => timeout occourred".format(self.name), "e")  # DEBUG
+                break
             if self.uart.any():
                 byte = self.uart.read(1)
                 if byte == b"\n":
                     new_line = True
                 elif byte == b"\r" and new_line:
+                    self.data = "".join(self.data).split()
                     break
                 elif new_line:
-                    try:
-                        self.data.append(byte.decode("utf-8"))
-                    except:
-                        pass
+                    self.data.append(byte.decode("utf-8"))
         self.led_off()
-        return True
+        return
 
     def log(self):
-        """Writes out acquired data to a file."""
-        utils.log_data(self._format_data("".join(self.data)))
+        """Writes out acquired data to file."""
+        utils.log_data(constants.DATA_SEPARATOR.join(self._format_data(self.data)))
         return
 
 
@@ -222,4 +211,4 @@ class UVXCHANGE(DEVICE):
 
     def start_up(self):
         """Performs device specific initialization sequence."""
-        self.init_power()
+        self.on()

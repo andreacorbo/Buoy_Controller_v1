@@ -36,21 +36,12 @@ class PYBOARD(object):
 
     devices = {}
 
-    line2uart = {
-        1:4,
-        3:2,
-        7:1,     # attention!!! same as for uart6
-        9:5,     # usb
-        11:3
-        }
-
     def __init__(self):
         self.config_path  = constants.CONFIG_DIR
-        #self.config_file = __name__ + "." + constants.CONFIG_TYPE
         self.lastfeed = utime.time()
         self.usb = None
+        self.uart = None
         self.interrupt = None
-        self.interrupted = False
         self.escaped = False
         self.prompted = False
         self.interactive = False
@@ -59,6 +50,8 @@ class PYBOARD(object):
         self.irqs = []
         self.pwr_led()
         self.get_config()
+        self.line2uart = {9:5, 11:3, 7:1}
+        self.uart2stream = {5:self.usb, self.config["Uart"]["Bus"]:self.uart}
         self.init_devices()
         self.init_interrupts()
         self.disable_interrupts()
@@ -81,11 +74,12 @@ class PYBOARD(object):
     def get_config(self):
         """Gets the device configuration."""
         try:
-            self.config = utils.read_config(self.__module__ + "." + constants.CONFIG_TYPE)[self.__qualname__]["1"]
+            self.config = utils.read_config(self.__module__ + "." + constants.CONFIG_TYPE)[self.__qualname__]
             return self.config
-        except:
-            utils.log_file("{} => unable to load configuration.".format(self.__qualname__), constants.LOG_LEVEL)  # DEBUG
+        except Exception as err:
+            utils.log("{} => get_config ({}): {}".format(self.__qualname__, type(err).__name__, err), "e")  # DEBUG
             return False
+
     def init_usb(self):
         self.usb = pyb.USB_VCP()
 
@@ -102,36 +96,26 @@ class PYBOARD(object):
                 timeout_char=int(self.config["Uart"]["Timeout_Char"]),
                 read_buf_len=int(self.config["Uart"]["Read_Buf_Len"]))
             return True
-        except (ValueError) as err:
-            utils.log_file("{} => {}.".format(self.name, err), constants.LOG_LEVEL)
+        except Exception as err:
+            utils.log("{} => init_uart ({}): {}".format(self.__qualname__, type(err).__name__, err), "e")  # DEBUG
             return False
 
     def deinit_uart(self):
         """Deinitializes the uart bus."""
         try:
             self.uart.deinit()
-        except:
-            utils.log_file("{} => unable to deinitialize uart {}".format(self.__qualname__, self.config["Uart"]["Bus"]), constants.LOG_LEVEL)
+            return True
+        except Exception as err:
+            utils.log("{} => deinit_uart ({}): {}".format(self.__qualname__, type(err).__name__, err), "e")  # DEBUG
             return False
-        return True
 
     def set_repl(self):
-        if self.line2uart[self.interrupt] == self.config["Uart"]["Bus"]:
-            pyb.repl_uart(self.uart)
+        pyb.repl_uart(self.uart2stream[self.line2uart[self.interrupt]])
 
     def ext_callback(self, line):
         """Sets board to interactive mode"""
-        self.disable_interrupts()
         self.interrupt = line
-        _thread.start_new_thread(self.timeout_interrupted,)
-
-    def timeout_interrupted(self):
-        """Reset interrupted condition after 5 secs."""
-        self.interrupted = True
-        t0 = utime.time()
-        while utime.time() - t0 < 5:
-            continue
-        self.interrupted = False
+        utils._poll.register(self.uart2stream[self.line2uart[self.interrupt]], uselect.POLLIN)  # TODO: poll board.uart
 
     def init_interrupts(self):
         """Initializes all external interrupts to wakes up board from sleep mode."""
@@ -141,7 +125,6 @@ class PYBOARD(object):
     def enable_interrupts(self):
         """Enables interrupts"""
         self.interrupt = None
-        self.interrupted = False
         for irq in self.irqs:
             irq.enable()
 
@@ -149,32 +132,38 @@ class PYBOARD(object):
         """Disables interrupts."""
         for irq in self.irqs:
             irq.disable()
+        _thread.start_new_thread(self.timeout_interrupt, ())
+
+    def timeout_interrupt(self):
+        """Reset interrupted condition after 5 secs."""
+        #self.interrupted = True  DEBUG
+        t0 = utime.time()
+        while utime.time() - t0 < constants.IRQ_TIMEOUT:
+            continue
+        self.interrupt = None
 
     def init_devices(self):
-        """ Initializes all configured devices. """
-        utils.log_file("Initializing devices...", constants.LOG_LEVEL)
-        for file in uos.listdir(constants.CONFIG_DIR):
-            f_name = file.split(".")[0]
-            f_ext =  file.split(".")[1]
-            if f_ext == constants.CONFIG_TYPE and f_name[0] != "_":
-                cfg = utils.read_config(file)
-                for key in cfg.keys():
-                    for obj in cfg[key]:
-                        if cfg[key][obj]["Device"]:
-                            #try:
-                            utils.create_device(f_name + "." + key + "_" + obj, tasks=["start_up"])
-                            #except ImportError:
-                            #    pass
+        """ Initializes all configured instruments. """
+        utils.msg(" initializing instruments ".upper())
+        devs = []
+        for key, value in sorted(constants.DEVICES.items()):
+            if key >= 0:  # Devices with a negative position are disabled.
+                devs.append(value)
+        for dev in devs:  # Gets devices from constants.DEVICES list.
+            cfg = utils.read_config(dev.split(".")[0] + "." + constants.CONFIG_TYPE)[dev.split(".")[1].split("_")[0]]
+            if cfg["Device"]:
+                try:
+                    utils.create_device(dev, tasks=["start_up"])
+                except Exception as err:
+                    utils.log("{} => init_devices ({}): {}".format(self.__qualname__, type(err).__name__, err), "e")  # DEBUG
+        utils.msg("-")
+
 
 
     def set_mode(self, timeout):
         """ Prints out welcome message. """
+        print(utils.welcome_msg())
         print(
-        "##################################################\r\n"+
-        "#                                                #\r\n"+
-        "#        WELCOME TO PYBUOYCONTROLLER V1.1        #\r\n"+
-        "#                                                #\r\n"+
-        "##################################################\r\n"+
         "[ESC] INTERACTIVE MODE\r\n"+
         "[DEL] FILE TRANSFER MODE")
         t0 = utime.time()
@@ -200,10 +189,10 @@ class PYBOARD(object):
     def go_sleep(self, interval):
         """Puts board in sleep mode.
 
-        Params:
-            now(int): current timestamp
-            wakeup(int): wakeup timestamp
+            Parameters:
+                ``interval`` :obj:`int` current timestamp.
         """
+        utils.log("Sleeping.... wake up in {}".format(utils.time_display(interval)), "m")  # DEBUG
         self.sleep_led()
         self.enable_interrupts()
         remain = constants.WD_TIMEOUT - (utime.time() - self.lastfeed) * 1000
@@ -211,37 +200,27 @@ class PYBOARD(object):
         if interval - remain > -3000:
             interval = remain - 3000
         self.rtc.wakeup(interval)  # Set next rtc wakeup (ms).
-        if self.usb.isconnected():
-          pyb.delay(interval)  # RBF
-        else:
-            pyb.stop()
+        pyb.stop()
+        self.disable_interrupts()
         self.pwr_led()
 
-class ADC(DEVICE):
+class SYSMON(DEVICE):
 
-    def __init__(self, instance, tasks=list()):
-        DEVICE.__init__(self, instance)
-        data_tasks = ["log"]
-        for task in tasks:
-            if task in data_tasks:
-                if self.main():
-                    eval("self." + task + "()", {"self":self})
-            else:
-                eval("self." + task + "()", {"self":self})
+    def __init__(self, instance, tasks=[], data_tasks = ["log"]):
+        DEVICE.__init__(self, instance, tasks, data_tasks)
 
     def start_up(self):
         """Performs device specific initialization sequence."""
-        if self.init_power():
-          return True
-        return False
+        self.off()
+        return
 
     def adcall_mask(self, channels):
         """Creates a mask for the adcall method with the adc's channels to acquire.
 
-        Params:
-            channels(dictionary)
-        Return:
-            mask(hex)
+            Parameters:
+                ``channels`` :obj:`dict` adc channels.
+            Returns:
+                ``mask`` :obj:`hex`
         """
         mask = []
         chs = [16,17,18]  # MCU_TEMP, VREF, VBAT
@@ -257,14 +236,33 @@ class ADC(DEVICE):
         return (vout * 3.3 / vsupply - 0.25) / 0.028
 
     def battery_level(self, vout):
+        """Return calibrated main power source voltage level.
+
+            Parameters:
+                ``vout`` :obj:`float` direct adc read.
+            Returns:
+                ``vout`` :obj: `float` calibrated value.
+        """
         return vout * self.config["Adc"]["Channels"]["Battery_Level"]["Calibration_Coeff"]
 
     def current_level(self, vout):
+        """Returns the calibrated total current consumption.
+
+            Parameters:
+                ``vout`` :obj:`float` direct adc read.
+            Returns:
+                ``aout`` :obj: `float` calibrated value.
+        """
         return vout * self.config["Adc"]["Channels"]["Current_Level"]["Calibration_Coeff"]
+
+    def fs_freespace(self):
+        """Returns the filesystem free space (bytes)."""
+        s=uos.statvfs("/sd")
+        return s[0]*s[3]
 
     def main(self):
         """Gets data from internal sensors."""
-        utils.log_file("{} => checking up system status...".format(self.name), constants.LOG_LEVEL)
+        utils.log("{} => checking up system status...".format(self.name))
         core_temp = 0
         core_vbat = 0
         core_vref = 0
@@ -277,7 +275,7 @@ class ADC(DEVICE):
         for key in self.config["Adc"]["Channels"].keys():
             channels.append(self.config["Adc"]["Channels"][key]["Ch"])
         adcall = pyb.ADCAll(int(self.config["Adc"]["Bit"]), self.adcall_mask(channels))
-        for i in range(int(self.config["Samples"]) * int(self.config["Sample_Rate"])):
+        for i in range(int(self.samples) * int(self.sample_rate)):
             core_temp += adcall.read_core_temp()
             core_vbat += adcall.read_core_vbat()
             core_vref += adcall.read_core_vref()
@@ -293,23 +291,46 @@ class ADC(DEVICE):
         battery_level = battery_level / i * vref / pow(2, int(self.config["Adc"]["Bit"]))
         current_level = current_level / i * vref / pow(2, int(self.config["Adc"]["Bit"]))
         ambient_temperature = ambient_temperature / i * vref / pow(2, int(self.config["Adc"]["Bit"]))
-        battery_level = self.battery_level(battery_level)
-        current_level = self.current_level(current_level)
-        ambient_temperature = self.ad22103(ambient_temperature, vref)
+        self.data.append(battery_level)
+        self.data.append(current_level)
+        self.data.append(ambient_temperature)
+        self.data.append(core_temp)
+        self.data.append(core_vbat)
+        self.data.append(core_vref)
+        self.data.append(vref)
+        self.data.append(self.fs_freespace())
+        return
+
+    def _format_data(self, sample):
+        """Formats data according to output format.
+
+            Parameters:
+                ``samples`` :obj:`list` [[sample1], [sample1]...]
+            Returns:
+                ``data`` :obj:`list`
+            """
         epoch = utime.time()
-        self.data.append(self.config["String_Label"])
-        self.data.append(str(utils.unix_epoch(epoch)))  # unix timestamp
-        self.data.append(utils.datestamp(epoch))  # YYMMDD
-        self.data.append(utils.timestamp(epoch))  # hhmmss
-        self.data.append("{:.4f}".format(battery_level))
-        self.data.append("{:.4f}".format(current_level))
-        self.data.append("{:.4f}".format(ambient_temperature))
-        self.data.append("{:.4f}".format(core_temp))
-        self.data.append("{:.4f}".format(core_vbat))
-        self.data.append("{:.4f}".format(core_vref))
-        self.data.append("{:.4f}".format(vref))
-        return True
+        try:
+            data = [
+                self.config["String_Label"],
+                str(utils.unix_epoch(epoch)),
+                utils.datestamp(epoch),  # MMDDYY
+                utils.timestamp(epoch),  # hhmmss
+                "{:.4f}".format(self.battery_level(sample[0])),  # Battery voltage [V].
+                "{:.4f}".format(self.current_level(sample[1])),  # Current consumption [A].
+                "{:.4f}".format(self.ad22103(sample[2], sample[6])),  # Internal vessel temp [°C].
+                "{:.4f}".format(sample[3]),  # Core temp [°C].
+                "{:.4f}".format(sample[4]),  # Core vbat [V].
+                "{:.4f}".format(sample[5]),  # Core vref [V].
+                "{:.4f}".format(sample[6]),  # Vref [V].
+                "{}".format(sample[7]//1024)  # SD free space [kB].
+                ]
+        except Exception as err:
+            utils.log("{} => _format_data ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG
+            return
+        return data
 
     def log(self):
-        utils.log_data(",".join(map(str, self.data)))
+        """Writes out acquired data to file."""
+        utils.log_data(constants.DATA_SEPARATOR.join(self._format_data(self.data)))
         return

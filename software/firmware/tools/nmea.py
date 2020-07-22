@@ -43,7 +43,7 @@ class NMEA(object):
         for char in ",".join(map(str, sentence)):
             calculated_checksum ^= ord(char)
         if "{:02X}".format(calculated_checksum) != checksum:
-            utils.log_file("NMEA invalid checksum calculated: {:02X} got: {}".format(calculated_checksum, checksum), constants.LOG_LEVEL)
+            utils.log("NMEA invalid checksum calculated: {:02X} got: {}".format(calculated_checksum, checksum), "m")
             return False
         else:
             return True

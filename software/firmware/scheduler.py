@@ -24,14 +24,15 @@ import utime
 import tools.utils as utils
 import constants
 import _thread
+import gc
 
 class SCHEDULER(object):
     """Creates a scheduler object."""
 
     def __init__(self):
         self.next_event = 0
-        utils.log_file("Initializing the event table...", constants.LOG_LEVEL)
         self.calc_event_table(utime.time())
+        self.print_event_table()
 
     def scheduled(self, timestamp):
         """Runs all tasks defined at the current timestamp.
@@ -44,8 +45,8 @@ class SCHEDULER(object):
             timestamp = self.next_event
         if timestamp in self.event_table:
             self.manage_event(self.event_table[timestamp])
-            #self.calc_event_table(timestamp)
             self.calc_event_table(utime.time())
+            self.print_event_table()
             self.get_next_event()
 
     def get_next_event(self):
@@ -64,10 +65,10 @@ class SCHEDULER(object):
             elif "off" in event[device]:
                 utils.create_device(device, tasks=["off"])
             else:
-                utils.status_table[device] = 2  # Sets the device status as READY.
-                utils.log_file("{} => {}".format(device, constants.DEVICE_STATUS[utils.status_table[device]]), constants.LOG_LEVEL)
-                #_thread.stack_size(8 * 1024)  # Icreases thread stack size to avoid RuntimeError: maximum recursion depth exceeded
+                utils.create_device(device).status(2)  # Sets the device status as READY.
+                
                 _thread.start_new_thread(utils.execute, (device, event[device],))
+            gc.collect()
 
     def calc_activation_interval(self, device):
         """Calculates the minimum activation interval for the specified device.
@@ -91,8 +92,8 @@ class SCHEDULER(object):
         """
         self.event_table = {}
         for device in utils.status_table:
-            obj = utils.create_device(device)
             status = utils.status_table[device]
+            obj = utils.create_device(device)
             virt = timestamp - obj.activation_delay
             sampling_interval = 0
             sampling_buffer = 0
@@ -120,10 +121,10 @@ class SCHEDULER(object):
                         self.add_event(schedule, device, task)
             elif status == 2:  # device is ready / acquiring data
                 schedule =  next_activation
-                if activation_interval - sampling_interval - obj.warmup_interval > 0:
-                    task = "off"
-                else:
+                if obj.warmup_interval < 0 or activation_interval - sampling_interval < obj.warmup_interval:
                     task = "on"
+                else:
+                    task = "off"
                 self.add_event(schedule, device, task)
 
     def add_event(self, timestamp, device, task):
@@ -143,14 +144,11 @@ class SCHEDULER(object):
             self.event_table[timestamp] = {device:[task]}
 
     def print_event_table(self):
-        tmp1 = ["\r\n############################################################"]
+        """Prints out the event_table."""
+        utils.msg(" next events ".upper())
         for event in sorted(self.event_table):
-            tmp2 = []
-            tmp2.append("# " + utils.timestamp(event))
-            for device in self.event_table[event]:
-                tmp2.append(device)
-                for task in self.event_table[event][device]:
-                    tmp2.append("[" + task + "]")
-            tmp1.append(" ".join(tmp2))
-        tmp1.append("############################################################\r\n")
-        print("\r\n".join(tmp1))
+            for device, tasks in self.event_table[event].items():
+                for task in tasks:
+                    name = task if (type(task) == str) else task[0]
+                    print("{} -> {:<25}{}".format(utils.time_string(event), device, name.upper()))
+        utils.msg("-")

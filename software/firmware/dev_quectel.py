@@ -41,12 +41,3 @@ class L80M39(GPS):
     def __init__(self, instance, tasks=[]):
         """Constructor method."""
         GPS.__init__(self, instance, tasks)
-        data_tasks = ["log","last_fix","sync_rtc"]
-        if tasks:
-            if any(elem in data_tasks for elem in tasks):
-                if self.main():
-                    for task in tasks:
-                        eval("self." + task + "()", {"self":self})
-            else:
-                for task in tasks:
-                    eval("self." + task + "()", {"self":self})

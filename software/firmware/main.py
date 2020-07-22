@@ -33,14 +33,15 @@ import _thread
 import tools.utils as utils
 import gc
 
-"""Main file."""
+#_thread.stack_size(16 * 1024)  # Icreases thread stack size to avoid RuntimeError: maximum recursion depth exceeded.
 
 for i in reversed(range(5)):  # DEBUG Delays main loop to stop before sleep.
     print("{:> 2d}\" to system startup...".format(i), end="\r")
     utime.sleep(1)
-print("\r")
 
-utils.log_file("Reset cause: {}".format(machine.reset_cause()), constants.LOG_LEVEL)  # DEBUG
+utils.log("{}".format(constants.RESET_CAUSE[machine.reset_cause()]), "e")  # DEBUG Prints out the reset cause.
+
+print(utils.welcome_msg())
 
 board = PYBOARD()  # Creates a board object.
 
@@ -50,15 +51,20 @@ session = SESSION(board=board, timeout=constants.SESSION_TIMEOUT)  # Starts up t
 
 scheduler = SCHEDULER()  # Creates the scheduler object.
 
-_poll = uselect.poll()  # Creates a poll object to listen to.
-for input in board.input:
-    _poll.register(input, uselect.POLLIN)
+
 esc_cnt = 0  # Initializes the escape character counter.
 
 t0 = utime.time()  # Gets timestamp at startup.
 
+gc.collect()  # Frees ram.
+
 while True:
+    if not constants.DEBUG and board.usb.isconnected():
+        utils._poll.register(board.usb, uselect.POLLIN)  # Polls usb, no need to unplug/plug to interrupt.
+        constants.DEBUG = True
+
     #_wdt.feed()  # Resets the watchdog timer.
+
     if board.escaped:
         if not session.loggedin:
             pyb.repl_uart(board.uart)
@@ -76,13 +82,13 @@ while True:
             session.init()
             session.authenticating = False
     elif board.prompted:  # Prompts user for interactive or file mode.
-        if board.set_mode(5):
+        if board.set_mode(10):
             if board.interactive:
                 menu = MENU(board, scheduler)  # Creates the menu object.
                 _thread.start_new_thread(menu.main, ())
             elif board.connected:
                 pyb.repl_uart(None)  # Disables repl to avoid byte collision
-                _thread.start_new_thread(board.devices[101].receive, (3,))
+                _thread.start_new_thread(utils.execute, ("dev_modem.MODEM_1", ["_recv", 60],))
         board.prompted = False
     elif board.interactive or board.connected:  # Prevents sleeping while user is interacting.
         if session.loggedout:
@@ -90,7 +96,7 @@ while True:
             board.interactive = False
             session.init()
     else:
-        poll = _poll.ipoll(0)
+        poll = utils._poll.ipoll(0)
         for stream in poll:
             try:
                 if stream[0].read(1).decode("utf-8") == constants.ESC_CHAR:
@@ -98,27 +104,30 @@ while True:
                     if  esc_cnt  == 3:
                         if stream[0] == board.usb:
                             board.prompted = True
+                            if not constants.DEBUG:
+                                utils._poll.unregister(stream[0])
                         else:
                             board.escaped = True
-                        board.interrupted = False
+                            utils._poll.unregister(stream[0])
+                        board.interrupt = None
                         esc_cnt = 0
                         continue
             except:
                 pass
         utime.sleep_ms(100)  # Adds 100ms delay to allow threads startup.
         t0 = utime.time()  # Gets timestamp before sleep.
-        #if not utils.processes and not board.interrupted and not board.usb.isconnected():  # Waits for no running threads and no usb connection before sleep.
-        if not utils.processes and not board.interrupted:  # Waits for no running threads and no usb connection before sleep.
+        if utils.gps_displacement > constants.DISPLACEMENT_THRESHOLD:
+            _thread.start_new_thread(utils.execute, ("dev_modem.MODEM_1", [("sms",eval(constants.DISPLACEMENT_SMS))],))
+            utils.gps_displacement = 0
+        if not utils.processes and not board.interrupt and not board.interactive:  # Waits for no running threads and no usb connection before sleep.
             if utils.files_to_send():  # Checks for data files to send.
-                #utils.create_device("dev_modem.MODEM_1", tasks=["data_transfer"])  # Sends data files before sleeping.
-                _thread.start_new_thread(utils.execute, ("dev_modem.MODEM_1", ["data_transfer"],))
-                #board.interrupted = False
-            elif scheduler.next_event > t0:
-                utils.log_file("Sleeping for {}".format(utils.time_display(scheduler.next_event - t0)), constants.LOG_LEVEL)  # DEBUG
+                if utils.time_to_send(scheduler.event_table, t0):  # TODO: calculate time based on bytes to send / baudrate.
+                    _thread.start_new_thread(utils.execute, ("dev_modem.MODEM_1", ["data_transfer"],))
+            elif scheduler.next_event > t0 and not constants.DEBUG:
                 board.go_sleep(scheduler.next_event - t0)  # Puts board in sleep mode.
                 t0 = utime.time()  # Gets timestamp at wakeup.
         board.lastfeed = utime.time()
         #_wdt.feed()  # Resets the watchdog timer.
         scheduler.scheduled(t0)  # Checks out for scheduled events in event table.
     gc.collect()  # Frees ram.
-    utils.mem_mon()  # DEBUG
+    #utils.mem_mon()  # DEBUG

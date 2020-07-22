@@ -30,12 +30,10 @@ import constants
 class AUX(DEVICE):
     """Creates an aux object."""
 
-    def __init__(self, instance, tasks=[]):
-        DEVICE.__init__(self, instance)
-        if tasks:
-            for task in tasks:
-                eval("self." + task + "()", {"self":self})
+    def __init__(self, instance, tasks=[], data_tasks=[]):
+        DEVICE.__init__(self, instance, tasks, data_tasks)
 
     def start_up(self):
         """Performs device specific initialization sequence."""
-        self.init_power()
+        self.off()
+        return

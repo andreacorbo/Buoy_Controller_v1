@@ -89,7 +89,7 @@ class YMODEM(object):
 
     def _time_to_stop(self):
         """Aborts transmission if and external stop flag is set."""
-        if self.break_condition > 1:
+        if len(utils.processes) > 1:
             self.abort()
 
     def abort(self, count=2, timeout=60):
@@ -308,7 +308,7 @@ class YMODEM(object):
         return crc & 0xffff
 
 
-    def send(self, files, tmp_file_pfx, sent_file_pfx, retry=5, timeout=10):
+    def send(self, files, tmp_file_pfx, sent_file_pfx, retry=5, timeout=5):
         """Sends files according to ymodem protocol.
 
         Params:
@@ -404,9 +404,10 @@ class YMODEM(object):
             # Create file name packet
             #
             header = self._make_filename_header(packet_size)  # create file packet
-            data = bytearray(filename + "\x00")  # filename + space
+
+            data = bytearray(filename + "\x00", "utf8")  # filename + space
             if file != "\x00":
-                data.extend(str(uos.stat(file)[6] - pointer))  # Sends data size to be transmitted
+                data.extend(str(uos.stat(file)[6] - pointer).encode("utf8"))  # Sends data size to be transmitted
             padding = bytearray(packet_size - len(data))  # fill packet size with null char
             data.extend(padding)
             checksum = self._make_checksum(crc_mode, data)  # create packet checksum
@@ -576,14 +577,14 @@ class YMODEM(object):
                     print("UNATTENDED CHAR {}, RETRY...".format(char))
                     error_count += 1
 
-    def recv(self, datapath="/", crc_mode=1, retry=5 , timeout=10):
+    def recv(self, timeout=10, retry=5, crc_mode=1):
         """Receives files according to ymodem protocol.
 
         Params:
-            datapath(str)
             retry(int): default[5]
             timeout(int): seconds, default[10]
-        """#
+        """
+        #
         # Initialize transaction
         #
         error_count = 0
@@ -714,7 +715,6 @@ class YMODEM(object):
                         error_count = 0
                 else:
                     data = self._getc(packet_size + 1 + crc_mode, timeout)
-                    print(data)
                     valid, data = self._verify_recvd_checksum(crc_mode, data)
                     if not valid:
                         #
@@ -742,10 +742,16 @@ class YMODEM(object):
                                     data_string.append(data_field)
                                     data_field = ""
                             pathname = data_string[0]
-                            attributes = data_string[1].split(" ")  # Length, modification date, mode, serial number...
-                            length = int(attributes[0])
-                            mod_date = int(attributes[1])
-                            stream = open(pathname, "ab")
+                            file_size = int(data_string[1].split(" ")[0])
+                            mod_date = int(data_string[1].split(" ")[1])
+                            mode = "wb"  # Overwrite local.
+                            try:  # File exists
+                                if utils.unix_epoch(uos.stat(pathname)[8]) > mod_date:
+                                    if uos.stat(pathname)[6] < file_size:  # Local file is incomplete.
+                                        mode = "ab"   # Append to local.
+                            except:  # File doesn't exist.
+                                pass
+                            stream = open(pathname, mode)
                             if stream:
                                 print("RECEIVING FILE {}".format(pathname))
                                 #
@@ -765,7 +771,7 @@ class YMODEM(object):
                                 return False  # Exits
                         else:
                             income_size += len(data)
-                            trailing_null = income_size - length  # null trailing char
+                            trailing_null = income_size - file_size  # null trailing char
                             stream.write(data[:-trailing_null])  # exclude null trailing chars
                             #
                             # Acknowledge packet

@@ -35,9 +35,10 @@ class DEVICE(object):
         are present) needs a correspondent section in the config_file.
     """
 
-    def __init__(self, instance):
+    def __init__(self, instance, tasks=None, data_tasks=[]):
         self.instance = instance
         self.name = self.__module__ + "." + self.__qualname__ + "_" + self.instance
+        self.timeout = constants.TIMEOUT
         self.uart_bus = 0
         self.uart_slot = 0
         self.activation_delay = 0
@@ -52,15 +53,44 @@ class DEVICE(object):
         self.init_uart()
         self.init_gpio()
         self.init_led()
+        self.tasks = tasks
+        self.data_tasks = data_tasks
+        if self.tasks:
+            if any(elem[0] if type(elem) == tuple else elem in self.data_tasks for elem in self.tasks):
+                self.main()
+            for task in self.tasks:
+                func = task
+                param_dict={"self":self}
+                param_list=""
+                if type(task) == tuple:
+                    func = task[0]
+                    for param in task[1:]:
+                        param_dict[str(param)] = param
+                    param_list = ",".join(map(str,task[1:]))
+                eval("self."+ func +"(" + param_list + ")", param_dict)
+
+    def _timeout(self, start, timeout=None):
+        """Checks if a timeout occourred
+
+        Params:
+            start(int)
+        Returns:
+            True or False
+        """
+        if timeout is None:
+            timeout = self.timeout
+        if timeout > 0 and utime.time() - start >= timeout:
+            return True
+        return False
 
     def get_config(self):
         """Gets the device configuration."""
-        try:
-            self.config = utils.read_config(self.__module__ + "." + constants.CONFIG_TYPE)[self.__qualname__][self.instance]
-            return self.config
-        except:
-            utils.log_file("{} => unable to load configuration.".format(self.name), constants.LOG_LEVEL)  # DEBUG
-            return False
+        #try:
+            #self.config = utils.read_config(self.__module__ + "." + constants.CONFIG_TYPE)[self.__qualname__][self.instance]
+        self.config = utils.read_config(self.__module__ + "." + constants.CONFIG_TYPE)[self.__qualname__]
+        return self.config
+        #except Exception as err:
+        #    utils.log("{} => get_config ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG
 
     def init_uart(self):
         """Initializes the uart bus."""
@@ -81,8 +111,8 @@ class DEVICE(object):
                     flow=int(self.config["Uart"]["Flow_Control"]),
                     timeout_char=int(self.config["Uart"]["Timeout_Char"]),
                     read_buf_len=int(self.config["Uart"]["Read_Buf_Len"]))
-            except (ValueError) as err:
-                utils.log_file("{} => {}.".format(self.name, err), constants.LOG_LEVEL)
+            except Exception as err:
+                utils.log("{} => init_uart ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG
 
     def deinit_uart(self):
         """Deinitializes the uart bus."""
@@ -101,19 +131,19 @@ class DEVICE(object):
 
     def init_gpio(self):
         """Creates the device pin object."""
-        if "Ctrl_Pin" in self.config:
+        if {value:key for key, value in constants.DEVICES.items()}[self.name] in constants.CTRL_PINS.keys():
             try:
-                self.gpio = pyb.Pin(self.config["Ctrl_Pin"], pyb.Pin.OUT)
-            except (ValueError) as err:
-                utils.log_file("{} => {}.".format(self.name, err), constants.LOG_LEVEL)
+                self.gpio = pyb.Pin(constants.CTRL_PINS[{value:key for key, value in constants.DEVICES.items()}[self.name]], pyb.Pin.OUT, pyb.Pin.PULL_DOWN)
+            except Exception as err:
+                utils.log("{} => init_gpio ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG
 
     def init_led(self):
         """Creates the device led object."""
         try:
             self.led = pyb.LED(constants.LEDS["RUN"])
             self.led.off()
-        except ValueError as err:
-            utils.log_file("{} => {}.".format(self.name, err), constants.LOG_LEVEL)
+        except Exception as err:
+            utils.log("{} => init_led ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG
 
     def led_on(self):
         """Power on the device led."""
@@ -123,20 +153,12 @@ class DEVICE(object):
         """Power off the device led."""
         self.led.off()
 
-    def init_power(self):
-        """Initializes power status at startup."""
-        self.off()
-        if self.config["Status"] == 1:
-            utime.sleep_ms(100)
-            self.on()
-
     def on(self):
         """Turns on device."""
         if hasattr(self, "gpio"):
             if self.gpio.value() == 0:
                 self.gpio.on()  # set pin to off
-        utils.status_table[self.name] = 1
-        utils.log_file("{} => ON".format(self.name), constants.LOG_LEVEL)  #
+        utils.log("{} => {}".format(self.name,self.status(1)))
         return
 
     def off(self):
@@ -144,8 +166,7 @@ class DEVICE(object):
         if hasattr(self, "gpio"):
             if self.gpio.value() == 1:
                 self.gpio.off()  # set pin to off
-        utils.status_table[self.name] = 0
-        utils.log_file("{} => OFF".format(self.name), constants.LOG_LEVEL)  # DEBUG
+        utils.log("{} => {}".format(self.name,self.status(0)))
         return
 
     def toggle(self):
@@ -153,13 +174,14 @@ class DEVICE(object):
         if hasattr(self, "gpio"):
             if self.gpio.value():
                 self.gpio.off()
+                self.status(0)
             else:
                 self.gpio.on()
+                self.status(1)
         return
 
     def status(self, status=None):
         """Returns or sets the current device status."""
-        for key, value in constants.DEVICE_STATUS.items():
-            if status and value == status.upper():
-                utils.status_table[self.name] = key
+        if not status is None and any(key == status for key, value in constants.DEVICE_STATUS.items()):
+            utils.status_table[self.name] = status
         return constants.DEVICE_STATUS[utils.status_table[self.name]]

@@ -26,6 +26,7 @@ import uos
 import utime
 import constants
 import _thread
+import uselect
 
 """Creates a lock to handling data file secure."""
 file_lock = _thread.allocate_lock()
@@ -40,10 +41,26 @@ processes = []
 status_table = {}
 
 unsent_files = []
+bytes_to_send = 0
 
 gps_fix = []
 
 gps_displacement = 0
+
+"""Creates a poll object to capture cmds on uarts."""
+_poll = uselect.poll()
+
+def welcome_msg():
+    return(
+    "{:#^80}\n\r".format("")+
+    "#{: ^78}#\n\r".format("WELCOME TO "+constants.NAME+" "+constants.SW_NAME+" "+constants.SW_VERSION)+
+    "#{: ^78}#\n\r".format("")+
+    "# {: <20}{: <57}#\n\r".format(" current time:", time_string(utime.time())+" UTC")+
+    "# {: <20}{: <57}#\n\r".format(" machine:", uos.uname()[4])+
+    "# {: <20}{: <57}#\n\r".format(" mpy release:", uos.uname()[2])+
+    "# {: <20}{: <57}#\n\r".format(" mpy version:", uos.uname()[3])+
+    "{:#^80}".format("")
+    )
 
 def read_config(file, path=constants.CONFIG_DIR):
     """Parses a json configuration file.
@@ -56,14 +73,14 @@ def read_config(file, path=constants.CONFIG_DIR):
         with open(path + "/" + file) as file_:
             return ujson.load(file_)
     except:
-        log_file("Unable to read file {}".format(file), constants.LOG_LEVEL)
+        log("Unable to read file {}".format(file), "e")
         return None
 
 def unix_epoch(epoch):
     """Converts embedded epoch since 2000-01-01 00:00:00
     to unix epoch since 1970-01-01 00:00:00
     """
-    return str(946684800 + epoch)
+    return 946684800 + epoch
 
 def datestamp(epoch):
     """Returns a formatted date YYMMDD
@@ -112,29 +129,40 @@ def time_display(timestamp):
     if hours > 0:
         timestring.append(str(hours) + "h")
     if mins > 0:
-        timestring.append(str(mins) + "\"")
+        timestring.append(str(mins) + "'")
     if secs >= 0:
         timestring.append(str(secs) + "\"")
     return " ".join(timestring)
 
-def log_file(data_string, mode=0, new_line=True):
+def log(data_string, msg_type="m", new_line=True):
     """Creates a log and prints a messagge on screen.
 
     Params:
         data_string(str): message
-        mode(int): 0 print, 1 save, 2 print & save
+        msg_type(str): m (message), w (warning), e (error)
         new_line(bool): if False overwrites messages
     """
-    log_string = time_string(utime.time()) + "\t" + data_string
+    log_string = "{: <23}{}".format(time_string(utime.time()), data_string)
     end_char = ""
     if new_line:
         end_char = "\n"
-    if constants.LOG_LEVEL == 0:
-        print(log_string, end=end_char)
+    print(log_string, end=end_char)
+    if constants.LOG_TO_FILE:
+        if msg_type in constants.LOG_LEVEL:
+            try:
+                with open(constants.LOG_DIR + "/" + constants.LOG_FILE_NAME, "a") as file_:  # TODO: start new file, zip old file, remove oldest
+                    file_.write(log_string + end_char)
+            except Exception as err:
+                print(err)
+
+def msg(msg=None):
+    """Prints out a simple message."""
+    if msg is None:
+        print("")
+    elif msg == "-":
+        print("{:#^80}\n".format(""))
     else:
-        with open("Log.txt", "a") as file_:
-            file_.write(log_string + end_char)
-        print(log_string, end=end_char)
+        print("\n{:#^80}".format(msg))
 
 def _make_data_dir(dir):
     """Creates a dir structure."""
@@ -146,11 +174,11 @@ def _make_data_dir(dir):
         else:
             sep = "/"
         if dir_list[i+1] not in uos.listdir(dir):  # checks for directory existance
-            log_file("Creating {} directory...".format(dir + sep + dir_list[i+1]), constants.LOG_LEVEL)
+            log("Creating {} directory...".format(dir + sep + dir_list[i+1]), "m")
             try:
                 uos.mkdir(dir + sep + dir_list[i+1])  # creates directory
             except:
-                log_file("Unable to create directory {}".format(dir + sep + dir_list[i+1]), constants.LOG_LEVEL)
+                log("Unable to create directory {}".format(dir + sep + dir_list[i+1]), "m")
                 return False
         dir = dir + sep + dir_list[i+1]  # changes dir
     return True
@@ -203,8 +231,9 @@ def too_old(file):
 
 def files_to_send():
     """Checks for files to send."""
-    global unsent_files
+    global unsent_files, bytes_to_send
     unsent_files = []
+    bytes_to_send = 0
     for media in constants.MEDIA:
         try:
             for file in uos.listdir(media + "/" + constants.DATA_DIR):
@@ -224,6 +253,7 @@ def files_to_send():
                             pass  # Tmp file does not exist.
                         if uos.stat(media + "/" + constants.DATA_DIR + "/" + file)[6] > pointer:
                             unsent_files.append(media + "/" + constants.DATA_DIR + "/" + file)
+                            bytes_to_send += uos.stat(media + "/" + constants.DATA_DIR + "/" + file)[6] - pointer
         except:
             pass  # Data dir does not exist.
     if unsent_files:
@@ -242,10 +272,10 @@ def log_data(data):
     try:
         file = _get_data_dir() + "/" + eval(constants.DATA_FILE_NAME)
         with open(file, "a") as data_file:  # append row to existing file
-            log_file("Writing out to file {} => {}".format(file, data), constants.LOG_LEVEL)
+            log("Writing out to file {} => {}".format(file, data), "m")
             data_file.write(data + "\r\n")
     except:
-        log_file("Unable to write out to file {}".format(eval(constants.DATA_FILE_NAME)), constants.LOG_LEVEL)
+        log("Unable to write out to file {}".format(eval(constants.DATA_FILE_NAME)), "m")
     file_lock.release()
 
 def verbose(msg, enable=True):
@@ -287,12 +317,25 @@ def execute(device, tasks):
         tasks(list)
     """
     global processes_access_lock, processes
-    timeout = constants.SCHEDULE
+    timeout = 10
     if processes_access_lock.acquire(1, timeout):
         processes.append(_thread.get_ident())
         processes_access_lock.release()
-        create_device(device, tasks=tasks)
+        #create_device(device, tasks=tasks)
+        exec("import " + device.split(".")[0], globals())  # Imports the module.
+        exec(device + "=" + device.split(".")[0] + "." + device.split(".")[1].split("_")[0] + "(\"" + device.split(".")[1].split("_")[1] + "\", tasks="+str(tasks)+")", globals())  # Creates the object.
         if processes_access_lock.acquire(1, timeout):
             processes.remove(_thread.get_ident())
             processes_access_lock.release()
     return
+
+def time_to_send(event_table, now):
+    global bytes_to_send
+    tmp=[]
+    for y in sorted(event_table):
+        for k in event_table[y]:
+            if "log" in event_table[y][k]:
+                tmp.append(y)
+    if tmp and min(tmp) - now > constants.SCHEDULE // 2: #bytes_to_send // 9600 * 1.3:  # TODO
+        return True
+    return False
