@@ -265,27 +265,26 @@ class Y32500(DEVICE, NMEA):
                 ``data`` :obj:`list`
             """
         epoch = utime.time()
+        data = [
+            self.config["String_Label"],
+            str(utils.unix_epoch(epoch)),
+            utils.datestamp(epoch),  # MMDDYY
+            utils.timestamp(epoch),  # hhmmss
+            ]
         try:
-            data = [
-                self.config["String_Label"],
-                str(utils.unix_epoch(epoch)),
-                utils.datestamp(epoch),  # MMDDYY
-                utils.timestamp(epoch),  # hhmmss
-                "{:.1f}".format(self._wd_vect_avg(samples)),  # vectorial avg wind direction
-                "{:.1f}".format(self._ws_avg(samples)),  # avg wind speed
-                "{:.1f}".format(self._temp_avg(samples)),  # avg temp
-                "{:.1f}".format(self._press_avg(samples)),  # avg pressure
-                "{:.1f}".format(self._hum_avg(samples)),  # avg relative humidity
-                "{:.1f}".format(self._compass_avg(samples)),  # avg heading
-                "{:.1f}".format(self._ws_vect_avg(samples)),  # vectorial avg wind speed
-                "{:.1f}".format(self._ws_max(samples)),  # gust speed
-                "{:.1f}".format(self._wd_max(samples)),  # gust direction
-                "{:0d}".format(len(samples)),  # number of strings
-                "{:.1f}".format(self._radiance_avg(samples))  # solar radiance (optional)
-                ]
+            data.append("{:.1f}".format(self._wd_vect_avg(samples)))  # vectorial avg wind direction
+            data.append("{:.1f}".format(self._ws_avg(samples)))  # avg wind speed
+            data.append("{:.1f}".format(self._temp_avg(samples)))  # avg temp
+            data.append("{:.1f}".format(self._press_avg(samples)))  # avg pressure
+            data.append("{:.1f}".format(self._hum_avg(samples)))  # avg relative humidity
+            data.append("{:.1f}".format(self._compass_avg(samples)))  # avg heading
+            data.append("{:.1f}".format(self._ws_vect_avg(samples)))  # vectorial avg wind speed
+            data.append("{:.1f}".format(self._ws_max(samples)))  # gust speed
+            data.append("{:.1f}".format(self._wd_max(samples)))  # gust direction
+            data.append("{:0d}".format(len(samples)))  # number of strings
+            data.append("{:.1f}".format(self._radiance_avg(samples)))  # solar radiance (optional)
         except Exception as err:
             utils.log("{} => _format_data ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG
-            return
         return data
 
     def log(self):

@@ -43,32 +43,34 @@ class MODEM(DEVICE, YMODEM):
     def start_up(self):
         """Performs the device specific initialization sequence."""
         self.on()
-        self.init_terminal()
+        #self.init_terminal()
 
     def init_terminal(self):
         utils.log("{} => initializing".format(self.name), "m", True)  # DEBUG
+        self.flush_uart()
         for _ in range(self.config["Modem"]["Call_Attempt"]):
             retry = False
             for at in self.config["Modem"]["Init_Ats"]:
+                print(at)
                 self.uart.write(at)
                 t0 = utime.time()
                 while True:
-                    utime.sleep(self.config["Modem"]["Ats_Delay"])
-                    if utime.time() - t0 >= self.config["Modem"]["Call_Timeout"]:
+                    if utime.time() - t0 > self.config["Modem"]["Call_Timeout"]:
                         retry = True
                         break
                     if self.uart.any():
                         rxd = self.uart.read()
-                        print("\r\n{}".format(rxd.decode("utf-8")), end="")
+                        print("{}".format(rxd.decode("utf-8")), end="")
                         if "ERROR" in rxd:
                             retry = True
                         break
+                utime.sleep(self.config["Modem"]["Ats_Delay"])
                 if retry:
                     break
             if not retry:
                 utils.log("{} => initialization succeeded".format(self.name), "m", True)  # DEBUG
                 return
-        utils.log("{} => initialization failed".format(self.name), "m", True)  # DEBUG
+        utils.log("{} => initialization failed".format(self.name), "e", True)  # DEBUG
 
     def _getc(self, size, timeout=1):
         """Reads bytes from serial.
@@ -130,16 +132,16 @@ class MODEM(DEVICE, YMODEM):
         self.flush_uart()
         utils.log("{} => dialing...".format(self.name), "m", True)  # DEBUG
         for at in self.config["Modem"]["Pre_Ats"]:
+            print(at)
             self.uart.write(at)
             t0 = utime.time()
             while True:
                 utime.sleep(self.config["Modem"]["Ats_Delay"])
                 if utime.time() - t0 >= self.config["Modem"]["Call_Timeout"]:
-                    self.uart.write("ATE0\r")  # Disable echo.
                     return False
                 if self.uart.any():
                     rxd = self.uart.read()
-                    print("\r\n{}".format(rxd.decode("utf-8")))
+                    print("{}".format(rxd.decode("utf-8")))
                     if "ERROR" in rxd:
                         return False
                     if "NO CARRIER" in rxd:
@@ -162,6 +164,7 @@ class MODEM(DEVICE, YMODEM):
         """
         self.flush_uart()  # Flushes uart buffer
         for at in self.config["Modem"]["Post_Ats"]:
+            print(at)
             self.uart.write(at)
             t0 = utime.time()
             while True:
@@ -170,7 +173,7 @@ class MODEM(DEVICE, YMODEM):
                     return False
                 if self.uart.any():
                     rxd = self.uart.read()
-                    print("\r\n{}".format(rxd.decode("utf-8")), end="")
+                    print("{}".format(rxd.decode("utf-8")), end="")
                     if "ERROR" in rxd:
                         return False
                     if "OK" in rxd:
@@ -210,6 +213,7 @@ class MODEM(DEVICE, YMODEM):
         """
         self.flush_uart()
         for at in self.config["Modem"]["Sms_Pre_Ats"]:
+            print(at)
             self.uart.write(at)
             t0 = utime.time()
             while True:
@@ -217,7 +221,7 @@ class MODEM(DEVICE, YMODEM):
                     return False"""
                 if self.uart.any():
                     rxd = self.uart.read()
-                    print("\r\n{}".format(rxd.decode("utf-8")), end="")
+                    print("{}".format(rxd.decode("utf-8")), end="")
                     if "ERROR" in rxd:
                         return False
                     if "NO CARRIER" in rxd:

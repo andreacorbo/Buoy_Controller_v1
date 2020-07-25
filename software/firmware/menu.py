@@ -82,8 +82,8 @@ class MENU(object):
             device(obj)
         """
         device.init_uart()
-        if device.__qualname__ == "MODEM":
-            device.uart.write("ATE0\r")
+        """if device.__qualname__ == "MODEM":
+            device.uart.write("ATE0\r")"""
         tx = ""
         while True:
             if not self.board.interactive:

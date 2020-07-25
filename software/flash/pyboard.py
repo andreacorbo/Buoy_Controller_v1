@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import machine
 import pyb
 import uos
 import utime
@@ -41,7 +42,8 @@ class PYBOARD(object):
         self.lastfeed = utime.time()
         self.usb = None
         self.uart = None
-        self.interrupt = None
+        self.int_timer = False
+        self.interrupted = None
         self.escaped = False
         self.prompted = False
         self.interactive = False
@@ -110,12 +112,13 @@ class PYBOARD(object):
             return False
 
     def set_repl(self):
-        pyb.repl_uart(self.uart2stream[self.line2uart[self.interrupt]])
+        pyb.repl_uart(self.uart2stream[self.line2uart[self.interrupted]])
 
     def ext_callback(self, line):
         """Sets board to interactive mode"""
-        self.interrupt = line
-        utils._poll.register(self.uart2stream[self.line2uart[self.interrupt]], uselect.POLLIN)  # TODO: poll board.uart
+        self.interrupted = line
+        self.disable_interrupts()
+
 
     def init_interrupts(self):
         """Initializes all external interrupts to wakes up board from sleep mode."""
@@ -124,7 +127,6 @@ class PYBOARD(object):
 
     def enable_interrupts(self):
         """Enables interrupts"""
-        self.interrupt = None
         for irq in self.irqs:
             irq.enable()
 
@@ -132,15 +134,12 @@ class PYBOARD(object):
         """Disables interrupts."""
         for irq in self.irqs:
             irq.disable()
-        _thread.start_new_thread(self.timeout_interrupt, ())
 
-    def timeout_interrupt(self):
+    def timeout_interrupt(self, timer):
         """Reset interrupted condition after 5 secs."""
-        #self.interrupted = True  DEBUG
-        t0 = utime.time()
-        while utime.time() - t0 < constants.IRQ_TIMEOUT:
-            continue
-        self.interrupt = None
+        self.interrupted = None
+        global timing
+        timing = False
 
     def init_devices(self):
         """ Initializes all configured instruments. """
@@ -158,20 +157,17 @@ class PYBOARD(object):
                     utils.log("{} => init_devices ({}): {}".format(self.__qualname__, type(err).__name__, err), "e")  # DEBUG
         utils.msg("-")
 
-
-
     def set_mode(self, timeout):
         """ Prints out welcome message. """
+        print("")
         print(utils.welcome_msg())
         print(
-        "[ESC] INTERACTIVE MODE\r\n"+
-        "[DEL] FILE TRANSFER MODE")
+        "\n\r"+
+        "[ESC] INTERACTIVE MODE\n\r"+
+        "[DEL] FILE TRANSFER MODE\n\r")
         t0 = utime.time()
-        while True:
-            t1 = utime.time() - t0
-            if t1 > timeout:
-                break
-            print("ENTER YOUR CHOICE WITHIN {} SECS".format(timeout - t1), end="\r")
+        while utime.time() - t0 < timeout:
+            print("ENTER YOUR CHOICE WITHIN {:0>2} SEC".format(timeout - (utime.time() - t0)), end="\r")
             r, w, x = uselect.select(self.input, [], [], 0)
             if r:
                 byte = r[0].read(1)
@@ -183,7 +179,8 @@ class PYBOARD(object):
                     self.connected = True
                     print("")
                     return True
-        print("")
+            utime.sleep_ms(500)
+        print("\n\r")
         return False
 
     def go_sleep(self, interval):
@@ -201,7 +198,7 @@ class PYBOARD(object):
             interval = remain - 3000
         self.rtc.wakeup(interval)  # Set next rtc wakeup (ms).
         pyb.stop()
-        self.disable_interrupts()
+        #self.disable_interrupts()
         self.pwr_led()
 
 class SYSMON(DEVICE):

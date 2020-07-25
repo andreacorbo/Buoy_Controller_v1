@@ -22,7 +22,7 @@
 		"Ctd":{
 			"Break_Sequence":"\x03\r",
 			"Break_Timeout":60,
-			"Prompt_Timeout":30
+			"Prompt_Timeout":60
 		}
 	},
 	"UVXCHANGE":{

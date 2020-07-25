@@ -6,6 +6,7 @@
 # Requirements:
 # 	sudo apt install python-usb python3-usb
 #	sudo apt install gcc-arm-none-eabi binutils-arm-none-eabi openocd
+#   sudo apt install dfu-util
 
 board="PYBV11"
 source="$PWD/software/firmware"

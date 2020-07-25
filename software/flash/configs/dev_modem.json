@@ -20,13 +20,13 @@
 		"Sample_Rate":0,
 		"Modem":{
 			"Emulation_Mode":0,
-			"Call_Attempt":10,
+			"Call_Attempt":3,
 			"Call_Delay":5,
-			"Call_Timeout":60,
-			"Init_Ats":["ATE1\r","AT+CREG=0\r","AT+COPS=0\r","AT+CBST=7,0,1\r","ATS0=1\r","AT&W\r"],
-			"Pre_Ats":["ATE1\r","ATDT3284135433\r"],
+			"Call_Timeout":30,
+			"Init_Ats":["ATE0\r","AT+CREG=0\r","AT+COPS=?\r","AT+COPS=1,2,22201\r","AT+CBST=7,0,1\r","ATS0=1\r","AT&W\r"],
+			"Pre_Ats":["ATDT3284135433\r"],
 			"Post_Ats":["+++","ATH\r"],
-			"Sms_Pre_Ats":["ATE1\r","AT+CMGF=1\r", "AT+CSCS=\"GSM\"\r", "AT+CMGS=\"+393664259612\"\r"],
+			"Sms_Pre_Ats":["AT+CMGF=1\r", "AT+CSCS=\"GSM\"\r", "AT+CMGS=\"+393664259612\"\r"],
 			"Sms_Post_Ats":["\x1A"],
 			"Ats_Delay":0.5,
 		}

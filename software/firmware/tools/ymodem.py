@@ -27,6 +27,7 @@ import uos
 import sys
 from tools.functools import partial
 import tools.utils as utils
+import constants
 
 #
 # Protocol bytes
@@ -368,6 +369,7 @@ class YMODEM(object):
             sent_file = file.replace(file.split("/")[-1], sent_file_pfx + file.split("/")[-1])
             filename = file.split("/")[-1]
             if file != "\x00":
+                filename = constants.NAME.lower() + "/" + filename  # Adds system name to filename.
                 try:
                     stream = open(file)
                 except:

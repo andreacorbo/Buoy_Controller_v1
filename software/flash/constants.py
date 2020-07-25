@@ -34,12 +34,12 @@ VERBOSE = 0  # 0 nothing, 1 shows device activity
 DEVICE_STATUS = {0:"off", 1:"on", 2:"ready"}
 DEVICES = {
     0:"dev_gps.GPS_1",
-    3:"dev_aux.AUX_1",  # configured to enable uart 1 as monitor
+    -3:"dev_aux.AUX_1",  # configured to enable uart 1 as monitor
     4:"dev_young.Y32500_1",  # virtually assigned to slot 2 to avoid conflict with gps
     -5:"dev_aml.METRECX_1",  # virtually assigned to slot 2 to avoid conflict with gps
     -6:"dev_nortek.AQUADOPP_1", # virtually assigned to slot 2 to stay in sync with the other instruments
     100:"dev_modem.MODEM_1",
-    -101:"dev_aml.UVXCHANGE_1",
+    101:"dev_aml.UVXCHANGE_1",
     102:"pyboard.SYSMON_1"
     }
 UARTS = {0:2, 1:4, 2:6, 3:1}  # uart number to uart channel mapping
@@ -54,15 +54,15 @@ CTRL_PINS = {                 # ctrl_pin to device position mapping this paramet
     101:"Y4"
     }
 LEDS = {"IO":1, "PWR":2, "RUN":3, "SLEEP":4}  # red, green, yellow, blue
-TIMEOUT = 60  # sec.
+TIMEOUT = 10  # sec.
 WD_TIMEOUT = 30000  # 1000ms < watchdog timer timeout < 32000ms
-IRQ_TIMEOUT = 10  # sec.
+IRQ_TIMEOUT = 10000  # sec.
 ESC_CHAR = "#"
 STORAGE = ""
 THREAD_TIMEOUT = 60  # sec.
 PASSWD = "pippo"
 LOGIN_ATTEMPTS = 3
-SESSION_TIMEOUT = 604800  # sec.
+SESSION_TIMEOUT = 60  # sec.
 MEDIA = ["/sd", "/flash"]
 DATA_DIR = "data"
 DATA_FILE_NAME = "\"{:04d}{:02d}{:02d}\".format(utime.localtime()[0], utime.localtime()[1], utime.localtime()[2])"

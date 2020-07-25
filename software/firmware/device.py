@@ -35,7 +35,7 @@ class DEVICE(object):
         are present) needs a correspondent section in the config_file.
     """
 
-    def __init__(self, instance, tasks=None, data_tasks=[]):
+    def __init__(self, instance, tasks=[], data_tasks=[]):
         self.instance = instance
         self.name = self.__module__ + "." + self.__qualname__ + "_" + self.instance
         self.timeout = constants.TIMEOUT
@@ -185,3 +185,14 @@ class DEVICE(object):
         if not status is None and any(key == status for key, value in constants.DEVICE_STATUS.items()):
             utils.status_table[self.name] = status
         return constants.DEVICE_STATUS[utils.status_table[self.name]]
+
+    def disable(self):
+        """Temporary disables unreacheable devices."""
+        try:
+            tmp = {v:k for k, v in constants.DEVICES.items()}[self.name]
+            del(constants.DEVICES[tmp])
+            constants.DEVICES[-tmp]=self.name
+            del(utils.status_table[self.name])
+            utils.log("{} => disabled until next reboot".format(self.name), "m")  # DEBUG
+        except Exception as err:
+            utils.log("{} => disable ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG

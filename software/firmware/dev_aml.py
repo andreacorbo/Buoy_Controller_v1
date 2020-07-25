@@ -70,6 +70,7 @@ class METRECX(DEVICE):
             self.uart.write(self.config["Ctd"]["Break_Sequence"])
             if self._get_prompt(self.config["Ctd"]["Prompt_Timeout"]):
                 return True
+        utils.log("{} => did not answer in {} sec".format(self.name, self.config["Ctd"]["Prompt_Timeout"]), "e")  # DEBUG
         return False
 
     def _get_prompt(self, timeout=None):
