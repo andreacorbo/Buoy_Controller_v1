@@ -235,3 +235,7 @@ class MODEM(DEVICE, YMODEM):
             utime.sleep(self.config["Modem"]["Ats_Delay"])
         self.uart.write(text)
         self.uart.write(b"\x1A")
+
+    def main(self):
+        """Do nothing, just for service pourpose."""
+        return

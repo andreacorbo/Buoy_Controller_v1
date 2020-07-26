@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import machine
 import pyb
 import ujson
 import uos
@@ -46,6 +47,11 @@ bytes_to_send = 0
 gps_fix = []
 
 gps_displacement = 0
+
+"""Creates a virtual timer."""
+tim = machine.Timer(-1)  # Defines a generic timer.
+
+timed = False  # Timer initialization flag.
 
 """Creates a poll object to capture cmds on uarts."""
 _poll = uselect.poll()

@@ -138,8 +138,7 @@ class PYBOARD(object):
     def timeout_interrupt(self, timer):
         """Reset interrupted condition after 5 secs."""
         self.interrupted = None
-        global timing
-        timing = False
+        utils.timed = False
 
     def init_devices(self):
         """ Initializes all configured instruments. """

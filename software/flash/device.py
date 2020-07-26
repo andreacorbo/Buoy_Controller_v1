@@ -67,7 +67,7 @@ class DEVICE(object):
                     for param in task[1:]:
                         param_dict[str(param)] = param
                     param_list = ",".join(map(str,task[1:]))
-                eval("self."+ func +"(" + param_list + ")", param_dict)
+                exec("self."+ func +"(" + param_list + ")", param_dict)
 
     def _timeout(self, start, timeout=None):
         """Checks if a timeout occourred

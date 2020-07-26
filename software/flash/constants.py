@@ -36,8 +36,8 @@ DEVICES = {
     0:"dev_gps.GPS_1",
     -3:"dev_aux.AUX_1",  # configured to enable uart 1 as monitor
     4:"dev_young.Y32500_1",  # virtually assigned to slot 2 to avoid conflict with gps
-    -5:"dev_aml.METRECX_1",  # virtually assigned to slot 2 to avoid conflict with gps
-    -6:"dev_nortek.AQUADOPP_1", # virtually assigned to slot 2 to stay in sync with the other instruments
+    5:"dev_aml.METRECX_1",  # virtually assigned to slot 2 to avoid conflict with gps
+    6:"dev_nortek.AQUADOPP_1", # virtually assigned to slot 2 to stay in sync with the other instruments
     100:"dev_modem.MODEM_1",
     101:"dev_aml.UVXCHANGE_1",
     102:"pyboard.SYSMON_1"

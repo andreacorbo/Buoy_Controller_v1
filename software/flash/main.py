@@ -37,10 +37,6 @@ import gc
 
 pyb.repl_uart(pyb.UART(1,9600))  # DEBUG Forwards repl to uart 1 to monitoring even if sleep.
 
-for i in reversed(range(10)):  # DEBUG Delays main loop to stop before sleep.
-    print("{:> 2d}\" to system startup...".format(i), end="\r")
-    utime.sleep(1)
-
 utils.log("{}".format(constants.RESET_CAUSE[machine.reset_cause()]), "e")  # DEBUG Prints out the reset cause.
 
 print(utils.welcome_msg())
@@ -51,12 +47,13 @@ session = SESSION(board=board, timeout=constants.SESSION_TIMEOUT)  # Starts up t
 
 scheduler = SCHEDULER()  # Creates the scheduler object.
 
-tim = machine.Timer(-1)  # Defines a generic timer.
-timing = False  # Timer initialization flag.
-
 esc_buff = []  # Initializes the escape character counter.
 
 gc.collect()  # Frees ram.
+
+for i in reversed(range(10)):  # DEBUG Delays main loop to stop before sleep.
+    print("{:> 2d}\" to system startup...".format(i), end="\r")
+    utime.sleep(1)
 
 _wdt = machine.WDT(timeout=constants.WD_TIMEOUT)  # Starts up the watchdog timer.
 
@@ -71,9 +68,9 @@ while True:
     # Board has been woken up.
     if board.interrupted:
         # Backs to scheduled mode after n-seconds.
-        if not timing:
-            tim.init(mode=machine.Timer.ONE_SHOT, period=constants.IRQ_TIMEOUT, callback=board.timeout_interrupt)
-            timing = True
+        if not utils.timed:
+            utils.tim.init(mode=machine.Timer.ONE_SHOT, period=constants.IRQ_TIMEOUT, callback=board.timeout_interrupt)
+            utils.timed = True
         # Prints out welcome msg if usb is connected, otherwise polls uart to catch escape sequence.
         if board.interrupted == 9:
             utime.sleep(2)
@@ -142,7 +139,7 @@ while True:
                     board.prompted = True"""
         utime.sleep_ms(100)  # Adds 100ms delay to allow threads startup.
         t0 = utime.time()  # Gets timestamp before sleep.
-        if not utils.processes: # Waits for no running threads and no usb connection before sleep.
+        if not utils.processesand and not board.usb.isconnected(): # Waits for no running threads and no usb connection before sleep.
             if utils.files_to_send():  # Checks for data files to send.
                 if utils.time_to_send(scheduler.event_table, t0):  # TODO: calculate time based on bytes to send / baudrate.
                     _thread.start_new_thread(utils.execute, ("dev_modem.MODEM_1", ["data_transfer"],))

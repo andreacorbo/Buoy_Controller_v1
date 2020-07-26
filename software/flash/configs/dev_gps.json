@@ -3,7 +3,7 @@
 		"Device":1,
 		"Async":1,
 		"Uart":{
-			"Baudrate":9600,
+			"Baudrate":115200,
 			"Bits":8,
 			"Parity":"None",
 			"Stop":1,
