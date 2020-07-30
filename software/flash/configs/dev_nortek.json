@@ -19,7 +19,7 @@
 		"Sample_Rate":1,
 		"Data_Format":"",
 		"String_To_Acquire":"",
-		"Data_Separator":" ",
+		"Data_Separator":";",
 		"String_Label":"$ADCP",
 		"Timeout":10,
 		"Adcp":{

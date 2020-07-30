@@ -56,18 +56,29 @@ class DEVICE(object):
         self.tasks = tasks
         self.data_tasks = data_tasks
         if self.tasks:
-            if any(elem[0] if type(elem) == tuple else elem in self.data_tasks for elem in self.tasks):
+            task_list=[]
+            for task in self.tasks:
+                if type(task) == tuple:
+                    task_list.append(task[0])
+                else:
+                    task_list.append(task)
+            if any(elem in self.data_tasks for elem in task_list):
                 self.main()
             for task in self.tasks:
                 func = task
                 param_dict={"self":self}
-                param_list=""
+                param_list=[]
+                params=""
                 if type(task) == tuple:
                     func = task[0]
+                    i = 0
                     for param in task[1:]:
-                        param_dict[str(param)] = param
-                    param_list = ",".join(map(str,task[1:]))
-                exec("self."+ func +"(" + param_list + ")", param_dict)
+                        #param_dict[str(param)] = param
+                        param_dict["param"+str(i)] = task[1:][i]
+                        param_list.append("param"+str(i))
+                        params = ",".join(param_list)
+                #print("self."+ func +"(" + params + ")", param_dict)
+                exec("self."+ func +"(" + params + ")", param_dict)
 
     def _timeout(self, start, timeout=None):
         """Checks if a timeout occourred

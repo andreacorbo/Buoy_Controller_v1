@@ -18,7 +18,7 @@
 # AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
+# SOFTWARE. new
 
 NAME = "MAMBO2"
 SW_NAME = "BUOY_CONTROLLER"
@@ -56,20 +56,20 @@ CTRL_PINS = {                 # ctrl_pin to device position mapping this paramet
 LEDS = {"IO":1, "PWR":2, "RUN":3, "SLEEP":4}  # red, green, yellow, blue
 TIMEOUT = 10  # sec.
 WD_TIMEOUT = 30000  # 1000ms < watchdog timer timeout < 32000ms
-IRQ_TIMEOUT = 10000  # sec.
+IRQ_TIMEOUT = 60  # millis. Waits at least 60 secs to allow usb_vcp gets ready and prevent sleep mode.
 ESC_CHAR = "#"
 STORAGE = ""
 THREAD_TIMEOUT = 60  # sec.
-PASSWD = "pippo"
+PASSWD = "ogsp4lme"
 LOGIN_ATTEMPTS = 3
-SESSION_TIMEOUT = 60  # sec.
+SESSION_TIMEOUT = 120  # sec.
 MEDIA = ["/sd", "/flash"]
 DATA_DIR = "data"
 DATA_FILE_NAME = "\"{:04d}{:02d}{:02d}\".format(utime.localtime()[0], utime.localtime()[1], utime.localtime()[2])"
 DATA_SEPARATOR = ","
 SCHEDULE = 600  # sec.
 TASK_SCHEDULE = {
-    "dev_gps.GPS_1":{"sync_rtc":3600, "last_fix":300},
+    "dev_gps.GPS_1":{"sync_rtc":600, "last_fix":300},
     "dev_aml.UVXCHANGE_1":{"off":600}
     }
 SLOT_DELAY = 60  # because meteo and gps share the same uart
@@ -80,6 +80,6 @@ SLOT_DELAY = 60  # because meteo and gps share the same uart
 TMP_FILE_PFX = "$"
 SENT_FILE_PFX = "_"
 BUF_DAYS = 3
-DISPLACEMENT_THRESHOLD = 0.016198704  # Nautical miles: (30meters)
+DISPLACEMENT_THRESHOLD = 0.02699784017  # Nautical miles: (30meters)
 DISPLACEMENT_SMS = "\"{}-{}-{} {}:{}:{} UTC ***WARNING*** {} current position: {}°{}'{} {}°{}'{} is {:.3f}nm away from previous position. Next msg in 5min.\".format(int(utils.gps_fix[9][-2:])+2000,utils.gps_fix[9][2:4],utils.gps_fix[9][0:2], utils.gps_fix[1][0:2], utils.gps_fix[1][2:4], utils.gps_fix[1][4:6], constants.NAME, utils.gps_fix[3][0:2], utils.gps_fix[3][2:], utils.gps_fix[4], utils.gps_fix[5][0:3], utils.gps_fix[5][3:], utils.gps_fix[6], utils.gps_displacement)"
 DEBUG = False

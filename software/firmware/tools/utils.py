@@ -52,7 +52,7 @@ gps_displacement = 0
 tim = machine.Timer(-1)  # Defines a generic timer.
 
 timed = False  # Timer initialization flag.
-
+prompted = False  # Prompt initialization flag.
 """Creates a poll object to capture cmds on uarts."""
 _poll = uselect.poll()
 

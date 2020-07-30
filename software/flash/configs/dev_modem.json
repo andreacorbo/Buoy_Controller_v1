@@ -22,7 +22,7 @@
 			"Emulation_Mode":0,
 			"Call_Attempt":3,
 			"Call_Delay":5,
-			"Call_Timeout":30,
+			"Call_Timeout":90,
 			"Init_Ats":["ATE0\r","AT+CREG=0\r","AT+COPS=?\r","AT+COPS=1,2,22201\r","AT+CBST=7,0,1\r","ATS0=1\r","AT&W\r"],
 			"Pre_Ats":["ATDT3284135433\r"],
 			"Post_Ats":["+++","ATH\r"],

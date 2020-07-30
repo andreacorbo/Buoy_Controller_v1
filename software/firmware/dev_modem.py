@@ -43,7 +43,7 @@ class MODEM(DEVICE, YMODEM):
     def start_up(self):
         """Performs the device specific initialization sequence."""
         self.on()
-        #self.init_terminal()
+        self.init_terminal()
 
     def init_terminal(self):
         utils.log("{} => initializing".format(self.name), "m", True)  # DEBUG
@@ -106,7 +106,6 @@ class MODEM(DEVICE, YMODEM):
         """Sends files."""
         utils.log("{} => sending...".format(self.name), "m", True)  # DEBUG
         self.send(utils.unsent_files, constants.TMP_FILE_PFX, constants.SENT_FILE_PFX)
-        self.sent = True
         return
 
     def _recv(self, timeout=10):
@@ -120,7 +119,6 @@ class MODEM(DEVICE, YMODEM):
         utils.log("{} => receiving...".format(self.name), "m", True)  # DEBUG
         if timeout > 0:
             self.recv(timeout)
-        self.received = True
         return
 
     def call(self):
@@ -136,7 +134,6 @@ class MODEM(DEVICE, YMODEM):
             self.uart.write(at)
             t0 = utime.time()
             while True:
-                utime.sleep(self.config["Modem"]["Ats_Delay"])
                 if utime.time() - t0 >= self.config["Modem"]["Call_Timeout"]:
                     return False
                 if self.uart.any():
@@ -152,8 +149,8 @@ class MODEM(DEVICE, YMODEM):
                         break
                     if "CONNECT" in rxd:
                         self.flush_uart(1)  # Clears last byte \n
-                        self.connected = True
                         return True
+            utime.sleep(self.config["Modem"]["Ats_Delay"])
 
 
     def hangup(self):
@@ -168,7 +165,6 @@ class MODEM(DEVICE, YMODEM):
             self.uart.write(at)
             t0 = utime.time()
             while True:
-                utime.sleep(self.config["Modem"]["Ats_Delay"])
                 if utime.time() - t0 == self.config["Modem"]["Call_Timeout"]:
                     return False
                 if self.uart.any():
@@ -178,31 +174,57 @@ class MODEM(DEVICE, YMODEM):
                         return False
                     if "OK" in rxd:
                         break
+            utime.sleep(self.config["Modem"]["Ats_Delay"])
         return True
 
-    def data_transfer(self):
+    '''def data_transfer(self):
         """Sends files over the gsm network."""
         self.led_on()
         self.connected = False
-        self.sent = False
-        self.received = False
         for _ in range(self.config["Modem"]["Call_Attempt"]):
-            if not self.connected:
-                if not self.call():
-                    utime.sleep(self.config["Modem"]["Call_Delay"])
-                    continue
-            if not self.sent:
-                utils.file_lock.acquire(1, constants.TIMEOUT)
+            if self.call():
+                self.connected = True
+                break
+        if self.connected:
+            for _ in range(self.config["Modem"]["Call_Attempt"]):
+                if utils.file_lock.acquire(1, constants.TIMEOUT):
+                    self._send()
+                    utils.file_lock.release()
+                    break
+            self._recv()
+            if not self.hangup():
+                self.off()
+                utime.sleep(1)
+                self.on()
+        else:
+            utils.log("{} => connection unavailable, aborting...".format(self.name), "e", True)
+        self.led_off()
+        return'''
+
+    def data_transfer(self):
+        """Sends files over the gsm network."""
+        if utils.file_lock.acquire(1, constants.TIMEOUT):
+            self.led_on()
+            self.connected = False
+            for _ in range(self.config["Modem"]["Call_Attempt"]):
+                if self.call():
+                    self.connected = True
+                    break
+            if self.connected:
                 self._send()
                 utils.file_lock.release()
-            if not self.received:
                 self._recv()
-            if not self.hangup():
-                continue
+                if not self.hangup():
+                    self.off()
+                    utime.sleep(1)
+                    self.on()
+            else:
+                utils.file_lock.release()
+                self.off()
+                utime.sleep(1)
+                self.on()
+                utils.log("{} => connection unavailable, aborting...".format(self.name), "e", True)
             self.led_off()
-            return
-        self.led_off()
-        utils.log("{} => connection unavailable, aborting...".format(self.name), "m", True)
         return
 
     def sms(self, text):

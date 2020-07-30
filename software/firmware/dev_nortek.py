@@ -796,5 +796,5 @@ class AQUADOPP(DEVICE):
 
     def log(self):
         """Writes out acquired data to a file."""
-        utils.log_data(constants.DATA_SEPARATOR.join(map(str, self.data)))
+        utils.log_data(self.config["Data_Separator"].join(map(str, self.data)))
         return

@@ -169,18 +169,18 @@ class PYBOARD(object):
             print("ENTER YOUR CHOICE WITHIN {:0>2} SEC".format(timeout - (utime.time() - t0)), end="\r")
             r, w, x = uselect.select(self.input, [], [], 0)
             if r:
-                byte = r[0].read(1)
+                byte = r[0].read()
                 if byte == b"\x1b":  # ESC
                     self.interactive = True
                     print("")
-                    return True
+                    break
                 elif byte == b"\x1b[3~":  # DEL
                     self.connected = True
                     print("")
-                    return True
+                    break
             utime.sleep_ms(500)
         print("\n\r")
-        return False
+        return
 
     def go_sleep(self, interval):
         """Puts board in sleep mode.

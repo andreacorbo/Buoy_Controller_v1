@@ -65,8 +65,8 @@ class SCHEDULER(object):
             elif "off" in event[device]:
                 utils.create_device(device, tasks=["off"])
             else:
-                utils.create_device(device).status(2)  # Sets the device status as READY.
-                
+                utils.create_device(device, tasks=[("status",2)])  # Sets the device status as READY.
+                gc.collect()
                 _thread.start_new_thread(utils.execute, (device, event[device],))
             gc.collect()
 

@@ -309,7 +309,7 @@ class YMODEM(object):
         return crc & 0xffff
 
 
-    def send(self, files, tmp_file_pfx, sent_file_pfx, retry=5, timeout=5):
+    def send(self, files, tmp_file_pfx, sent_file_pfx, retry=3, timeout=30):
         """Sends files according to ymodem protocol.
 
         Params:
@@ -579,209 +579,215 @@ class YMODEM(object):
                     print("UNATTENDED CHAR {}, RETRY...".format(char))
                     error_count += 1
 
-    def recv(self, timeout=10, retry=5, crc_mode=1):
+    def recv(self, timeout=10, retry=3, crc_mode=1):
         """Receives files according to ymodem protocol.
 
         Params:
-            retry(int): default[5]
+            retry(int): default[3]
             timeout(int): seconds, default[10]
         """
         #
         # Initialize transaction
         #
         error_count = 0
-        while True:
-            if crc_mode:
-                #
-                # Send C to request 16 bit CRC as first choice
-                #
-                while True:
-                    if error_count > (retry // 2):
-                        print("TOO MANY ERRORS, USE STANDARD CHECKSUM...")
-                        crc_mode = 0
+        while error_count < retry:
+            restart = False
+            while True:
+                if crc_mode:
+                    #
+                    # Send C to request 16 bit CRC as first choice
+                    #
+                    while True:
+                        if error_count > (retry // 2):
+                            print("TOO MANY ERRORS, USE STANDARD CHECKSUM...")
+                            crc_mode = 0
+                            error_count = 0
+                            break
+                        if not self._putc(C):  # handle tx errors
+                            print("ERROR SENDING C, RETRY...")
+                            error_count += 1
+                            continue
+                        print("C -->")
                         error_count = 0
                         break
-                    if not self._putc(C):  # handle tx errors
-                        print("ERROR SENDING C, RETRY...")
-                        error_count += 1
-                        continue
-                    print("C -->")
-                    error_count = 0
-                    break
-            else:
-                #
-                # Send NAK to request standard checksum as fall back
-                #
-                if not self.nack(error_count, retry):
-                    return False  # Exits
-                error_count = 0
-            break
-        #
-        # Receive packet
-        #
-        char = 0
-        packet_size = 128
-        cancel = 0
-        sequence = 0
-        income_size = 0
-        while True:
-            t = utime.time()
-            while not self.uart.any():
-                if utime.time() - t >= timeout:  # Exists if sender does not respond
-                    return False
-                pass
-            char = self._getc(1,timeout)
-            if error_count == retry:
-                print("TOO MANY ERRORS, ABORTING...")
-                self.abort(timeout=timeout)  # Cancels transmission
-                return False  # Exits
-            elif not char:  # handle rx errors
-                print("TIMEOUT OCCURRED, RETRY...")
-                error_count += 1
-                continue
-            elif char == CAN:
-                print("<-- CAN")
-                if cancel:
-                    print("TRANSMISSION CANCELED BY SENDER")
-                    return False  # Exits
                 else:
-                    cancel = 1
-                    error_count = 0
-            elif char == SOH:
-                print("SOH <--")
-                if packet_size != 128:
-                    print("USING 128 BYTES PACKET SIZE")
-                    packet_size = 128
-                error_count = 0
-            elif char == STX:
-                print("STX <--")
-                if packet_size != 1024:
-                    print("USING 1 KB PACKET SIZE")
-                    packet_size = 1024
-                error_count = 0
-            elif char == EOT:
-                print("EOT <--")
-                #
-                # Acknowledge EOT
-                #
-                if not self._ack(error_count, retry):
-                    return False  # Exits
-                error_count = 0
-                sequence = 0
-                income_size = 0
-                #
-                # Clear to receive
-                #
-                if not self._clear(error_count, retry):
-                    return False  # Exits
-                error_count = 0
-                continue
-            else:
-                print("UNATTENDED CHAR {}".format(char))
-                error_count += 1
-                continue
-            #
-            # Read sequence
-            #
-            while True:
-                seq1 = self._getc(1, timeout)
-                if not seq1:
-                    print("FAILED TO GET FIRST SEQUENCE BYTE")
-                    seq2 = None
-                else:
-                    seq1 = ord(seq1)
-                    seq2 = self._getc(1, timeout)
-                    if not seq2:
-                        print("FAILED TO GET SECOND SEQUENCE BYTE")
-                    else:
-                        seq2 = 0xff - ord(seq2)
-                        print("PACKET {} <--".format(sequence))
-                if not (seq1 == seq2 == sequence):
-                    print("SEQUENCE ERROR, EXPECTED {} GOT {}, DISCARD DATA".format(sequence, seq1))
-                    self._getc(packet_size + 1 + crc_mode)  # Discard data packet
                     #
-                    # Resend missed acknowledge
+                    # Send NAK to request standard checksum as fall back
+                    #
+                    if not self.nack(error_count, retry):
+                        return False  # Exits
+                    error_count = 0
+                break
+            #
+            # Receive packet
+            #
+            char = 0
+            packet_size = 128
+            cancel = 0
+            sequence = 0
+            income_size = 0
+            while True:
+                t = utime.time()
+                while not self.uart.any():
+                    if utime.time() - t >= timeout:  # Exists if sender does not respond
+                        restart = True
+                        error_count += 1
+                        break
+                    pass
+                if restart:
+                    break
+                char = self._getc(1,timeout)
+                if error_count == retry:
+                    print("TOO MANY ERRORS, ABORTING...")
+                    self.abort(timeout=timeout)  # Cancels transmission
+                    return False  # Exits
+                elif not char:  # handle rx errors
+                    print("TIMEOUT OCCURRED, RETRY...")
+                    error_count += 1
+                    continue
+                elif char == CAN:
+                    print("<-- CAN")
+                    if cancel:
+                        print("TRANSMISSION CANCELED BY SENDER")
+                        return False  # Exits
+                    else:
+                        cancel = 1
+                        error_count = 0
+                elif char == SOH:
+                    print("SOH <--")
+                    if packet_size != 128:
+                        print("USING 128 BYTES PACKET SIZE")
+                        packet_size = 128
+                    error_count = 0
+                elif char == STX:
+                    print("STX <--")
+                    if packet_size != 1024:
+                        print("USING 1 KB PACKET SIZE")
+                        packet_size = 1024
+                    error_count = 0
+                elif char == EOT:
+                    print("EOT <--")
+                    #
+                    # Acknowledge EOT
                     #
                     if not self._ack(error_count, retry):
                         return False  # Exits
-                    error_count += 1
+                    error_count = 0
+                    sequence = 0
+                    income_size = 0
                     #
-                    # If receiving file name packet, _clear for transmission
+                    # Clear to receive
                     #
-                    if seq1 == 0:
-                        #
-                        # Clear to receive
-                        #
-                        if not self._clear(error_count, retry):
-                            return False  # Exits
-                        error_count = 0
+                    if not self._clear(error_count, retry):
+                        return False  # Exits
+                    error_count = 0
+                    continue
                 else:
-                    data = self._getc(packet_size + 1 + crc_mode, timeout)
-                    valid, data = self._verify_recvd_checksum(crc_mode, data)
-                    if not valid:
-                        #
-                        # Not aknowledge packet, request retransmission
-                        #
-                        if not self._nak(error_count, retry):
-                            return False  # Exits
-                        error_count = 0
+                    print("UNATTENDED CHAR {}".format(char))
+                    error_count += 1
+                    continue
+                #
+                # Read sequence
+                #
+                while True:
+                    seq1 = self._getc(1, timeout)
+                    if not seq1:
+                        print("FAILED TO GET FIRST SEQUENCE BYTE")
+                        seq2 = None
                     else:
-                        if sequence == 0:  # Sequence 0 contains file name
-                            if data[0:1] == b"\x00":  # Sequence 0 with null pathname state end of trasmission
-                                #
-                                # Acknowledge EOT
-                                #
-                                if not self._ack(error_count, retry):
+                        seq1 = ord(seq1)
+                        seq2 = self._getc(1, timeout)
+                        if not seq2:
+                            print("FAILED TO GET SECOND SEQUENCE BYTE")
+                        else:
+                            seq2 = 0xff - ord(seq2)
+                            print("PACKET {} <--".format(sequence))
+                    if not (seq1 == seq2 == sequence):
+                        print("SEQUENCE ERROR, EXPECTED {} GOT {}, DISCARD DATA".format(sequence, seq1))
+                        self._getc(packet_size + 1 + crc_mode)  # Discard data packet
+                        #
+                        # Resend missed acknowledge
+                        #
+                        if not self._ack(error_count, retry):
+                            return False  # Exits
+                        error_count += 1
+                        #
+                        # If receiving file name packet, _clear for transmission
+                        #
+                        if seq1 == 0:
+                            #
+                            # Clear to receive
+                            #
+                            if not self._clear(error_count, retry):
+                                return False  # Exits
+                            error_count = 0
+                    else:
+                        data = self._getc(packet_size + 1 + crc_mode, timeout)
+                        valid, data = self._verify_recvd_checksum(crc_mode, data)
+                        if not valid:
+                            #
+                            # Not aknowledge packet, request retransmission
+                            #
+                            if not self._nak(error_count, retry):
+                                return False  # Exits
+                            error_count = 0
+                        else:
+                            if sequence == 0:  # Sequence 0 contains file name
+                                if data[0:1] == b"\x00":  # Sequence 0 with null pathname state end of trasmission
+                                    #
+                                    # Acknowledge EOT
+                                    #
+                                    if not self._ack(error_count, retry):
+                                        return False  # Exits
+                                    print("END OF TRANSMISSION")
+                                    return True  # Exits end of transmission
+                                data_string = []
+                                data_field = ""
+                                for byte_ in data:
+                                    if byte_ != 0:
+                                        data_field += chr(byte_)
+                                    elif len(data_field) > 0:
+                                        data_string.append(data_field)
+                                        data_field = ""
+                                pathname = data_string[0]
+                                file_size = int(data_string[1].split(" ")[0])
+                                mod_date = int(data_string[1].split(" ")[1])
+                                mode = "wb"  # Overwrite local.
+                                try:  # File exists
+                                    if utils.unix_epoch(uos.stat(pathname)[8]) > mod_date:
+                                        if uos.stat(pathname)[6] < file_size:  # Local file is incomplete.
+                                            mode = "ab"   # Append to local.
+                                except:  # File doesn't exist.
+                                    pass
+                                stream = open(pathname, mode)
+                                if stream:
+                                    print("RECEIVING FILE {}".format(pathname))
+                                    #
+                                    # Acknowledge packet
+                                    #
+                                    if not self._ack(error_count, retry):
+                                        return False  # Exits
+                                    error_count = 0
+                                    #
+                                    # Clear for transmission
+                                    #
+                                    if not self._clear(error_count, retry):
+                                        return False  # Exits
+                                    error_count = 0
+                                else:
+                                    self.abort(timeout=timeout)  # Cancel transmission if file cannot be opened
                                     return False  # Exits
-                                print("END OF TRANSMISSION")
-                                return True  # Exits end of transmission
-                            data_string = []
-                            data_field = ""
-                            for byte_ in data:
-                                if byte_ != 0:
-                                    data_field += chr(byte_)
-                                elif len(data_field) > 0:
-                                    data_string.append(data_field)
-                                    data_field = ""
-                            pathname = data_string[0]
-                            file_size = int(data_string[1].split(" ")[0])
-                            mod_date = int(data_string[1].split(" ")[1])
-                            mode = "wb"  # Overwrite local.
-                            try:  # File exists
-                                if utils.unix_epoch(uos.stat(pathname)[8]) > mod_date:
-                                    if uos.stat(pathname)[6] < file_size:  # Local file is incomplete.
-                                        mode = "ab"   # Append to local.
-                            except:  # File doesn't exist.
-                                pass
-                            stream = open(pathname, mode)
-                            if stream:
-                                print("RECEIVING FILE {}".format(pathname))
+                            else:
+                                income_size += len(data)
+                                trailing_null = income_size - file_size  # null trailing char
+                                stream.write(data[:-trailing_null])  # exclude null trailing chars
                                 #
                                 # Acknowledge packet
                                 #
                                 if not self._ack(error_count, retry):
                                     return False  # Exits
                                 error_count = 0
-                                #
-                                # Clear for transmission
-                                #
-                                if not self._clear(error_count, retry):
-                                    return False  # Exits
-                                error_count = 0
-                            else:
-                                self.abort(timeout=timeout)  # Cancel transmission if file cannot be opened
-                                return False  # Exits
-                        else:
-                            income_size += len(data)
-                            trailing_null = income_size - file_size  # null trailing char
-                            stream.write(data[:-trailing_null])  # exclude null trailing chars
-                            #
-                            # Acknowledge packet
-                            #
-                            if not self._ack(error_count, retry):
-                                return False  # Exits
-                            error_count = 0
-                        sequence = (sequence + 1) % 0x100
-                break
+                            sequence = (sequence + 1) % 0x100
+                    break
 
 YMODEM1k = partial(YMODEM, mode="Ymodem1k")
