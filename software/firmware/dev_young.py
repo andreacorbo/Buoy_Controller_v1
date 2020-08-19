@@ -1,67 +1,21 @@
-# The MIT License (MIT)
-#
-# Copyright (c) 2018 OGS
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-
-"""This module contains specific Young METEO devices tools."""
-
 import utime
 from device import DEVICE
-from tools.nmea import NMEA
 import tools.utils as utils
 import constants
 from math import sin, cos, radians, atan2, degrees, pow, sqrt
 
-class Y32500(DEVICE, NMEA):
-    """Creates a Young Y32500 METEO device object.
-    #define PRESS_CONV_FACT(X) (X*0.075+800.00) //per barometro young modello 61201 VECCHIA !!!!
-    #define PRESS_CONV_FACT(X) (X*0.125+600.00)   //per barometro young modello 61202V NUOVA !!!!
+class Y32500(DEVICE):
 
-    Extends the :class:`device` and the :class:`tools.nmea` classes.
-
-    Parameters:
-        ``instance`` :obj:`str` The object instance number (if multiple devices
-        are present) needs a correspondent section in the config_file.
-
-        ``tasks`` :obj:`list` (optional) A list of methods to be executed at
-        object creation.
-    """
-
-    def __init__(self, instance, tasks=[], data_tasks=["log"]):
-        """Constructor method."""
-        NMEA.__init__(self, instance)
-        DEVICE.__init__(self, instance, tasks, data_tasks)
+    def __init__(self, instance, tasks=[]):
+        DEVICE.__init__(self, instance, tasks)
 
     def start_up(self):
         """Performs the device specific initialization sequence."""
+        self.on()
         self.off()
-        return
 
     def _wd_vect_avg(self, samples):
-        """Calculates the average wind vector direction.
-
-        Parameters:
-            ``samples`` :obj:`list` [[sample1], [sample1]...]
-        Returns:
-            ``avg`` :obj:`float` The average wind vector direction (degrees).
-        """
+        """Calculates the average wind vector direction."""
         avg = 0
         sample_list = []
         try:
@@ -82,13 +36,7 @@ class Y32500(DEVICE, NMEA):
         return avg
 
     def _ws_vect_avg(self, samples):
-        """Calculates the average wind veector speed.
-
-        Parameters:
-            ``samples`` :obj:`list` [[sample1], [sample1]...]
-        Returns:
-            ``avg`` :obj:`float` The average wind vector speed (m/s).
-        """
+        """Calculates the average wind veector speed."""
         avg = 0
         sample_list = []
         try:
@@ -107,13 +55,7 @@ class Y32500(DEVICE, NMEA):
         return avg
 
     def _ws_avg(self, samples):
-        """Calculates average wind speed.
-
-        Parameters:
-            ``samples`` :obj:`list` [[sample1], [sample1]...]
-        Returns:
-            ``avg`` :obj:`float` The average wind speed (m/s).
-        """
+        """Calculates average wind speed."""
         avg = 0
         sample_list = []
         try:
@@ -125,13 +67,7 @@ class Y32500(DEVICE, NMEA):
         return avg
 
     def _ws_max(self, samples):
-        """Calculates the gust speed.
-
-        Parameters:
-            ``samples`` :obj:`list` [[sample1], [sample1]...]
-        Returns:
-            ``maxspeed`` :obj:`float` The gust speed (m/s).
-        """
+        """Calculates the gust speed."""
         maxspeed = 0
         sample_list = []
         try:
@@ -143,13 +79,7 @@ class Y32500(DEVICE, NMEA):
         return maxspeed
 
     def _wd_max(self, samples):
-        """Calculates the gust direction.
-
-        Parameters:
-            ``samples`` :obj:`list` [[sample1], [sample1]...]
-        Returns:
-            ``maxdir`` :obj:`float` The gust direction (degrees).
-        """
+        """Calculates the gust direction."""
         maxdir = 0
         try:
             for sample in samples:
@@ -160,13 +90,7 @@ class Y32500(DEVICE, NMEA):
         return maxdir
 
     def _temp_avg(self, samples):
-        """Calculates the average air temperature.
-
-        Parameters:
-            ``samples`` :obj:`list` [[sample1], [sample1]...]
-        Returns:
-            ``avg`` :obj:`float` The average air temperature (°C).
-        """
+        """Calculates the average air temperature."""
         avg = 0
         sample_list = []
         try:
@@ -178,13 +102,7 @@ class Y32500(DEVICE, NMEA):
         return avg
 
     def _press_avg(self, samples):
-        """Calculates the average barometric pressure.
-
-        Parameters:
-            ``samples`` :obj:`list` [[sample1], [sample1]...]
-        Returns:
-            ``avg`` :obj:`float` The average barometric pressure (mBar).
-        """
+        """Calculates the average barometric pressure."""
         avg = 0
         sample_list = []
         try:
@@ -196,13 +114,7 @@ class Y32500(DEVICE, NMEA):
         return avg
 
     def _hum_avg(self, samples):
-        """Calculates the average relative humidity.
-
-        Parameters:
-            ``samples`` :obj:`list` [[sample1], [sample1]...]
-        Returns:
-            ``avg`` :obj:`float` The average relative humidity (%).
-        """
+        """Calculates the average relative humidity."""
         avg = 0
         sample_list = []
         try:
@@ -214,13 +126,7 @@ class Y32500(DEVICE, NMEA):
         return avg
 
     def _compass_avg(self, samples):
-        """Calculates the average heading.
-
-        Parameters:
-            ``samples`` :obj:`list` [[sample1], [sample1]...]
-        Returns:
-            ``avg`` :obj:`float` The average heading (°).
-        """
+        """Calculates the average heading."""
         avg = 0
         sample_list = []
         try:
@@ -239,13 +145,7 @@ class Y32500(DEVICE, NMEA):
         return avg
 
     def _radiance_avg(self, samples):
-        """Calculates the average solar radiance.
-
-        Parameters:
-            ``samples`` :obj:`list` [[sample1], [sample1]...]
-        Returns:
-            ``avg`` :obj:`float` The average solar radiance (W/m^2).
-        """
+        """Calculates the average solar radiance."""
         avg = 0
         sample_list = []
         try:
@@ -256,67 +156,62 @@ class Y32500(DEVICE, NMEA):
             utils.log("{} => _radiance_avg ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG
         return avg
 
-    def _format_data(self, samples):
-        """Formats data according to output format.
-
-            Parameters:
-                ``samples`` :obj:`list` [[sample1], [sample1]...]
-            Returns:
-                ``data`` :obj:`list`
-            """
+    def format_data(self, samples):
+        """Formats data according to output format."""
         epoch = utime.time()
         data = [
             self.config["String_Label"],
             str(utils.unix_epoch(epoch)),
             utils.datestamp(epoch),  # MMDDYY
             utils.timestamp(epoch),  # hhmmss
+            "{:.1f}".format(self._wd_vect_avg(samples)),  # vectorial avg wind direction
+            "{:.1f}".format(self._ws_avg(samples)),  # avg wind speed
+            "{:.1f}".format(self._temp_avg(samples)),  # avg temp
+            "{:.1f}".format(self._press_avg(samples)),  # avg pressure
+            "{:.1f}".format(self._hum_avg(samples)),  # avg relative humidity
+            "{:.1f}".format(self._compass_avg(samples)),  # avg heading
+            "{:.1f}".format(self._ws_vect_avg(samples)),  # vectorial avg wind speed
+            "{:.1f}".format(self._ws_max(samples)),  # gust speed
+            "{:.1f}".format(self._wd_max(samples)),  # gust direction
+            "{:0d}".format(len(samples)),  # number of strings
+            "{:.1f}".format(self._radiance_avg(samples))  # solar radiance (optional)
             ]
-        try:
-            data.append("{:.1f}".format(self._wd_vect_avg(samples)))  # vectorial avg wind direction
-            data.append("{:.1f}".format(self._ws_avg(samples)))  # avg wind speed
-            data.append("{:.1f}".format(self._temp_avg(samples)))  # avg temp
-            data.append("{:.1f}".format(self._press_avg(samples)))  # avg pressure
-            data.append("{:.1f}".format(self._hum_avg(samples)))  # avg relative humidity
-            data.append("{:.1f}".format(self._compass_avg(samples)))  # avg heading
-            data.append("{:.1f}".format(self._ws_vect_avg(samples)))  # vectorial avg wind speed
-            data.append("{:.1f}".format(self._ws_max(samples)))  # gust speed
-            data.append("{:.1f}".format(self._wd_max(samples)))  # gust direction
-            data.append("{:0d}".format(len(samples)))  # number of strings
-            data.append("{:.1f}".format(self._radiance_avg(samples)))  # solar radiance (optional)
-        except Exception as err:
-            utils.log("{} => _format_data ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG
         return data
 
     def log(self):
         """Writes out acquired data to file."""
-        utils.log_data(constants.DATA_SEPARATOR.join(self._format_data(self.data)))
+        utils.log_data(constants.DATA_SEPARATOR.join(self.format_data(self.data)))
         return
 
     def main(self):
         """Gets data from the meteo station."""
-
         utils.log("{} => acquiring data...".format(self.name))
-        self.led_on()
+        self.led.on()
         new_string = False
-        string = []
+        sample = []
         self.data = []
+        t0 = utime.time()
         while True:
-            if not self.status() == 'ready':
+            if self._timeout(t0, self.timeout):
                 utils.log("{} => timeout occourred".format(self.name), "e")  # DEBUG
+                if not self.data:
+                    utils.log("{} => no data received".format(self.name), "e")  # DEBUG
                 break
             if self.uart.any():
-                char = chr(self.uart.readchar())
-                if char == "\n":
-                    new_string = True
-                elif char == "\r":
-                    if new_string:
-                        self.data.append("".join(string).split(self.config["Data_Separator"]))
-                        string = []
-                        new_string = False
-                        if len(self.data) == self.samples:
-                            break
-                else:
-                    if new_string:
-                        string.append(char)
-        self.led_off()
+                try:
+                    char = chr(self.uart.readchar())
+                    if char == "\n":
+                        new_string = True
+                    elif char == "\r":
+                        if new_string:
+                            self.data.append("".join(sample).split(self.config["Data_Separator"]))
+                            sample = []
+                            new_string = False
+                            if len(self.data) == self.samples:  # Returns if got n-samples
+                                break
+                    elif new_string:
+                        sample.append(char)
+                except UnicodeError:
+                    continue
+        self.led.off()
         return

@@ -1,3 +1,25 @@
+# The MIT License (MIT)
+#
+# Copyright (c) 2018 OGS
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 import pyb
 import utime
 import uos
@@ -65,7 +87,7 @@ class MENU(object):
         tx = ""
         while True:
             if not self.board.interactive:
-                device.uart.deinit()
+                device.deinit_uart()
                 print("")
                 return False
             r, w, x = uselect.select([self.board.usb, self.board.uart, device.uart], [], [], 0)
@@ -73,7 +95,7 @@ class MENU(object):
                 if _ == self.board.usb or _ == self.board.uart:
                     byte = ord(_.read(1))
                     if byte == 8:  # [BACKSPACE] Backs to previous menu.
-                        device.uart.deinit()
+                        device.deinit_uart()
                         print("")
                         return True
                     elif byte == 13:  # [CR] Forwards cmds to device.
@@ -89,27 +111,28 @@ class MENU(object):
     def _get_data_files(self):
         """Lists data directory."""
         print("DATA FILES")
-        try:
-            tmp = []
-            size = 0
-            data = uos.listdir(constants.DATA_DIR)
-            data.sort(reverse=True)
-            for file in data:
-                stat = uos.stat(constants.DATA_DIR + "/" + file)
-                size += stat[6]//1024
-                tmp.append("{:>" "10} {:>" "10} {:>" "10}".format(file, str(stat[6]//1024), utils.timestring(stat[7])))
-            fsstat = uos.statvfs(media)
-            print("[{}] {} Files {}/{} kB".format(constants.DATA_DIR, len(data), str(size), str(fsstat[2]*fsstat[0]//1024)))
-            print("\r\n".join(tmp))
-        except:
-            pass
+        for media in constants.MEDIA:
+            try:
+                tmp = []
+                size = 0
+                data = uos.listdir(media + "/" + constants.DATA_DIR)
+                data.sort(reverse=True)
+                for file in data:
+                    stat = uos.stat(media + "/" + constants.DATA_DIR + "/" + file)
+                    size += stat[6]//1024
+                    tmp.append("{:>" "10} {:>" "10} {:>" "10}".format(file, str(stat[6]//1024), utils.time_string(stat[7])))
+                fsstat = uos.statvfs(media)
+                print("[{}] {} Files {}/{} kB".format(media + "/" + constants.DATA_DIR, len(data), str(size), str(fsstat[2]*fsstat[0]//1024)))
+                print("\r\n".join(tmp))
+            except:
+                pass
         print("\r\n")
 
     def _get_last_log(self):
         """Lists data directory."""
         print("LAST LOG")
         try:
-            with open(constants.LOG_DIR + "/" + constants.LOG_FILE, "r") as log:
+            with open(constants.LOG_DIR + "/" + constants.LOG_FILE_NAME, "r") as log:
                 for line in log:
                     print(log.readline(), end="\r")
         except Exception as err:
@@ -118,7 +141,7 @@ class MENU(object):
 
     def get_config(self, device):
         """Shows device configuration."""
-        cfg = utils.read_cfg(device.name.split(".")[0] + "." + constants.CONFIG_TYPE, )[device.name.split(".")[1].split("_")[0]]
+        cfg = utils.read_config(device.name.split(".")[0] + "." + constants.CONFIG_TYPE, )[device.name.split(".")[1].split("_")[0]]
         for k in sorted(cfg):
             if type(cfg[k]).__name__ == "dict":
                 for k1 in sorted(cfg[k]):

@@ -1,5 +1,7 @@
 {
 	"METRECX":{
+		"Device":1,
+		"Async":1,
 		"Uart":{
 			"Baudrate":9600,
 			"Bits":8,
@@ -15,14 +17,18 @@
 		"Warmup_Interval":50,
 		"Samples":10,
 		"Sample_Rate":1,
-		"String_Label":"$METRECXR",
+		"String_Label":"$METRECX",
+		"Data_Separator":"  ",
 		"Ctd":{
 			"Break_Sequence":"\x03\r",
-			"Break_Timeout":1,
-			"Prompt_Timeout":1
+			"Break_Timeout":60,
+			"Prompt_Timeout":60
 		}
 	},
 	"UVXCHANGE":{
+		"Device":1,
+		"Async":1,
+		"Ctrl_Pin":"Y4",
 		"Warmup_Interval":300
 	}
 }

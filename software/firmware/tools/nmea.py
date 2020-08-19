@@ -1,25 +1,3 @@
-# The MIT License (MIT)
-#
-# Copyright (c) 2018 OGS
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-
 import tools.utils as utils
 import constants
 
@@ -43,40 +21,83 @@ class NMEA(object):
         for char in ",".join(map(str, sentence)):
             calculated_checksum ^= ord(char)
         if "{:02X}".format(calculated_checksum) != checksum:
-            utils.log("NMEA invalid checksum calculated: {:02X} got: {}".format(calculated_checksum, checksum), "m")
+            utils.log("NMEA invalid checksum calculated: {:02X} got: {}".format(calculated_checksum, checksum))
             return False
         else:
             return True
 
-    def get_sentence(self, char_code, sentence):
+    def _get_sentence(self, byte, sentence):
         """Gets a single NMEA sentence, each sentence is a list of words itself.
 
         Params:
-            char_code(int)
+            byte(int)
         """
-        if char_code in range(32, 126):
-            ascii_char = chr(char_code)
-            if ascii_char == "$":
+        try:
+            ascii = byte.decode("utf-8")
+            if ascii == "$":
+                self.new_sentence_flag = True
+                self.word = ascii
+                self.sentence = []
+                self.checksum = ""
+                self.checksum_flag = False
+            elif ascii == ",":
+                if self.new_sentence_flag:
+                    self.sentence.append(self.word)
+                    self.word = ""
+            elif ascii == "*":
+                if self.new_sentence_flag:
+                    self.sentence.append(self.word + ascii)
+                    self.checksum_flag = True
+            elif self.new_sentence_flag:
+                if self.checksum_flag:
+                    self.checksum = self.checksum + ascii
+                    if len(self.checksum) == 2:
+                        print(",".join(self.sentence)[1:-1])
+                        if self.verify_checksum(self.checksum, ",".join(self.sentence)[1:-1]):
+                            self.sentence.insert(-1, self.sentence[-1] + self.checksum)
+                            self.sentence.pop(-1)
+                            if sentence and self.sentence[0][-3:] == sentence:
+                                return True
+                else:
+                    self.word = self.word + ascii
+        except UnicodeError:
+            return False
+
+    def get_sentence(self, byte, sentence):
+        """Gets a single NMEA sentence, each sentence is a list of words itself.
+
+        Params:
+            byte(int)
+        """
+        try:
+            ascii = byte.decode("utf-8")
+            if ascii == "$":
                 self.new_sentence_flag = True
                 self.word = ""
                 self.sentence = []
                 self.checksum = ""
                 self.checksum_flag = False
-            elif ascii_char == ",":
+            elif ascii == ",":
                 if self.new_sentence_flag:
                     self.sentence.append(self.word)
                     self.word = ""
-            elif ascii_char == "*":
+            elif ascii == "*":
                 if self.new_sentence_flag:
                     self.sentence.append(self.word)
                     self.checksum_flag = True
             elif self.new_sentence_flag:
                 if self.checksum_flag:
-                    self.checksum = self.checksum + ascii_char
+                    self.checksum = self.checksum + ascii
                     if len(self.checksum) == 2:
                         if self.verify_checksum(self.checksum, self.sentence):
+                            self.sentence.insert(0,"$" + self.sentence[0])
+                            self.sentence.pop(1)
+                            self.sentence.insert(-1,self.sentence[-1]+"*" + self.checksum)
+                            self.sentence.pop(-2)
                             if sentence and self.sentence[0][-3:] == sentence:
                                 return True
                 else:
-                    self.word = self.word + ascii_char
-        return False
+                    self.word = self.word + ascii
+            return False
+        except UnicodeError:
+            pass

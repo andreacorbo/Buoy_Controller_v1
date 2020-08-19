@@ -1,3 +1,27 @@
+# The MIT License (MIT)
+#
+# Copyright (c) 2018 OGS
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+"""This module contains specific Nortek adcp devices tools."""
+
 import utime
 from device import DEVICE
 import tools.utils as utils
@@ -25,9 +49,9 @@ class AQUADOPP(DEVICE):
 
     hw_cfg = ("Recorder installed", "Compass installed")
 
-    def __init__(self, instance, tasks=[]):
+    def __init__(self, instance, tasks=[], data_tasks = ["log"]):
         """Constructor method."""
-        DEVICE.__init__(self, instance, tasks)
+        DEVICE.__init__(self, instance, tasks, data_tasks)
 
     def start_up(self):
         self.on()
@@ -37,7 +61,7 @@ class AQUADOPP(DEVICE):
         self._get_cfg()
         self._start_delayed()
 
-    def _get_reply(self, timeout=0):
+    def _get_reply(self, timeout=None):
         """Returns replies from instrument.
 
         Returns:
@@ -74,7 +98,7 @@ class AQUADOPP(DEVICE):
         utime.sleep_ms(100)
         self.uart.write("K1W%!Q")
         start = utime.time()
-        while not self._timeout(start, constants.TIMEOUT):
+        while not self._timeout(start, self.timeout):
             rx = self._get_reply()
             if self._ack(rx):
                 if b"\x0a\x0d\x43\x6f\x6e\x66\x69\x72\x6d\x3a" in rx:
@@ -186,7 +210,7 @@ class AQUADOPP(DEVICE):
         instrument.
         """
         start = utime.time()
-        while not self._timeout(start, constants.TIMEOUT):
+        while not self._timeout(start, self.timeout):
             if self._break():
                 utils.verbose("=> GA", constants.VERBOSE)
                 self.uart.write("GA")
@@ -219,7 +243,7 @@ class AQUADOPP(DEVICE):
     def _get_hw_cfg(self):
         """Reads the current hardware configuration from the instrument."""
         start = utime.time()
-        while not self._timeout(start, constants.TIMEOUT):
+        while not self._timeout(start, self.timeout):
             if self._break():
                 utils.verbose("=> GP", constants.VERBOSE)
                 self.uart.write("GP")
@@ -281,7 +305,7 @@ class AQUADOPP(DEVICE):
         Activation_Rate and Warmup_Interval parameters according to the current
         deployment constants."""
         start = utime.time()
-        while not self._timeout(start, constants.TIMEOUT):
+        while not self._timeout(start, self.timeout):
             if self._break():
                 try:
                     with open(constants.CONFIG_DIR + "/" + self.config["Adcp"]["Deployment_Config"], "rb") as pfc:
@@ -310,7 +334,7 @@ class AQUADOPP(DEVICE):
         now = utime.time() - self.activation_delay
         next_sampling = now - now % sampling_interval + sampling_interval + self.activation_delay
         sampling_start = next_sampling - self.samples // self.sample_rate
-        utils.log("{} => deployment start at {}, measurement interval {}\", average interval {}\"".format(self.name, utils.timestring(sampling_start), sampling_interval, avg_interval))  # DEBUG
+        utils.log("{} => deployment start at {}, measurement interval {}\", average interval {}\"".format(self.name, utils.time_string(sampling_start), sampling_interval, avg_interval))  # DEBUG
         deployment_start = utime.localtime(sampling_start + sampling_interval - avg_interval)
         deployment_start = ubinascii.unhexlify("{:02d}{:02d}{:02d}{:02d}{:02d}{:02d}".format(deployment_start[4], deployment_start[5], deployment_start[2], deployment_start[3], int(str(deployment_start[0])[2:]), deployment_start[1]))
         return deployment_start
@@ -318,7 +342,7 @@ class AQUADOPP(DEVICE):
     def _get_usr_cfg(self):
         """Retreives the current deployment config from the instrument."""
         start = utime.time()
-        while not self._timeout(start, constants.TIMEOUT):
+        while not self._timeout(start, self.timeout):
             if self._break():
                 utils.verbose("=> GC", constants.VERBOSE)
                 self.uart.write("GC")
@@ -444,7 +468,7 @@ class AQUADOPP(DEVICE):
     def _get_head_cfg(self):
         """Retreives the current head config from the instrument."""
         start = utime.time()
-        while not self._timeout(start, constants.TIMEOUT):
+        while not self._timeout(start, self.timeout):
             if self._break():
                 utils.verbose("=> GH", constants.VERBOSE)
                 self.uart.write("GH")
@@ -555,7 +579,7 @@ class AQUADOPP(DEVICE):
     def _format_recorder(self):
         """Erase all recorded data if it reached the maximum allowed files number (31)"""
         start = utime.time()
-        while not self._timeout(start, constants.TIMEOUT):
+        while not self._timeout(start, self.timeout):
             if self._break():
                 utils.verbose("=> FO", constants.VERBOSE)
                 self.uart.write(b"\x46\x4F\x12\xD4\x1E\xEF")
@@ -570,9 +594,9 @@ class AQUADOPP(DEVICE):
         instrument without storing data to the recorder. Instrument enters Power
         Down Mode when measurement has been made.
         """
-        utils.log("{} => acquiring 1 sample...".format(self.name))  # DEBUG
+        utils.log("{} => acquiring 1 sample...".format(self.name), "m", True)  # DEBUG
         start = utime.time()
-        while not self._timeout(start, constants.TIMEOUT):
+        while not self._timeout(start, self.timeout):
             if self._break():
                 utils.verbose("=> AD", constants.VERBOSE)
                 self.uart.write("AD")
@@ -589,7 +613,7 @@ class AQUADOPP(DEVICE):
         the configuration.
         """
         start = utime.time()
-        while not self._timeout(start, constants.TIMEOUT):
+        while not self._timeout(start, self.timeout):
             if self._break():
                 utils.verbose("=> SD", constants.VERBOSE)
                 self.uart.write("SD")
@@ -715,7 +739,7 @@ class AQUADOPP(DEVICE):
     def _get_clock(self):
         """Reads the instrument RTC."""
         start = utime.time()
-        while not self._timeout(start, constants.TIMEOUT):
+        while not self._timeout(start, self.timeout):
             if self._break():
                 utils.verbose("=> RC", constants.VERBOSE)
                 self.uart.write("RC")
@@ -741,7 +765,7 @@ class AQUADOPP(DEVICE):
         mm ss DD hh YY MM (3 words of 2 bytes each)
         """
         start = utime.time()
-        while not self._timeout(start, constants.TIMEOUT):
+        while not self._timeout(start, self.timeout):
             if self._break():
                 now = utime.localtime()
                 tx = "{:02d}{:02d}{:02d}{:02d}{:02d}{:02d}".format(now[4], now[5], now[2], now[3], int(str(now[0])[2:]), now[1])
@@ -749,31 +773,28 @@ class AQUADOPP(DEVICE):
                 self.uart.write(ubinascii.unhexlify(tx))
                 utils.verbose("=> SC" + str(tx), constants.VERBOSE)
                 if self._ack(self._get_reply()):
-                    utils.log("{} => instrument clock successfully synchronized (instrument: {} controller: {})".format(self.name, self._get_clock(), utils.timestring(utime.mktime(now))))  # DEBUG
+                    utils.log("{} => instrument clock successfully synchronized (instrument: {} controller: {})".format(self.name, self._get_clock(), utils.time_string(utime.mktime(now))))  # DEBUG
                     return True
         utils.log("{} => unable to synchronize the real time clock".format(self.name), "e")  # DEBUG
         return False
 
-    def log(self):
-        """Writes out acquired data to a file."""
-        utils.log_data(constants.DATA_SEPARATOR.join(map(str, self.data)))
-        return
-
     def main(self):
         """Captures instrument data."""
         utils.log("{} => acquiring data...".format(self.name))
-        self.led.on()
+        self.led_on()
         self.data = [self.config["String_Label"]]
-        t0 = utime.time()
         while True:
-            if self._timeout(t0, self.timeout):
+            if not self.status() == 'ready':  # Exits if the device has been switched off by scheduler.
                 utils.log("{} => timeout occourred".format(self.name), "e")  # DEBUG
-                if not self.data:
-                    utils.log("{} => no data received".format(self.name), "e")  # DEBUG
                 break
             if self.uart.any():
                 self._parse_cfg()
-                self.data.extend(self._format_data(self._conv_data(self.uart.read())))
+                self.data += self._format_data(self._conv_data(self.uart.read()))
                 break
-        self.led.off()
+        self.led_off()
+        return
+
+    def log(self):
+        """Writes out acquired data to a file."""
+        utils.log_data(self.config["Data_Separator"].join(map(str, self.data)))
         return

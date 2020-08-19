@@ -1,7 +1,9 @@
 {
 	"GPS":{
+		"Device":1,
+		"Async":1,
 		"Uart":{
-			"Baudrate":115200,
+			"Baudrate":9600,
 			"Bits":8,
 			"Parity":"None",
 			"Stop":1,

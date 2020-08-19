@@ -1,3 +1,25 @@
+# The MIT License (MIT)
+#
+# Copyright (c) 2018 OGS
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 import machine
 import pyb
 import uos
@@ -54,7 +76,7 @@ class PYBOARD(object):
     def get_config(self):
         """Gets the device configuration."""
         try:
-            self.config = utils.read_cfg(self.__module__ + "." + constants.CONFIG_TYPE)[self.__qualname__]
+            self.config = utils.read_config(self.__module__ + "." + constants.CONFIG_TYPE)[self.__qualname__]
             return self.config
         except Exception as err:
             utils.log("{} => get_config ({}): {}".format(self.__qualname__, type(err).__name__, err), "e")  # DEBUG
@@ -121,16 +143,17 @@ class PYBOARD(object):
     def init_devices(self):
         """ Initializes all configured instruments. """
         utils.msg(" initializing instruments ".upper())
-        for port,dev in sorted(constants.DEVICES.items()):
-            if port >= 0:  # Devices with a negative position are disabled.
+        devs = []
+        for key, value in sorted(constants.DEVICES.items()):
+            if key >= 0:  # Devices with a negative position are disabled.
+                devs.append(value)
+        for dev in devs:  # Gets devices from constants.DEVICES list.
+            cfg = utils.read_config(dev.split(".")[0] + "." + constants.CONFIG_TYPE)[dev.split(".")[1].split("_")[0]]
+            if cfg["Device"]:
                 try:
-                    _thread.start_new_thread(utils.execute, ((dev, ["start_up"]),))
-                    #utils.execute((dev, ["start_up"]))
+                    utils.create_device(dev, tasks=["start_up"])
                 except Exception as err:
                     utils.log("{} => init_devices ({}): {}".format(self.__qualname__, type(err).__name__, err), "e")  # DEBUG
-        utime.sleep_ms(500)
-        while utils.processes:
-            continue
         utils.msg("-")
 
     def set_mode(self, timeout):
@@ -165,7 +188,7 @@ class PYBOARD(object):
             Parameters:
                 ``interval`` :obj:`int` current timestamp.
         """
-        utils.log("Sleeping.... wake up in {}".format(utils.time_display(interval)))  # DEBUG
+        utils.log("Sleeping.... wake up in {}".format(utils.time_display(interval)), "m")  # DEBUG
         self.sleep_led()
         self.enable_interrupts()
         remain = constants.WD_TIMEOUT - (utime.time() - self.lastfeed) * 1000
@@ -179,12 +202,13 @@ class PYBOARD(object):
 
 class SYSMON(DEVICE):
 
-    def __init__(self, instance, tasks=[]):
-        DEVICE.__init__(self, instance, tasks)
+    def __init__(self, instance, tasks=[], data_tasks = ["log"]):
+        DEVICE.__init__(self, instance, tasks, data_tasks)
 
     def start_up(self):
         """Performs device specific initialization sequence."""
-        self.status(1)  # Virtual device is always on.
+        self.off()
+        return
 
     def adcall_mask(self, channels):
         """Creates a mask for the adcall method with the adc's channels to acquire.
@@ -205,11 +229,7 @@ class SYSMON(DEVICE):
         return eval(hex(int("".join(mask), 2)))
 
     def ad22103(self, vout, vsupply):
-        try:
-            return (vout * 3.3 / vsupply - 0.25) / 0.028
-        except Exception as err:
-            utils.log("{} => ad22103 ({}): {}".format(self.__qualname__, type(err).__name__, err), "e")  # DEBUG
-        return 0
+        return (vout * 3.3 / vsupply - 0.25) / 0.028
 
     def battery_level(self, vout):
         """Return calibrated main power source voltage level.
@@ -219,11 +239,7 @@ class SYSMON(DEVICE):
             Returns:
                 ``vout`` :obj: `float` calibrated value.
         """
-        try:
-            return vout * self.config["Adc"]["Channels"]["Battery_Level"]["Calibration_Coeff"]
-        except Exception as err:
-            utils.log("{} => battery_level ({}): {}".format(self.__qualname__, type(err).__name__, err), "e")  # DEBUG
-        return 0
+        return vout * self.config["Adc"]["Channels"]["Battery_Level"]["Calibration_Coeff"]
 
     def current_level(self, vout):
         """Returns the calibrated total current consumption.
@@ -233,25 +249,16 @@ class SYSMON(DEVICE):
             Returns:
                 ``aout`` :obj: `float` calibrated value.
         """
-        try:
-            return vout * self.config["Adc"]["Channels"]["Current_Level"]["Calibration_Coeff"]
-        except Exception as err:
-            utils.log("{} => current_level ({}): {}".format(self.__qualname__, type(err).__name__, err), "e")  # DEBUG
-        return 0
+        return vout * self.config["Adc"]["Channels"]["Current_Level"]["Calibration_Coeff"]
 
     def fs_freespace(self):
         """Returns the filesystem free space (bytes)."""
-        try:
-            s=uos.statvfs("/sd")
-            return s[0]*s[3]
-        except Exception as err:
-            utils.log("{} => fs_freespace ({}): {}".format(self.__qualname__, type(err).__name__, err), "e")  # DEBUG
-        return 0
+        s=uos.statvfs("/sd")
+        return s[0]*s[3]
 
     def main(self):
         """Gets data from internal sensors."""
         utils.log("{} => checking up system status...".format(self.name))
-        self.led.on()
         core_temp = 0
         core_vbat = 0
         core_vref = 0
@@ -288,28 +295,38 @@ class SYSMON(DEVICE):
         self.data.append(core_vref)
         self.data.append(vref)
         self.data.append(self.fs_freespace())
-        self.led.off()
         return
 
-    def format_data(self, sample):
+    def _format_data(self, sample):
+        """Formats data according to output format.
+
+            Parameters:
+                ``samples`` :obj:`list` [[sample1], [sample1]...]
+            Returns:
+                ``data`` :obj:`list`
+            """
         epoch = utime.time()
-        data = [
-            self.config["String_Label"],
-            str(utils.unix_epoch(epoch)),
-            utils.datestamp(epoch),  # MMDDYY
-            utils.timestamp(epoch),  # hhmmss
-            "{:.4f}".format(self.battery_level(sample[0])),  # Battery voltage [V].
-            "{:.4f}".format(self.current_level(sample[1])),  # Current consumption [A].
-            "{:.4f}".format(self.ad22103(sample[2], sample[6])),  # Internal vessel temp [°C].
-            "{:.4f}".format(sample[3]),  # Core temp [°C].
-            "{:.4f}".format(sample[4]),  # Core vbat [V].
-            "{:.4f}".format(sample[5]),  # Core vref [V].
-            "{:.4f}".format(sample[6]),  # Vref [V].
-            "{}".format(sample[7]//1024)  # SD free space [kB].
-            ]
+        try:
+            data = [
+                self.config["String_Label"],
+                str(utils.unix_epoch(epoch)),
+                utils.datestamp(epoch),  # MMDDYY
+                utils.timestamp(epoch),  # hhmmss
+                "{:.4f}".format(self.battery_level(sample[0])),  # Battery voltage [V].
+                "{:.4f}".format(self.current_level(sample[1])),  # Current consumption [A].
+                "{:.4f}".format(self.ad22103(sample[2], sample[6])),  # Internal vessel temp [°C].
+                "{:.4f}".format(sample[3]),  # Core temp [°C].
+                "{:.4f}".format(sample[4]),  # Core vbat [V].
+                "{:.4f}".format(sample[5]),  # Core vref [V].
+                "{:.4f}".format(sample[6]),  # Vref [V].
+                "{}".format(sample[7]//1024)  # SD free space [kB].
+                ]
+        except Exception as err:
+            utils.log("{} => _format_data ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG
+            return
         return data
 
     def log(self):
         """Writes out acquired data to file."""
-        utils.log_data(constants.DATA_SEPARATOR.join(self.format_data(self.data)))
+        utils.log_data(constants.DATA_SEPARATOR.join(self._format_data(self.data)))
         return

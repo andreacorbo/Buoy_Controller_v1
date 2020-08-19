@@ -1,107 +1,69 @@
-# The MIT License (MIT)
-#
-# Copyright (c) 2018 OGS
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-
-"""This module contains standard device tools."""
-
 import pyb
 import utime
 import tools.utils as utils
 import constants
 
 class DEVICE(object):
-    """Creates a device object.
 
-    Parameters:
-        ``instance`` :obj:`str` The object instance number (if multiple devices
-        are present) needs a correspondent section in the config_file.
-    """
-
-    def __init__(self, instance, tasks=[], data_tasks=[]):
+    def __init__(self, instance, tasks):
         self.instance = instance
-        self.name = self.__module__ + "." + self.__qualname__ + "_" + self.instance
-        self.timeout = constants.TIMEOUT
+        self.tasks = tasks
+        self.name = self.__module__ + "." + self.__qualname__ + "_" + str(self.instance)
         self.uart_bus = 0
         self.uart_slot = 0
         self.activation_delay = 0
         self.get_config()
-        self.warmup_interval = self.config["Warmup_Interval"]
-        self.samples = None
+        self.warmup_interval = 0
+        if "Warmup_Interval" in self.config:
+            self.warmup_interval = self.config["Warmup_Interval"]
+        self.samples = 0
         if "Samples" in self.config:
             self.samples = self.config["Samples"]
-        self.sample_rate = None
+        self.sample_rate = 0
         if "Sample_Rate" in self.config:
             self.sample_rate = self.config["Sample_Rate"]
+        self.timeout = 0
+        if self.sample_rate > 0:
+            self.timeout = self.samples // self.sample_rate + (self.samples % self.sample_rate > 0) + constants.TIMEOUT
         self.init_uart()
         self.init_gpio()
         self.init_led()
-        self.tasks = tasks
-        self.data_tasks = data_tasks
         if self.tasks:
-            task_list=[]
+            if not any( elem in ["start_up","on","off"] for elem in self.tasks):
+                self.status(2) # Sets status ready
+                try:
+                    self.main()
+                except AttributeError:
+                    pass
             for task in self.tasks:
-                if type(task) == tuple:
-                    task_list.append(task[0])
-                else:
-                    task_list.append(task)
-            if any(elem in self.data_tasks for elem in task_list):
-                self.main()
-            for task in self.tasks:
-                func = task
+                method = task
                 param_dict={"self":self}
                 param_list=[]
                 params=""
                 if type(task) == tuple:
-                    func = task[0]
+                    method = task[0]
                     i = 0
                     for param in task[1:]:
-                        #param_dict[str(param)] = param
                         param_dict["param"+str(i)] = task[1:][i]
                         param_list.append("param"+str(i))
                         params = ",".join(param_list)
-                #print("self."+ func +"(" + params + ")", param_dict)
-                exec("self."+ func +"(" + params + ")", param_dict)
+                exec("self."+ method +"(" + params + ")", param_dict)
 
-    def _timeout(self, start, timeout=None):
-        """Checks if a timeout occourred
-
-        Params:
-            start(int)
-        Returns:
-            True or False
-        """
-        if timeout is None:
-            timeout = self.timeout
-        if timeout > 0 and utime.time() - start >= timeout:
+    def _timeout(self, start, expire=0):
+        """Checks if timeout has expired."""
+        if not expire:
+            expire = constants.TIMEOUT
+        if expire > 0 and utime.time() - start >= expire:
             return True
         return False
 
     def get_config(self):
         """Gets the device configuration."""
-        #try:
-            #self.config = utils.read_config(self.__module__ + "." + constants.CONFIG_TYPE)[self.__qualname__][self.instance]
-        self.config = utils.read_config(self.__module__ + "." + constants.CONFIG_TYPE)[self.__qualname__]
-        return self.config
-        #except Exception as err:
-        #    utils.log("{} => get_config ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG
+        try:
+            self.config = utils.read_cfg(self.__module__ + "." + constants.CONFIG_TYPE)[self.__qualname__]
+            return self.config
+        except Exception as err:
+            utils.log("{} => get_config ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG
 
     def init_uart(self):
         """Initializes the uart bus."""
@@ -125,28 +87,13 @@ class DEVICE(object):
             except Exception as err:
                 utils.log("{} => init_uart ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG
 
-    def deinit_uart(self):
-        """Deinitializes the uart bus."""
-        self.uart.deinit()
-
-    def flush_uart(self, chars=None):
-        """Flushes the whole uart read buffer or the specified number of chars.
-
-        Parameters:
-            ``chars`` :obj:`int` (optional) The number of chars to be flushed.
-        """
-        if chars:
-            self.uart.read(chars)
-        else:
-            self.uart.read()
-
     def init_gpio(self):
         """Creates the device pin object."""
-        if {value:key for key, value in constants.DEVICES.items()}[self.name] in constants.CTRL_PINS.keys():
-            try:
+        try:
+            if {value:key for key, value in constants.DEVICES.items()}[self.name] in constants.CTRL_PINS.keys():
                 self.gpio = pyb.Pin(constants.CTRL_PINS[{value:key for key, value in constants.DEVICES.items()}[self.name]], pyb.Pin.OUT, pyb.Pin.PULL_DOWN)
-            except Exception as err:
-                utils.log("{} => init_gpio ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG
+        except Exception as err:
+            utils.log("{} => init_gpio ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG
 
     def init_led(self):
         """Creates the device led object."""
@@ -156,54 +103,20 @@ class DEVICE(object):
         except Exception as err:
             utils.log("{} => init_led ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG
 
-    def led_on(self):
-        """Power on the device led."""
-        self.led.on()
-
-    def led_off(self):
-        """Power off the device led."""
-        self.led.off()
-
     def on(self):
         """Turns on device."""
         if hasattr(self, "gpio"):
-            if self.gpio.value() == 0:
-                self.gpio.on()  # set pin to off
+            self.gpio.on()  # set pin to off
         utils.log("{} => {}".format(self.name,self.status(1)))
-        return
 
     def off(self):
         """Turns off device."""
         if hasattr(self, "gpio"):
-            if self.gpio.value() == 1:
-                self.gpio.off()  # set pin to off
+            self.gpio.off()  # set pin to off
         utils.log("{} => {}".format(self.name,self.status(0)))
-        return
-
-    def toggle(self):
-        """Toggles the device status between on and off."""
-        if hasattr(self, "gpio"):
-            if self.gpio.value():
-                self.gpio.off()
-                self.status(0)
-            else:
-                self.gpio.on()
-                self.status(1)
-        return
 
     def status(self, status=None):
         """Returns or sets the current device status."""
         if not status is None and any(key == status for key, value in constants.DEVICE_STATUS.items()):
             utils.status_table[self.name] = status
         return constants.DEVICE_STATUS[utils.status_table[self.name]]
-
-    def disable(self):
-        """Temporary disables unreacheable devices."""
-        try:
-            tmp = {v:k for k, v in constants.DEVICES.items()}[self.name]
-            del(constants.DEVICES[tmp])
-            constants.DEVICES[-tmp]=self.name
-            del(utils.status_table[self.name])
-            utils.log("{} => disabled until next reboot".format(self.name), "m")  # DEBUG
-        except Exception as err:
-            utils.log("{} => disable ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG

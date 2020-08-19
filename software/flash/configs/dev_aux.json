@@ -1,7 +1,5 @@
 {
 	"AUX":{
-		"Device":1,
-		"Async":1,
 		"Uart":{
 			"Baudrate":9600,
 			"Bits":8,

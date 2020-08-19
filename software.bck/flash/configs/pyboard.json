@@ -1,5 +1,6 @@
 {
 	"PYBOARD":{
+		"Device":0,
 		"Uart":{
 			"Bus":3,
 			"Baudrate":9600,
@@ -16,9 +17,14 @@
 		"Irq_Pins":[["Y10", "IRQ_FALLING", "PULL_UP"], ["A9", "IRQ_RISING", "PULL_UP"]]
 	},
 	"SYSMON":{
+		"Device":1,
+		"Async":1,
 		"Warmup_Interval":-1,
 		"Samples":10,
 		"Sample_Rate":10,
+		"Data_Format":"",
+		"String_To_Acquire":"",
+		"Data_Separator":" ",
 		"String_Label":"$MSTAT",
 		"Adc":{
 			"Bit":12,

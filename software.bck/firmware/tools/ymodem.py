@@ -1,9 +1,32 @@
+# The MIT License (MIT)
+#
+# Copyright (c) 2018 OGS
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+"""Ymodem docstring."""
+
 import utime
 import uos
 import sys
 from tools.functools import partial
 import tools.utils as utils
-import tools.shutil as shutil
 import constants
 
 #
@@ -63,6 +86,12 @@ class YMODEM(object):
         self._putc = _putc
         self.mode = mode
         self.pad = pad
+        self.break_condition = len(utils.processes)
+
+    def _time_to_stop(self):
+        """Aborts transmission if and external stop flag is set."""
+        if len(utils.processes) > 1:
+            self.abort()
 
     def abort(self, count=2, timeout=60):
         """Sends an abort sequence using CAN byte.
@@ -203,21 +232,6 @@ class YMODEM(object):
             except:
                 print("UNABLE TO RENAME {} FILE".format(file))
 
-    def _bkp_file(self, file):  # TODO
-        bkp_file = file.replace(file.split("/")[-1], bkp_file_pfx + file.split("/")[-1])
-        if file.split("/")[-1] == eval(constants.DATA_FILE):  # Acquires the lock to safe handling the current data file.
-            if not utils.file_lock.acquire(1, constants.TIMEOUT):
-                print("UNABLE TO ACQUIRE THE LOCK ON {}".format(file))
-                return
-        try:
-            shutil.copyfile(file, bkp_file)  # Makes a backup copy of the file.
-        except:
-            print("UNABLE TO BACKUP {}".format(file))
-            return
-        if file.split("/")[-1] == eval(constants.DATA_FILE):  # Release the lock.
-            utils.file_lock.release()
-        return bkp_file
-
 
     def _make_filename_header(self, packet_size):
         """Builds filename packet header.
@@ -357,13 +371,13 @@ class YMODEM(object):
             if file != "\x00":
                 filename = constants.NAME.lower() + "/" + filename  # Adds system name to filename.
                 try:
-                    stream = open(self._bkp_file(file))
+                    stream = open(file)
                 except:
-                    print("UNABLE TO OPEN {}, TRY NEXT FILE...".format(bkp_file))
+                    print("UNABLE TO OPEN {}, TRY NEXT FILE...".format(file))
                     continue
-                self._get_last_byte(tmp_file, stream)  # read last byte from .file
+                self._get_last_byte(tmp_file, stream)  # read last byte from $file
                 pointer = stream.tell()  # set stream pointer
-                if pointer == uos.stat(bkp_file)[6]:  # check if pointer correspond to file size
+                if pointer == uos.stat(file)[6]:  # check if pointer correspond to file size
                     print("FILE {} ALREADY TRANSMITTED, SEND NEXT FILE...".format(filename))
                     stream.close()
                     self._totally_sent(file, tmp_file, sent_file)
@@ -395,16 +409,16 @@ class YMODEM(object):
 
             data = bytearray(filename + "\x00", "utf8")  # filename + space
             if file != "\x00":
-                data.extend(str(uos.stat(bkp_file)[6] - pointer).encode("utf8"))  # Sends data size to be transmitted
+                data.extend(str(uos.stat(file)[6] - pointer).encode("utf8"))  # Sends data size to be transmitted
             padding = bytearray(packet_size - len(data))  # fill packet size with null char
             data.extend(padding)
             checksum = self._make_checksum(crc_mode, data)  # create packet checksum
             ackd  = 0
-            while True:
+            while True and not self._time_to_stop():
                 #
                 # Send packet
                 #
-                while True:
+                while True and not self._time_to_stop():
                     if error_count == retry:
                         print("TOO MANY ERRORS, ABORTING...")
                         return False  # Exit
@@ -474,7 +488,7 @@ class YMODEM(object):
             total_packets = 0
             sequence = 1
             cancel = 0
-            while True:
+            while True and not self._time_to_stop():
                 #
                 # Create data packet
                 #
@@ -490,11 +504,11 @@ class YMODEM(object):
                 data = format_string.format(data)  # create packet data
                 checksum = self._make_checksum(crc_mode, data)  # create checksum
                 ackd = 0
-                while True:
+                while True and not self._time_to_stop():
                     #
                     # Send data packet
                     #
-                    while True:
+                    while True  and not self._time_to_stop():
                         if error_count == retry:
                             print("TOO MANY ERRORS, ABORTING...")
                             return False  # Exit

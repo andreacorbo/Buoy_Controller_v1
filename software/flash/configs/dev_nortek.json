@@ -1,7 +1,5 @@
 {
 	"AQUADOPP":{
-		"Device":1,
-		"Async":1,
 		"Uart":{
 			"Baudrate":9600,
 			"Bits":8,
@@ -17,11 +15,7 @@
 		"Warmup_Interval":-1,
 		"Samples":10,
 		"Sample_Rate":1,
-		"Data_Format":"",
-		"String_To_Acquire":"",
-		"Data_Separator":";",
-		"String_Label":"$ADCP",
-		"Timeout":10,
+		"String_Label":"$NORTEK",
 		"Adcp":{
 			"Deployment_Config":"aquadopp_1.pcf",
 			"Instrument_Config":"aquadopp_1.cfg"
