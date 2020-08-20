@@ -122,7 +122,7 @@ def log_data(data):
     file_lock.acquire()
     try:
         with open(config.DATA_DIR + "/" + eval(config.DATA_FILE), "a") as data_file:  # append row to existing file
-            log("Writing out to file {} => {}".format(eval(config.DATA_FILE), data))
+            log("{}".format(data))
             data_file.write(data + "\r\n")
     except Exception as err:
         log("log_data ({}): {}".format(type(err).__name__, err), "e")  # DEBUG

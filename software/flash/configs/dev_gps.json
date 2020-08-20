@@ -8,7 +8,7 @@
 			"Timeout":10,
 			"Timeout_Char":10,
 			"Flow_Control":0,
-			"Read_Buf_Len":512,
+			"Read_Buf_Len":128,
 			"Write_Buf_Len":0,
 			"Read_Char_Attempt":10
 		},

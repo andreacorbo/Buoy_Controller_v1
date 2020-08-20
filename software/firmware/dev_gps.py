@@ -1,10 +1,10 @@
 import pyb
 import utime
-import tools.utils as utils
+from math import sin, cos, sqrt, atan2, radians
 import config
+import tools.utils as utils
 from device import DEVICE
 from tools.nmea import NMEA
-from math import sin, cos, sqrt, atan2, radians
 
 class GPS(NMEA, DEVICE):
 
@@ -37,7 +37,6 @@ class GPS(NMEA, DEVICE):
 
     def start_up(self):
         """Performs the device specific initialization sequence."""
-        self.on()
         self.off()
 
     def is_fixed(self):
@@ -52,16 +51,8 @@ class GPS(NMEA, DEVICE):
         if self.is_fixed():
             if utils.gps_fix:
                 self.displacement()
-            utils.log("{} => saving the last gps fix...".format(self.name))
             utils.gps_fix = self.sentence
-            utc_time = self.sentence[1]
-            utc_date = self.sentence[9]
-            lat = "{}{}".format(self.sentence[3], self.sentence[4])
-            lon = "{}{}".format(self.sentence[5], self.sentence[6])
-            utc = "{}-{}-{} {}:{}:{}".format("20"+utc_date[4:6], utc_date[2:4], utc_date[0:2], utc_time[0:2], utc_time[2:4], utc_time[4:6])
-            speed = "{}".format(self.sentence[7])
-            heading = "{}".format(self.sentence[8])
-            utils.log("{} => last fix (UTC: {} POSITION: {} {}, SPEED: {}, HEADING: {})".format(self.name, utc, lat, lon, speed, heading))  # DEBUG
+            utils.log("{} => fix acquired".format(self.name))  # DEBUG
 
     def displacement(self):
         """Calculates the displacement from the previous position and store it in :attr:`tools.utils.gps_displacement`."""
@@ -77,13 +68,12 @@ class GPS(NMEA, DEVICE):
     def sync_rtc(self):
         """Synchronizes the board RTC with the gps utc timestamp."""
         if self.is_fixed():
-            utils.log("{} => synchronizing the controller real time clock...".format(self.name))
             utc_time = self.sentence[1]
             utc_date = self.sentence[9]
             rtc = pyb.RTC()
             try:
                 rtc.datetime((int("20"+utc_date[4:6]), int(utc_date[2:4]), int(utc_date[0:2]), 0, int(utc_time[0:2]), int(utc_time[2:4]), int(utc_time[4:6]), float(utc_time[6:])))  # rtc.datetime(yyyy, mm, dd, 0, hh, ii, ss, sss)
-                utils.log("{} => controller clock successfully synchronized (UTC: {})".format(self.name, utils.timestring(utime.time())))
+                utils.log("{} => rtc synchronized".format(self.name))
             except Exception as err:
                 utils.log("{} => sync_rtc ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG
 
@@ -94,9 +84,10 @@ class GPS(NMEA, DEVICE):
 
     def main(self, sentence="RMC"):
         """Retreives data from a serial gps device."""
-        utils.log("{} => acquiring data...".format(self.name))  # DEBUG
+        utils.log("{} => acquiring data...".format(self.name))
         self.led.on()
         t0 = utime.time()
+        r_buff = bytearray(1)
         while True:
             if self._timeout(t0, self.timeout):
                 utils.log("{} => timeout occourred".format(self.name), "e")  # DEBUG
@@ -106,7 +97,8 @@ class GPS(NMEA, DEVICE):
                     utils.log("{} => no {} string received".format(self.name, sentence), "e")  # DEBUG
                 break
             if self.uart.any():
-                if not self.get_sentence(self.uart.read(1), sentence):
+                self.uart.readinto(r_buff)
+                if not self.get_sentence(r_buff, sentence):
                     continue
                 break
         self.led.off()

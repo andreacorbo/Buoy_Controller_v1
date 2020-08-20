@@ -8,6 +8,7 @@ class Y32500(DEVICE):
 
     def __init__(self, instance, tasks=[]):
         DEVICE.__init__(self, instance)
+        self.data = []
         ########################################################################
         self.tasks = tasks
         if self.tasks:
@@ -34,7 +35,6 @@ class Y32500(DEVICE):
 
     def start_up(self):
         """Performs the device specific initialization sequence."""
-        self.on()
         self.off()
 
     def _wd_vect_avg(self, samples):
@@ -203,36 +203,37 @@ class Y32500(DEVICE):
 
     def log(self):
         """Writes out acquired data to file."""
-        utils.log_data(config.DATA_SEPARATOR.join(self.format_data(self.data)))
+        if self.data:
+            utils.log_data(config.DATA_SEPARATOR.join(self.format_data(self.data)))
 
     def main(self):
         """Gets data from the meteo station."""
         utils.log("{} => acquiring data...".format(self.name))
         self.led.on()
         new_string = False
+        r_buff = bytearray(1)
         sample = []
-        self.data = []
         t0 = utime.time()
-        while True:
+        while not len(self.data) == self.samples:  # Reads out n-strings.
             if self._timeout(t0, self.timeout):
-                utils.log("{} => timeout occourred".format(self.name), "e")  # DEBUG
+                utils.log("{} => timeout occourred".format(self.name), "e")
                 if not self.data:
-                    utils.log("{} => no data received".format(self.name), "e")  # DEBUG
+                    utils.log("{} => no data received".format(self.name), "e")
                 break
             if self.uart.any():
-                try:
-                    char = chr(self.uart.readchar())
-                    if char == "\n":
-                        new_string = True
-                    elif char == "\r":
-                        if new_string:
-                            self.data.append("".join(sample).split(self.config["Data_Separator"]))
-                            sample = []
-                            new_string = False
-                            if len(self.data) == self.samples:  # Returns if got n-samples
-                                break
-                    elif new_string:
-                        sample.append(char)
-                except UnicodeError:
-                    continue
+                self.uart.readinto(r_buff)
+                for byte in r_buff:
+                    try:
+                        ascii = chr(byte)
+                        if ascii == "\n":
+                            new_string = True
+                        elif ascii == "\r":
+                            if new_string:
+                                self.data.append("".join(sample).split(self.config["Data_Separator"]))
+                                sample = []
+                                new_string = False
+                        elif new_string:
+                            sample.append(ascii)
+                    except UnicodeError:
+                        continue
         self.led.off()
