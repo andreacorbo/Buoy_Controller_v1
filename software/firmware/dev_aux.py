@@ -1,7 +1,7 @@
 import utime
 from device import DEVICE
 import tools.utils as utils
-import constants
+import config
 
 class AUX(DEVICE):
     """Creates an aux object."""

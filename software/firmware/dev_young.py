@@ -1,13 +1,36 @@
 import utime
-from device import DEVICE
 import tools.utils as utils
-import constants
+import config
 from math import sin, cos, radians, atan2, degrees, pow, sqrt
+from device import DEVICE
 
 class Y32500(DEVICE):
 
     def __init__(self, instance, tasks=[]):
-        DEVICE.__init__(self, instance, tasks)
+        DEVICE.__init__(self, instance)
+        ########################################################################
+        self.tasks = tasks
+        if self.tasks:
+            if not any( elem in ["start_up","on","off"] for elem in self.tasks):
+                self.status(2) # Sets device ready.
+                try:
+                    self.main()
+                except AttributeError:
+                    pass
+            for task in self.tasks:
+                method = task
+                param_dict={"self":self}
+                param_list=[]
+                params=""
+                if type(task) == tuple:
+                    method = task[0]
+                    i = 0
+                    for param in task[1:]:
+                        param_dict["param"+str(i)] = task[1:][i]
+                        param_list.append("param"+str(i))
+                        params = ",".join(param_list)
+                exec("self."+ method +"(" + params + ")", param_dict)
+        ########################################################################
 
     def start_up(self):
         """Performs the device specific initialization sequence."""
@@ -180,8 +203,7 @@ class Y32500(DEVICE):
 
     def log(self):
         """Writes out acquired data to file."""
-        utils.log_data(constants.DATA_SEPARATOR.join(self.format_data(self.data)))
-        return
+        utils.log_data(config.DATA_SEPARATOR.join(self.format_data(self.data)))
 
     def main(self):
         """Gets data from the meteo station."""
@@ -214,4 +236,3 @@ class Y32500(DEVICE):
                 except UnicodeError:
                     continue
         self.led.off()
-        return

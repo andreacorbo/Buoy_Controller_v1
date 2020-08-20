@@ -3,7 +3,7 @@ import pyb
 import utime
 import _thread
 import gc
-import constants
+import config
 import tools.utils as utils
 from pyboard import PYBOARD
 from scheduler import SCHEDULER
@@ -12,23 +12,23 @@ from session import SESSION
 
 #pyb.repl_uart(pyb.UART(1,9600))  # DEBUG Forwards repl to uart 1 to monitoring even if sleep.
 
-for i in reversed(range(20)):  # DEBUG Delays main loop to stop before sleep.
+for i in reversed(range(5)):  # DEBUG Delays main loop to stop before sleep.
     print("{:> 2d}\" to system startup...".format(i), end="\r")
     utime.sleep(1)
 
-utils.log("{}".format(constants.RESET_CAUSE[machine.reset_cause()]), "e")  # DEBUG Prints out the reset cause.
+utils.log("{}".format(config.RESET_CAUSE[machine.reset_cause()]), "e")  # DEBUG Prints out the reset cause.
 
 print(utils.welcome_msg())
 
 board = PYBOARD()  # Creates a board object.
 
-session = SESSION(board=board, timeout=constants.SESSION_TIMEOUT)  # Starts up the remote session.
+session = SESSION(board=board, timeout=config.SESSION_TIMEOUT)  # Starts up the remote session.
 
 scheduler = SCHEDULER()  # Creates the scheduler object.
 
 esc_buff = []  # Initializes the escape character counter.
 
-wdt = machine.WDT(timeout=constants.WD_TIMEOUT)  # Starts up the watchdog timer.
+#wdt = machine.WDT(timeout=config.WD_TIMEOUT)  # Starts up the watchdog timer.
 
 t0 = utime.time()  # Gets timestamp at startup.
 
@@ -44,7 +44,7 @@ while True:
         else:
             # Backs to scheduled mode after n-seconds.
             if not utils.timed:
-                utils.tim.init(mode=machine.Timer.ONE_SHOT, period=constants.IRQ_TIMEOUT*1000, callback=board.timeout_interrupt)
+                utils.tim.init(mode=machine.Timer.ONE_SHOT, period=config.IRQ_TIMEOUT*1000, callback=board.timeout_interrupt)
                 utils.timed = True
             if board.uart.any():
                 try:
@@ -59,7 +59,7 @@ while True:
     elif board.escaped:
         if not session.loggedin:
             pyb.repl_uart(board.uart)
-            _thread.start_new_thread(session.login, (constants.LOGIN_ATTEMPTS,))
+            _thread.start_new_thread(session.login, (config.LOGIN_ATTEMPTS,))
             utime.sleep_ms(100)
         else:
             board.prompted = True
@@ -76,7 +76,7 @@ while True:
     # Prompts user for interactive or file mode.
     elif board.prompted:
         if not utils.prompted:
-            _thread.start_new_thread(board.set_mode, (constants.IRQ_TIMEOUT,))
+            _thread.start_new_thread(board.set_mode, (config.IRQ_TIMEOUT,))
             utils.prompted = True
         if board.interactive:
             menu = MENU(board, scheduler)  # Creates the menu object.
@@ -98,15 +98,15 @@ while True:
         utime.sleep_ms(500)  # Adds 500ms delay to allow threads startup.
         t0 = utime.time()  # Gets timestamp before sleep.
         if not utils.processes: # Waits for no running threads and no usb connection before sleep.
-            '''if utils.gps_displacement > constants.DISPLACEMENT_THRESHOLD:
-                _thread.start_new_thread(utils.execute, (("dev_modem.MODEM_1", [("sms",eval(constants.DISPLACEMENT_SMS))]),))
+            '''if utils.gps_displacement > config.DISPLACEMENT_THRESHOLD:
+                _thread.start_new_thread(utils.execute, (("dev_modem.MODEM_1", [("sms",eval(config.DISPLACEMENT_SMS))]),))
                 utils.gps_displacement = 0'''
             if scheduler.next_event > t0 and not board.usb.isconnected():
                 board.go_sleep(scheduler.next_event - t0)  # Puts board in sleep mode.
     t0 = utime.time()  # Gets timestamp at wakeup.
     board.lastfeed = t0
-    wdt.feed()  # Resets the watchdog timer.
-    gc.collect()
+    #wdt.feed()  # Resets the watchdog timer.
+    #gc.collect()
     scheduler.scheduled(t0)  # Checks out for scheduled events in event table.
     #gc.collect()  # Frees ram.
     #utils.mem_mon()  # DEBUG

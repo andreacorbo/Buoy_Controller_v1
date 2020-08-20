@@ -59,5 +59,5 @@ TMP_FILE_PFX = "."
 SENT_FILE_PFX = "_"
 BUF_DAYS = 3
 DISPLACEMENT_THRESHOLD = 0.05399568  # Nautical miles: (100meters)
-DISPLACEMENT_SMS = "\"{}-{}-{} {}:{}:{} UTC ***WARNING*** {} current position: {}°{}'{} {}°{}'{} is {:.3f}nm away from previous position. Next msg in 5min.\".format(int(utils.gps_fix[9][-2:])+2000,utils.gps_fix[9][2:4],utils.gps_fix[9][0:2], utils.gps_fix[1][0:2], utils.gps_fix[1][2:4], utils.gps_fix[1][4:6], constants.NAME, utils.gps_fix[3][0:2], utils.gps_fix[3][2:], utils.gps_fix[4], utils.gps_fix[5][0:3], utils.gps_fix[5][3:], utils.gps_fix[6], utils.gps_displacement)"
+DISPLACEMENT_SMS = "\"{}-{}-{} {}:{}:{} UTC ***WARNING*** {} current position: {}°{}'{} {}°{}'{} is {:.3f}nm away from previous position. Next msg in 5min.\".format(int(utils.gps_fix[9][-2:])+2000,utils.gps_fix[9][2:4],utils.gps_fix[9][0:2], utils.gps_fix[1][0:2], utils.gps_fix[1][2:4], utils.gps_fix[1][4:6], config.NAME, utils.gps_fix[3][0:2], utils.gps_fix[3][2:], utils.gps_fix[4], utils.gps_fix[5][0:3], utils.gps_fix[5][3:], utils.gps_fix[6], utils.gps_displacement)"
 DEBUG = False

@@ -2,12 +2,12 @@ import pyb
 import utime
 import uos
 import tools.utils as utils
-import constants
+import config
 import _thread
 import ubinascii
 import uselect
 
-class MENU(object):
+class MENU:
 
     def __init__(self, board, scheduler):
         """Initializes menu object.
@@ -92,14 +92,14 @@ class MENU(object):
         try:
             tmp = []
             size = 0
-            data = uos.listdir(constants.DATA_DIR)
+            data = uos.listdir(config.DATA_DIR)
             data.sort(reverse=True)
             for file in data:
-                stat = uos.stat(constants.DATA_DIR + "/" + file)
+                stat = uos.stat(config.DATA_DIR + "/" + file)
                 size += stat[6]//1024
                 tmp.append("{:>" "10} {:>" "10} {:>" "10}".format(file, str(stat[6]//1024), utils.timestring(stat[7])))
             fsstat = uos.statvfs(media)
-            print("[{}] {} Files {}/{} kB".format(constants.DATA_DIR, len(data), str(size), str(fsstat[2]*fsstat[0]//1024)))
+            print("[{}] {} Files {}/{} kB".format(config.DATA_DIR, len(data), str(size), str(fsstat[2]*fsstat[0]//1024)))
             print("\r\n".join(tmp))
         except:
             pass
@@ -109,7 +109,7 @@ class MENU(object):
         """Lists data directory."""
         print("LAST LOG")
         try:
-            with open(constants.LOG_DIR + "/" + constants.LOG_FILE, "r") as log:
+            with open(config.LOG_DIR + "/" + config.LOG_FILE, "r") as log:
                 for line in log:
                     print(log.readline(), end="\r")
         except Exception as err:
@@ -118,7 +118,7 @@ class MENU(object):
 
     def get_config(self, device):
         """Shows device configuration."""
-        cfg = utils.read_cfg(device.name.split(".")[0] + "." + constants.CONFIG_TYPE, )[device.name.split(".")[1].split("_")[0]]
+        cfg = utils.read_cfg(device.name.split(".")[0] + "." + config.CONFIG_TYPE, )[device.name.split(".")[1].split("_")[0]]
         for k in sorted(cfg):
             if type(cfg[k]).__name__ == "dict":
                 for k1 in sorted(cfg[k]):

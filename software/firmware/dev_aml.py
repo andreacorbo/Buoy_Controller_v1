@@ -1,14 +1,37 @@
 import utime
 from device import DEVICE
 import tools.utils as utils
-import constants
+import config
 
 class METRECX(DEVICE):
     """Creates an aml metrecx multiparametric probe object."""
 
     def __init__(self, instance, tasks=[]):
+        DEVICE.__init__(self, instance)
         self.prompt = ">"
-        DEVICE.__init__(self, instance, tasks)
+        ########################################################################
+        self.tasks = tasks
+        if self.tasks:
+            if not any( elem in ["start_up","on","off"] for elem in self.tasks):
+                self.status(2) # Sets device ready.
+                try:
+                    self.main()
+                except AttributeError:
+                    pass
+            for task in self.tasks:
+                method = task
+                param_dict={"self":self}
+                param_list=[]
+                params=""
+                if type(task) == tuple:
+                    method = task[0]
+                    i = 0
+                    for param in task[1:]:
+                        param_dict["param"+str(i)] = task[1:][i]
+                        param_list.append("param"+str(i))
+                        params = ",".join(param_list)
+                exec("self."+ method +"(" + params + ")", param_dict)
+        ########################################################################
 
     def start_up(self):
         """Performs device specific initialization sequence."""
@@ -29,7 +52,6 @@ class METRECX(DEVICE):
         while not self._timeout(start, timeout):
             if self.uart.any():
                 return self.uart.read().split(b"\r\n")[1].decode("utf-8")
-        return
 
     def _break(self):
         """Sends the escape sequence to the instrument ``CTRL+C``.
@@ -80,7 +102,6 @@ class METRECX(DEVICE):
             self.uart.write("DISPLAY DATE\r")
             return self._get_reply()[-13:]
         utils.log("{} => unable to retreive instrument date".format(self.name), "e")  # DEBUG
-        return
 
     def _get_time(self):
         """Gets the instrument real time clock time."""
@@ -88,7 +109,6 @@ class METRECX(DEVICE):
             self.uart.write("DISPLAY TIME\r")
             return self._get_reply()[-14:-3]
         utils.log("{} => unable to retreive instrument time".format(self.name), "e")  # DEBUG
-        return
 
     def _set_clock(self):
         """Synchronizes the intrument real time clock."""
@@ -112,7 +132,6 @@ class METRECX(DEVICE):
         if self._get_prompt():
             self.uart.write("DIS S\r")
             utils.log("{} => {}".format(self.name, self._get_reply()))  # DEBUG
-        return
 
     def _stop_logging(self):
         """Stops logging."""
@@ -145,6 +164,11 @@ class METRECX(DEVICE):
             ]
         return data + sample
 
+
+    def log(self):
+        """Writes out acquired data to file."""
+        utils.log_data(config.DATA_SEPARATOR.join(self._format_data(self.data)))
+
     def main(self):
         """Captures instrument data."""
         utils.log("{} => acquiring data...".format(self.name))  # DEBUG
@@ -168,19 +192,35 @@ class METRECX(DEVICE):
                 elif new_line:
                     self.data.append(byte.decode("utf-8"))
         self.led.off()
-        return
-
-    def log(self):
-        """Writes out acquired data to file."""
-        utils.log_data(constants.DATA_SEPARATOR.join(self._format_data(self.data)))
-        return
-
 
 class UVXCHANGE(DEVICE):
     """Creates an aml uvxchange untifouling object."""
 
     def __init__(self, instance, tasks=[]):
-        DEVICE.__init__(self, instance, tasks)
+        DEVICE.__init__(self, instance)
+        ########################################################################
+        self.tasks = tasks
+        if self.tasks:
+            if not any( elem in ["start_up","on","off"] for elem in self.tasks):
+                self.status(2) # Sets device ready.
+                try:
+                    self.main()
+                except AttributeError:
+                    pass
+            for task in self.tasks:
+                method = task
+                param_dict={"self":self}
+                param_list=[]
+                params=""
+                if type(task) == tuple:
+                    method = task[0]
+                    i = 0
+                    for param in task[1:]:
+                        param_dict["param"+str(i)] = task[1:][i]
+                        param_list.append("param"+str(i))
+                        params = ",".join(param_list)
+                exec("self."+ method +"(" + params + ")", param_dict)
+        ########################################################################
 
     def start_up(self):
         """Performs device specific initialization sequence."""

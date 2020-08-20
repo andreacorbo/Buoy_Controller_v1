@@ -1,8 +1,8 @@
 import utime
-from device import DEVICE
+import config
 import tools.utils as utils
-import constants
 import ubinascii
+from device import DEVICE
 
 class AQUADOPP(DEVICE):
 
@@ -27,7 +27,30 @@ class AQUADOPP(DEVICE):
 
     def __init__(self, instance, tasks=[]):
         """Constructor method."""
-        DEVICE.__init__(self, instance, tasks)
+        DEVICE.__init__(self, instance)
+        ########################################################################
+        self.tasks = tasks
+        if self.tasks:
+            if not any( elem in ["start_up","on","off"] for elem in self.tasks):
+                self.status(2) # Sets device ready.
+                try:
+                    self.main()
+                except AttributeError:
+                    pass
+            for task in self.tasks:
+                method = task
+                param_dict={"self":self}
+                param_list=[]
+                params=""
+                if type(task) == tuple:
+                    method = task[0]
+                    i = 0
+                    for param in task[1:]:
+                        param_dict["param"+str(i)] = task[1:][i]
+                        param_list.append("param"+str(i))
+                        params = ",".join(param_list)
+                exec("self."+ method +"(" + params + ")", param_dict)
+        ########################################################################
 
     def start_up(self):
         self.on()
@@ -48,7 +71,6 @@ class AQUADOPP(DEVICE):
             if self.uart.any():
                 x = self.uart.read()
                 return x
-        return
 
     def _ack(self, rx):
         """Parses acknowledge bytes sequence.
@@ -60,27 +82,27 @@ class AQUADOPP(DEVICE):
         """
         if rx:
             if rx[-2:] == b"\x06\x06":
-                utils.verbose("<= ACK", constants.VERBOSE)
+                utils.verbose("<= ACK", config.VERBOSE)
                 return True
             elif rx[-2:] == b"\x15\x15":
-                utils.verbose("<= NAK", constants.VERBOSE)
+                utils.verbose("<= NAK", config.VERBOSE)
                 return False
         return
 
     def _break(self):
         """Sends break to instrument."""
-        utils.verbose("=> @@@@@@K1W%!Q", constants.VERBOSE)
+        utils.verbose("=> @@@@@@K1W%!Q", config.VERBOSE)
         self.uart.write("@@@@@@")
         utime.sleep_ms(100)
         self.uart.write("K1W%!Q")
         start = utime.time()
-        while not self._timeout(start, constants.TIMEOUT):
+        while not self._timeout(start, config.TIMEOUT):
             rx = self._get_reply()
             if self._ack(rx):
                 if b"\x0a\x0d\x43\x6f\x6e\x66\x69\x72\x6d\x3a" in rx:
                     self._confirm()
                 else:
-                    utils.verbose(rx, constants.VERBOSE)
+                    utils.verbose(rx, config.VERBOSE)
                     return True
         return False
 
@@ -94,7 +116,7 @@ class AQUADOPP(DEVICE):
         Returns:
             true or False
         """
-        utils.verbose("=> MC", constants.VERBOSE)
+        utils.verbose("=> MC", config.VERBOSE)
         self.uart.write("MC")
         rx = self._get_reply()
         if self._ack(rx):
@@ -118,7 +140,6 @@ class AQUADOPP(DEVICE):
             self._start_measurement()
         else:
             self.uart.write(cmd)
-            return
 
     def data_iface(self, reply, cmd=None):
         """Data interface.
@@ -143,7 +164,7 @@ class AQUADOPP(DEVICE):
 
     def _get_mode(self):
         """Gets current instrument mode."""
-        utils.verbose("=> II", constants.VERBOSE)
+        utils.verbose("=> II", config.VERBOSE)
         self.uart.write("II")
         rx = self._get_reply()
         if self._ack(rx):
@@ -175,7 +196,7 @@ class AQUADOPP(DEVICE):
         calc_checksum = self._calc_checksum(reply)
         if checksum == calc_checksum:
             return True
-        utils.verbose("checksum {} calc_checksum {}".format(checksum, calc_checksum), constants.VERBOSE)  # DEBUG
+        utils.verbose("checksum {} calc_checksum {}".format(checksum, calc_checksum), config.VERBOSE)  # DEBUG
         return False
 
     def _get_cfg(self):
@@ -186,14 +207,14 @@ class AQUADOPP(DEVICE):
         instrument.
         """
         start = utime.time()
-        while not self._timeout(start, constants.TIMEOUT):
+        while not self._timeout(start, config.TIMEOUT):
             if self._break():
-                utils.verbose("=> GA", constants.VERBOSE)
+                utils.verbose("=> GA", config.VERBOSE)
                 self.uart.write("GA")
                 rx = self._get_reply()
                 if self._ack(rx) and self.verify_checksum(rx[0:48]) and self.verify_checksum(rx[48:272]) and self.verify_checksum(rx[272:784]):
                     try:
-                        with open(constants.CONFIG_DIR + "/" + self.config["Adcp"]["Instrument_Config"], "wb") as cfg:
+                        with open(config.CONFIG_DIR + "/" + self.config["Adcp"]["Instrument_Config"], "wb") as cfg:
                             cfg.write(rx)
                             utils.log("{} => instrument configuration successfully retreived".format(self.name))  # DEBUG
                             return True
@@ -206,7 +227,7 @@ class AQUADOPP(DEVICE):
     def _parse_cfg(self):
         """Parses the configuration data previously downloaded from the instrument."""
         try:
-            with open(constants.CONFIG_DIR + "/" + self.config["Adcp"]["Instrument_Config"], "rb") as cfg:
+            with open(config.CONFIG_DIR + "/" + self.config["Adcp"]["Instrument_Config"], "rb") as cfg:
                 bytes = cfg.read()
                 self.hw_cfg = self._parse_hw_cfg(bytes[0:48])         # Hardware config (48 bytes)
                 self.head_cfg = self._parse_head_cfg(bytes[48:272])   # Head config (224 bytes)
@@ -219,9 +240,9 @@ class AQUADOPP(DEVICE):
     def _get_hw_cfg(self):
         """Reads the current hardware configuration from the instrument."""
         start = utime.time()
-        while not self._timeout(start, constants.TIMEOUT):
+        while not self._timeout(start, config.TIMEOUT):
             if self._break():
-                utils.verbose("=> GP", constants.VERBOSE)
+                utils.verbose("=> GP", config.VERBOSE)
                 self.uart.write("GP")
                 rx = self._get_reply()
                 if self._ack(rx):
@@ -260,7 +281,7 @@ class AQUADOPP(DEVICE):
 
 
     def _decode_hw_cfg(self, cfg):
-        """Decodes hardware constants."""
+        """Decodes hardware config."""
         try:
             return (
                 "RECORDER {}".format("NO" if cfg >> 0 & 1  else "YES"),
@@ -279,22 +300,22 @@ class AQUADOPP(DEVICE):
     def _set_usr_cfg(self):
         """Uploads a deployment config to the instrument and sets up the device
         Activation_Rate and Warmup_Interval parameters according to the current
-        deployment constants."""
+        deployment config."""
         start = utime.time()
-        while not self._timeout(start, constants.TIMEOUT):
+        while not self._timeout(start, config.TIMEOUT):
             if self._break():
                 try:
-                    with open(constants.CONFIG_DIR + "/" + self.config["Adcp"]["Deployment_Config"], "rb") as pfc:
+                    with open(config.CONFIG_DIR + "/" + self.config["Adcp"]["Deployment_Config"], "rb") as pfc:
                         cfg = pfc.read()
                         sampling_interval = int.from_bytes(cfg[38:40], "little")
                         avg_interval = int.from_bytes(cfg[16:18], "little")
-                        constants.TASK_SCHEDULE[self.name] = {"log":sampling_interval}
+                        config.TASK_SCHEDULE[self.name] = {"log":sampling_interval}
                         usr_cfg = cfg[0:48] + self._set_deployment_start(sampling_interval, avg_interval) + cfg[54:510]
                         checksum = self._calc_checksum(usr_cfg)
                         tx = usr_cfg + ubinascii.unhexlify(hex(checksum)[-2:] + hex(checksum)[2:4])
                         self.uart.write(b"\x43\x43")
                         self.uart.write(tx)
-                        utils.verbose("=> CC", constants.VERBOSE)
+                        utils.verbose("=> CC", config.VERBOSE)
                         rx = self._get_reply()
                         if self._ack(rx):
                             utils.log("{} => deployment configuration successfully uploaded".format(self.name))  # DEBUG
@@ -318,9 +339,9 @@ class AQUADOPP(DEVICE):
     def _get_usr_cfg(self):
         """Retreives the current deployment config from the instrument."""
         start = utime.time()
-        while not self._timeout(start, constants.TIMEOUT):
+        while not self._timeout(start, config.TIMEOUT):
             if self._break():
-                utils.verbose("=> GC", constants.VERBOSE)
+                utils.verbose("=> GC", config.VERBOSE)
                 self.uart.write("GC")
                 rx = self._get_reply()
                 if self._ack(rx):
@@ -333,7 +354,7 @@ class AQUADOPP(DEVICE):
         return False
 
     def _parse_usr_cfg(self, bytestring):
-        """Parses the deployment constants."""
+        """Parses the deployment config."""
         try:
             return (
                 "{:02x}".format(bytestring[0]),                                     # [0] Sync
@@ -444,9 +465,9 @@ class AQUADOPP(DEVICE):
     def _get_head_cfg(self):
         """Retreives the current head config from the instrument."""
         start = utime.time()
-        while not self._timeout(start, constants.TIMEOUT):
+        while not self._timeout(start, config.TIMEOUT):
             if self._break():
-                utils.verbose("=> GH", constants.VERBOSE)
+                utils.verbose("=> GH", config.VERBOSE)
                 self.uart.write("GH")
                 rx = self._get_reply()
                 if self._ack(rx):
@@ -459,7 +480,7 @@ class AQUADOPP(DEVICE):
         return False
 
     def _parse_head_cfg(self, bytestring):
-        """Parses the head constants."""
+        """Parses the head config."""
         try:
             return (
                 "{:02x}".format(bytestring[0]),                                     # [0] Sync
@@ -478,7 +499,7 @@ class AQUADOPP(DEVICE):
             return
 
     def _decode_head_cfg(self, cfg):
-        """Decodes the head constants."""
+        """Decodes the head config."""
         try:
             return (
                 "PRESSURE SENSOR {}".format("YES" if cfg >> 0 & 1  else "NO"),
@@ -555,9 +576,9 @@ class AQUADOPP(DEVICE):
     def _format_recorder(self):
         """Erase all recorded data if it reached the maximum allowed files number (31)"""
         start = utime.time()
-        while not self._timeout(start, constants.TIMEOUT):
+        while not self._timeout(start, config.TIMEOUT):
             if self._break():
-                utils.verbose("=> FO", constants.VERBOSE)
+                utils.verbose("=> FO", config.VERBOSE)
                 self.uart.write(b"\x46\x4F\x12\xD4\x1E\xEF")
                 if self._ack(self._get_reply()):
                     utils.log("{} => recorder formatted".format(self.name))  # DEBUG
@@ -572,9 +593,9 @@ class AQUADOPP(DEVICE):
         """
         utils.log("{} => acquiring 1 sample...".format(self.name))  # DEBUG
         start = utime.time()
-        while not self._timeout(start, constants.TIMEOUT):
+        while not self._timeout(start, config.TIMEOUT):
             if self._break():
-                utils.verbose("=> AD", constants.VERBOSE)
+                utils.verbose("=> AD", config.VERBOSE)
                 self.uart.write("AD")
                 if self._ack(self._get_reply()):
                     rx = self._get_reply()
@@ -589,9 +610,9 @@ class AQUADOPP(DEVICE):
         the configuration.
         """
         start = utime.time()
-        while not self._timeout(start, constants.TIMEOUT):
+        while not self._timeout(start, config.TIMEOUT):
             if self._break():
-                utils.verbose("=> SD", constants.VERBOSE)
+                utils.verbose("=> SD", config.VERBOSE)
                 self.uart.write("SD")
                 rx = self._get_reply()
                 if not self._ack(rx):
@@ -715,9 +736,9 @@ class AQUADOPP(DEVICE):
     def _get_clock(self):
         """Reads the instrument RTC."""
         start = utime.time()
-        while not self._timeout(start, constants.TIMEOUT):
+        while not self._timeout(start, config.TIMEOUT):
             if self._break():
-                utils.verbose("=> RC", constants.VERBOSE)
+                utils.verbose("=> RC", config.VERBOSE)
                 self.uart.write("RC")
                 rx = self._get_reply()
                 if self._ack(rx):
@@ -741,13 +762,13 @@ class AQUADOPP(DEVICE):
         mm ss DD hh YY MM (3 words of 2 bytes each)
         """
         start = utime.time()
-        while not self._timeout(start, constants.TIMEOUT):
+        while not self._timeout(start, config.TIMEOUT):
             if self._break():
                 now = utime.localtime()
                 tx = "{:02d}{:02d}{:02d}{:02d}{:02d}{:02d}".format(now[4], now[5], now[2], now[3], int(str(now[0])[2:]), now[1])
                 self.uart.write("SC")
                 self.uart.write(ubinascii.unhexlify(tx))
-                utils.verbose("=> SC" + str(tx), constants.VERBOSE)
+                utils.verbose("=> SC" + str(tx), config.VERBOSE)
                 if self._ack(self._get_reply()):
                     utils.log("{} => instrument clock successfully synchronized (instrument: {} controller: {})".format(self.name, self._get_clock(), utils.timestring(utime.mktime(now))))  # DEBUG
                     return True
@@ -756,7 +777,7 @@ class AQUADOPP(DEVICE):
 
     def log(self):
         """Writes out acquired data to a file."""
-        utils.log_data(constants.DATA_SEPARATOR.join(map(str, self.data)))
+        utils.log_data(config.DATA_SEPARATOR.join(map(str, self.data)))
         return
 
     def main(self):

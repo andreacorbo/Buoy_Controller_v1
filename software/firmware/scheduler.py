@@ -1,9 +1,10 @@
 import utime
 import _thread
 import tools.utils as utils
-import constants
+import config
+import gc
 
-class SCHEDULER(object):
+class SCHEDULER:
 
     def __init__(self):
         self.event_table = {}
@@ -25,7 +26,11 @@ class SCHEDULER(object):
         """Manages all the tasks defined for a device at the given timestamp."""
         # devices => {dev1:[task1,...],...}
         # dev_task => (dev1, [task1,...])
+        import micropython
         for dev_task in self.event_table[self.next_event].items():
+            micropython.mem_info()
+            gc.collect()
+            micropython.mem_info()
             try:
                 _thread.start_new_thread(utils.execute, (dev_task,))
             except Exception as err:
@@ -33,10 +38,10 @@ class SCHEDULER(object):
 
     def calc_activation_interval(self, device):
         """Calculates the minimum activation interval for the specified device."""
-        tmp = [constants.SCHEDULE]
-        if device in constants.TASK_SCHEDULE:
-            for task in constants.TASK_SCHEDULE[device]:
-                tmp.append(constants.TASK_SCHEDULE[device][task])
+        tmp = [config.SCHEDULE]
+        if device in config.TASK_SCHEDULE:
+            for task in config.TASK_SCHEDULE[device]:
+                tmp.append(config.TASK_SCHEDULE[device][task])
         return min(tmp)
 
     def check_executed(self):
@@ -70,13 +75,13 @@ class SCHEDULER(object):
                 self.add_event(evt, device, task)
             elif status == 1:  # device is on / warming up
                 if obj.sample_rate > 0:
-                    if not device in constants.TASK_SCHEDULE:
-                        constants.TASK_SCHEDULE[device] = {}
-                    if not "log" in constants.TASK_SCHEDULE[device]:
-                        constants.TASK_SCHEDULE[device]["log"] = constants.SCHEDULE
-                if device in constants.TASK_SCHEDULE:
-                    for task in constants.TASK_SCHEDULE[device]:
-                        activation_interval = constants.TASK_SCHEDULE[device][task]
+                    if not device in config.TASK_SCHEDULE:
+                        config.TASK_SCHEDULE[device] = {}
+                    if not "log" in config.TASK_SCHEDULE[device]:
+                        config.TASK_SCHEDULE[device]["log"] = config.SCHEDULE
+                if device in config.TASK_SCHEDULE:
+                    for task in config.TASK_SCHEDULE[device]:
+                        activation_interval = config.TASK_SCHEDULE[device][task]
                         next_activation = virt - virt % activation_interval + activation_interval + obj.activation_delay
                         evt = next_activation - sampling_interval
                         if evt < now:

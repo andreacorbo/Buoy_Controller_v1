@@ -4,7 +4,7 @@ import sys
 from tools.functools import partial
 import tools.utils as utils
 import tools.shutil as shutil
-import constants
+import config
 
 #
 # Protocol bytes
@@ -18,7 +18,7 @@ CAN = b"\x18"  # 24
 C = b"\x43"  # 67
 
 
-class YMODEM(object):
+class YMODEM:
     #
     # crctab calculated by Mark G. Mendel, Network Systems Corporation
     #
@@ -205,8 +205,8 @@ class YMODEM(object):
 
     def _bkp_file(self, file):  # TODO
         bkp_file = file.replace(file.split("/")[-1], bkp_file_pfx + file.split("/")[-1])
-        if file.split("/")[-1] == eval(constants.DATA_FILE):  # Acquires the lock to safe handling the current data file.
-            if not utils.file_lock.acquire(1, constants.TIMEOUT):
+        if file.split("/")[-1] == eval(config.DATA_FILE):  # Acquires the lock to safe handling the current data file.
+            if not utils.file_lock.acquire(1, config.TIMEOUT):
                 print("UNABLE TO ACQUIRE THE LOCK ON {}".format(file))
                 return
         try:
@@ -214,7 +214,7 @@ class YMODEM(object):
         except:
             print("UNABLE TO BACKUP {}".format(file))
             return
-        if file.split("/")[-1] == eval(constants.DATA_FILE):  # Release the lock.
+        if file.split("/")[-1] == eval(config.DATA_FILE):  # Release the lock.
             utils.file_lock.release()
         return bkp_file
 
@@ -355,7 +355,7 @@ class YMODEM(object):
             sent_file = file.replace(file.split("/")[-1], sent_file_pfx + file.split("/")[-1])
             filename = file.split("/")[-1]
             if file != "\x00":
-                filename = constants.NAME.lower() + "/" + filename  # Adds system name to filename.
+                filename = config.NAME.lower() + "/" + filename  # Adds system name to filename.
                 try:
                     stream = open(self._bkp_file(file))
                 except:

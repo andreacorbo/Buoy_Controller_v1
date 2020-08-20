@@ -1,22 +1,20 @@
-import machine
 import pyb
 import uos
 import utime
 import uselect
 import tools.utils as utils
-import constants
+import config
 from device import DEVICE
 import _thread
 
-class PYBOARD(object):
+class PYBOARD:
     """Creates a board object."""
-
     rtc = pyb.RTC()
 
     devices = {}
 
     def __init__(self):
-        self.config_path  = constants.CONFIG_DIR
+        self.config_path  = config.CONFIG_DIR
         self.lastfeed = utime.time()
         self.usb = None
         self.uart = None
@@ -40,25 +38,24 @@ class PYBOARD(object):
         self.input = [self.usb, self.uart]
 
     def init_led(self):
-        for led in constants.LEDS:
-            self.led = pyb.LED(constants.LEDS[led]).off()
+        for led in config.LEDS:
+            self.led = pyb.LED(config.LEDS[led]).off()
 
     def pwr_led(self):
         self.init_led()
-        pyb.LED(constants.LEDS["PWR"]).on()
+        pyb.LED(config.LEDS["PWR"]).on()
 
     def sleep_led(self):
         self.init_led()
-        pyb.LED(constants.LEDS["SLEEP"]).on()
+        pyb.LED(config.LEDS["SLEEP"]).on()
 
     def get_config(self):
         """Gets the device configuration."""
         try:
-            self.config = utils.read_cfg(self.__module__ + "." + constants.CONFIG_TYPE)[self.__qualname__]
+            self.config = utils.read_cfg(self.__module__ + "." + config.CONFIG_TYPE)[self.__qualname__]
             return self.config
         except Exception as err:
             utils.log("{} => get_config ({}): {}".format(self.__qualname__, type(err).__name__, err), "e")  # DEBUG
-            return False
 
     def init_usb(self):
         self.usb = pyb.USB_VCP()
@@ -75,19 +72,8 @@ class PYBOARD(object):
                 flow=int(self.config["Uart"]["Flow_Control"]),
                 timeout_char=int(self.config["Uart"]["Timeout_Char"]),
                 read_buf_len=int(self.config["Uart"]["Read_Buf_Len"]))
-            return True
         except Exception as err:
             utils.log("{} => init_uart ({}): {}".format(self.__qualname__, type(err).__name__, err), "e")  # DEBUG
-            return False
-
-    def deinit_uart(self):
-        """Deinitializes the uart bus."""
-        try:
-            self.uart.deinit()
-            return True
-        except Exception as err:
-            utils.log("{} => deinit_uart ({}): {}".format(self.__qualname__, type(err).__name__, err), "e")  # DEBUG
-            return False
 
     def set_repl(self):
         pyb.repl_uart(self.uart2stream[self.line2uart[self.interrupted]])
@@ -95,8 +81,6 @@ class PYBOARD(object):
     def ext_callback(self, line):
         """Sets board to interactive mode"""
         self.interrupted = line
-        self.disable_interrupts()
-
 
     def init_interrupts(self):
         """Initializes all external interrupts to wakes up board from sleep mode."""
@@ -121,15 +105,14 @@ class PYBOARD(object):
     def init_devices(self):
         """ Initializes all configured instruments. """
         utils.msg(" initializing instruments ".upper())
-        for port,dev in sorted(constants.DEVICES.items()):
-            if port >= 0:  # Devices with a negative position are disabled.
+        for port,dev in sorted(config.DEVICES.items()):
+            if port >= 0:  # Skips device with a negative port number.
                 try:
                     _thread.start_new_thread(utils.execute, ((dev, ["start_up"]),))
-                    #utils.execute((dev, ["start_up"]))
                 except Exception as err:
                     utils.log("{} => init_devices ({}): {}".format(self.__qualname__, type(err).__name__, err), "e")  # DEBUG
-        utime.sleep_ms(500)
-        while utils.processes:
+        utime.sleep_ms(500)  # Waits for threads starting.
+        while utils.processes:  # Waits until all devices have been initialized.
             continue
         utils.msg("-")
 
@@ -157,7 +140,6 @@ class PYBOARD(object):
                     break
             utime.sleep_ms(500)
         print("\n\r")
-        return
 
     def go_sleep(self, interval):
         """Puts board in sleep mode.
@@ -168,19 +150,42 @@ class PYBOARD(object):
         utils.log("Sleeping.... wake up in {}".format(utils.time_display(interval)))  # DEBUG
         self.sleep_led()
         self.enable_interrupts()
-        remain = constants.WD_TIMEOUT - (utime.time() - self.lastfeed) * 1000
+        remain = config.WD_TIMEOUT - (utime.time() - self.lastfeed) * 1000
         interval = interval * 1000
         if interval - remain > -3000:
             interval = remain - 3000
         self.rtc.wakeup(interval)  # Set next rtc wakeup (ms).
         pyb.stop()
-        #self.disable_interrupts()
+        self.disable_interrupts()
         self.pwr_led()
 
 class SYSMON(DEVICE):
 
     def __init__(self, instance, tasks=[]):
-        DEVICE.__init__(self, instance, tasks)
+        DEVICE.__init__(self, instance)
+        ########################################################################
+        self.tasks = tasks
+        if self.tasks:
+            if not any( elem in ["start_up","on","off"] for elem in self.tasks):
+                self.status(2) # Sets device ready.
+                try:
+                    self.main()
+                except AttributeError:
+                    pass
+            for task in self.tasks:
+                method = task
+                param_dict={"self":self}
+                param_list=[]
+                params=""
+                if type(task) == tuple:
+                    method = task[0]
+                    i = 0
+                    for param in task[1:]:
+                        param_dict["param"+str(i)] = task[1:][i]
+                        param_list.append("param"+str(i))
+                        params = ",".join(param_list)
+                exec("self."+ method +"(" + params + ")", param_dict)
+        ########################################################################
 
     def start_up(self):
         """Performs device specific initialization sequence."""
@@ -250,7 +255,7 @@ class SYSMON(DEVICE):
 
     def main(self):
         """Gets data from internal sensors."""
-        utils.log("{} => checking up system status...".format(self.name))
+        utils.log("{} => acquiring data...".format(self.name))  # DEBUG
         self.led.on()
         core_temp = 0
         core_vbat = 0
@@ -289,7 +294,6 @@ class SYSMON(DEVICE):
         self.data.append(vref)
         self.data.append(self.fs_freespace())
         self.led.off()
-        return
 
     def format_data(self, sample):
         epoch = utime.time()
@@ -311,5 +315,4 @@ class SYSMON(DEVICE):
 
     def log(self):
         """Writes out acquired data to file."""
-        utils.log_data(constants.DATA_SEPARATOR.join(self.format_data(self.data)))
-        return
+        utils.log_data(config.DATA_SEPARATOR.join(self.format_data(self.data)))

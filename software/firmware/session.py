@@ -3,9 +3,9 @@ import sys
 import _thread
 import uselect
 import utime
-import constants
+import config
 
-class SESSION(object):
+class SESSION:
 
     def __init__(self, **kwargs):
         self.input = kwargs["board"].input
@@ -15,7 +15,7 @@ class SESSION(object):
         self.loggedout = False
         self.authenticating = False
         self.active = False
-        self.passwd = constants.PASSWD
+        self.passwd = config.PASSWD
 
     def init(self):
         self.loggedin = False
@@ -93,5 +93,3 @@ class SESSION(object):
         """Starts check_activity method as a thread."""
         self.active = True
         _thread.start_new_thread(self._check_activity, (self.timeout,))
-
-    

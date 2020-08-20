@@ -2,7 +2,7 @@ import machine
 import ujson
 import uos
 import utime
-import constants
+import config
 import _thread
 
 # Creates a lock to manage the processes list access.
@@ -32,7 +32,7 @@ prompted = False  # Prompt initialization flag.
 def welcome_msg():
     return(
     "{:#^80}\n\r".format("")+
-    "#{: ^78}#\n\r".format("WELCOME TO "+constants.NAME+" "+constants.SW_NAME+" "+constants.SW_VERSION)+
+    "#{: ^78}#\n\r".format("WELCOME TO "+config.NAME+" "+config.SW_NAME+" "+config.SW_VERSION)+
     "#{: ^78}#\n\r".format("")+
     "# {: <20}{: <57}#\n\r".format(" current time:", timestring(utime.time())+" UTC")+
     "# {: <20}{: <57}#\n\r".format(" machine:", uos.uname()[4])+
@@ -44,7 +44,7 @@ def welcome_msg():
 def read_cfg(file):
     """Parses a json configuration file."""
     try:
-        with open(constants.CONFIG_DIR + file) as cfg:
+        with open(config.CONFIG_DIR + file) as cfg:
             return ujson.load(cfg)
     except:
         log("Unable to read file {}".format(file), "e")
@@ -107,10 +107,10 @@ def log(msg, msg_type="m", new_line=True):
     if new_line:
         end_char = "\n"
     print(log_msg, end=end_char)
-    if constants.LOG_TO_FILE:
-        if msg_type in constants.LOG_LEVEL:
+    if config.LOG_TO_FILE:
+        if msg_type in config.LOG_LEVEL:
             try:
-                with open(constants.LOG_DIR + "/" + constants.LOG_FILE, "a") as log:  # TODO: start new file, zip old file, remove oldest
+                with open(config.LOG_DIR + "/" + config.LOG_FILE, "a") as log:  # TODO: start new file, zip old file, remove oldest
                     log.write(log_msg + end_char)
             except Exception as err:
                 print(err)
@@ -121,8 +121,8 @@ def log_data(data):
         continue
     file_lock.acquire()
     try:
-        with open(constants.DATA_DIR + "/" + eval(constants.DATA_FILE), "a") as data_file:  # append row to existing file
-            log("Writing out to file {} => {}".format(eval(constants.DATA_FILE), data))
+        with open(config.DATA_DIR + "/" + eval(config.DATA_FILE), "a") as data_file:  # append row to existing file
+            log("Writing out to file {} => {}".format(eval(config.DATA_FILE), data))
             data_file.write(data + "\r\n")
     except Exception as err:
         log("log_data ({}): {}".format(type(err).__name__, err), "e")  # DEBUG
@@ -133,33 +133,33 @@ def too_old(file):
     """Renames unsent files older than buffer days."""
     filename = file.split("/")[-1]
     path = file.replace("/" + file.split("/")[-1], "")
-    if utime.mktime(utime.localtime()) - utime.mktime([int(filename[0:4]),int(filename[4:6]),int(filename[6:8]),0,0,0,0,0]) > constants.BUF_DAYS * 86400:
-        uos.rename(file, path + "/" + constants.SENT_FILE_PFX + filename)
-        if path + "/" + constants.TMP_FILE_PFX + filename in uos.listdir(path):
-            uos.remove(path + "/" + constants.TMP_FILE_PFX + filename)
+    if utime.mktime(utime.localtime()) - utime.mktime([int(filename[0:4]),int(filename[4:6]),int(filename[6:8]),0,0,0,0,0]) > config.BUF_DAYS * 86400:
+        uos.rename(file, path + "/" + config.SENT_FILE_PFX + filename)
+        if path + "/" + config.TMP_FILE_PFX + filename in uos.listdir(path):
+            uos.remove(path + "/" + config.TMP_FILE_PFX + filename)
         return True
     return False
 
 def files_to_send():
     """Checks for files to send."""
     unsent_files = []
-    for file in uos.listdir(constants.DATA_DIR):
-        if file[0] not in (constants.TMP_FILE_PFX, constants.SENT_FILE_PFX):  # check for unsent files
+    for file in uos.listdir(config.DATA_DIR):
+        if file[0] not in (config.TMP_FILE_PFX, config.SENT_FILE_PFX):  # check for unsent files
             try:
                 int(file)
             except:
-                uos.remove(constants.DATA_DIR + "/" + file)  # Deletes all except data files.
+                uos.remove(config.DATA_DIR + "/" + file)  # Deletes all except data files.
                 continue
-            if not too_old(constants.DATA_DIR + "/" + file):
+            if not too_old(config.DATA_DIR + "/" + file):
                 # Checks if new data has been added to the file since the last transmission.
                 pointer = 0
                 try:
-                    with open(constants.DATA_DIR + "/" + constants.TMP_FILE_PFX + file, "r") as tmp:
+                    with open(config.DATA_DIR + "/" + config.TMP_FILE_PFX + file, "r") as tmp:
                         pointer = int(tmp.read())
                 except:
                     pass  # Tmp file does not exist.
-                if uos.stat(constants.DATA_DIR + "/" + file)[6] > pointer:
-                    unsent_files.append(constants.DATA_DIR + "/" + file)  # Makes a list of files to send.
+                if uos.stat(config.DATA_DIR + "/" + file)[6] > pointer:
+                    unsent_files.append(config.DATA_DIR + "/" + file)  # Makes a list of files to send.
     return unsent_files
 
 def mem_mon():
@@ -175,6 +175,8 @@ def create_device(device):
     try:
         exec("from " + device.split(".")[0] + " import " + device.split(".")[1].split("_")[0])  # Imports the class.
         exec(device.split(".")[1].lower() + " = " + device.split(".")[1].split("_")[0] + "(" + device.split(".")[1].split("_")[1] + ")")  # Creates the object.
+        exec("del " + device.split(".")[1].lower())
+        #exec("del " + device.split(".")[1].split("_")[0])
         return eval(device.split(".")[1].lower())
     except Exception as err:
         log("create_device ({}): {}".format(type(err).__name__, err), "e")  # DEBUG
@@ -192,7 +194,9 @@ def execute(schedule):
     processes.append(_thread.get_ident())
     process_lock.release()
     exec("from " + device.split(".")[0] + " import " + device.split(".")[1].split("_")[0])  # Imports the class.
-    exec(device.split(".")[1].lower() + "=" + device.split(".")[1].split("_")[0] + "(" + device.split(".")[1].split("_")[1] + ", " + str(tasks) + ")")  # Creates the object.
+    exec(device.split(".")[1].lower() + " = " + device.split(".")[1].split("_")[0] + "(" + device.split(".")[1].split("_")[1] + ", " + str(tasks) + ")")  # Creates the object.
+    exec("del " + device.split(".")[1].lower())
+    #exec("del " + device.split(".")[1].split("_")[0])
     while process_lock.locked():
         continue
     process_lock.acquire()

@@ -1,7 +1,7 @@
 import pyb
 import utime
 import tools.utils as utils
-import constants
+import config
 from device import DEVICE
 from tools.nmea import NMEA
 from math import sin, cos, sqrt, atan2, radians
@@ -9,9 +9,31 @@ from math import sin, cos, sqrt, atan2, radians
 class GPS(NMEA, DEVICE):
 
     def __init__(self, instance, tasks=[]):
-        """Constructor method."""
-        NMEA.__init__(self, instance)
-        DEVICE.__init__(self, instance, tasks)
+        DEVICE.__init__(self, instance)
+        NMEA.__init__(self)
+        ########################################################################
+        self.tasks = tasks
+        if self.tasks:
+            if not any( elem in ["start_up","on","off"] for elem in self.tasks):
+                self.status(2) # Sets device ready.
+                try:
+                    self.main()
+                except AttributeError:
+                    pass
+            for task in self.tasks:
+                method = task
+                param_dict={"self":self}
+                param_list=[]
+                params=""
+                if type(task) == tuple:
+                    method = task[0]
+                    i = 0
+                    for param in task[1:]:
+                        param_dict["param"+str(i)] = task[1:][i]
+                        param_list.append("param"+str(i))
+                        params = ",".join(param_list)
+                exec("self."+ method +"(" + params + ")", param_dict)
+        ########################################################################
 
     def start_up(self):
         """Performs the device specific initialization sequence."""
@@ -40,7 +62,6 @@ class GPS(NMEA, DEVICE):
             speed = "{}".format(self.sentence[7])
             heading = "{}".format(self.sentence[8])
             utils.log("{} => last fix (UTC: {} POSITION: {} {}, SPEED: {}, HEADING: {})".format(self.name, utc, lat, lon, speed, heading))  # DEBUG
-        return
 
     def displacement(self):
         """Calculates the displacement from the previous position and store it in :attr:`tools.utils.gps_displacement`."""
@@ -52,7 +73,6 @@ class GPS(NMEA, DEVICE):
         a = sin((last_lat - prev_lat) / 2)**2 + cos(prev_lat) * cos(last_lat) * sin((last_lon - prev_lon) / 2)**2
         c = 2 * atan2(sqrt(a), sqrt(1 - a))
         utils.gps_displacement = R * c
-        return
 
     def sync_rtc(self):
         """Synchronizes the board RTC with the gps utc timestamp."""
@@ -66,17 +86,15 @@ class GPS(NMEA, DEVICE):
                 utils.log("{} => controller clock successfully synchronized (UTC: {})".format(self.name, utils.timestring(utime.time())))
             except Exception as err:
                 utils.log("{} => sync_rtc ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG
-        return
 
     def log(self):
         """Writes out acquired data to file."""
         if self.sentence:
-            utils.log_data(constants.DATA_SEPARATOR.join(map(str, self.sentence)))
-        return
+            utils.log_data(config.DATA_SEPARATOR.join(map(str, self.sentence)))
 
     def main(self, sentence="RMC"):
         """Retreives data from a serial gps device."""
-        utils.log("{} => acquiring data...".format(self.name))
+        utils.log("{} => acquiring data...".format(self.name))  # DEBUG
         self.led.on()
         t0 = utime.time()
         while True:
@@ -92,4 +110,3 @@ class GPS(NMEA, DEVICE):
                     continue
                 break
         self.led.off()
-        return

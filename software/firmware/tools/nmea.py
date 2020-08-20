@@ -1,9 +1,9 @@
 import tools.utils as utils
-import constants
+import config
 
-class NMEA(object):
+class NMEA:
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self):
         self.new_sentence_flag = False
         self.checksum_flag = False
         self.checksum = ""
