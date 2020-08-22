@@ -13,11 +13,7 @@ class Y32500(DEVICE):
         self.tasks = tasks
         if self.tasks:
             if not any( elem in ["start_up","on","off"] for elem in self.tasks):
-                self.status(2) # Sets device ready.
-                try:
-                    self.main()
-                except AttributeError:
-                    pass
+                self.main()
             for task in self.tasks:
                 method = task
                 param_dict={"self":self}
@@ -34,10 +30,10 @@ class Y32500(DEVICE):
         ########################################################################
 
     def start_up(self):
-        """Performs the device specific initialization sequence."""
+        """Performs the instrument specific initialization sequence."""
         self.off()
 
-    def _wd_vect_avg(self, samples):
+    def wd_vect_avg(self, samples):
         """Calculates the average wind vector direction."""
         avg = 0
         sample_list = []
@@ -55,10 +51,10 @@ class Y32500(DEVICE):
             if avg < 0:
                 avg += 360
         except Exception as err:
-            utils.log("{} => _wd_vect_avg ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG
+            utils.log("{} => wd_vect_avg ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG
         return avg
 
-    def _ws_vect_avg(self, samples):
+    def ws_vect_avg(self, samples):
         """Calculates the average wind veector speed."""
         avg = 0
         sample_list = []
@@ -74,10 +70,10 @@ class Y32500(DEVICE):
                 y = y + (cos(radians(direction)) * pow(speed,2))
             avg = sqrt(x+y) / len(sample_list)
         except Exception as err:
-            utils.log("{} => _ws_vect_avg ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG
+            utils.log("{} => ws_vect_avg ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG
         return avg
 
-    def _ws_avg(self, samples):
+    def ws_avg(self, samples):
         """Calculates average wind speed."""
         avg = 0
         sample_list = []
@@ -86,10 +82,10 @@ class Y32500(DEVICE):
                 sample_list.append(int(sample[0]) * float(self.config["Meteo"]["Windspeed_" + self.config["Meteo"]["Windspeed_Unit"]]))
             avg = sum(sample_list) / len(sample_list)
         except Exception as err:
-            utils.log("{} => _ws_avg ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG
+            utils.log("{} => ws_avg ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG
         return avg
 
-    def _ws_max(self, samples):
+    def ws_max(self, samples):
         """Calculates the gust speed."""
         maxspeed = 0
         sample_list = []
@@ -98,21 +94,21 @@ class Y32500(DEVICE):
                 sample_list.append(int(sample[0]) * float(self.config["Meteo"]["Windspeed_" + self.config["Meteo"]["Windspeed_Unit"]]))
             maxspeed = max(sample_list)
         except Exception as err:
-            utils.log("{} => _ws_max ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG
+            utils.log("{} => ws_max ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG
         return maxspeed
 
-    def _wd_max(self, samples):
+    def wd_max(self, samples):
         """Calculates the gust direction."""
         maxdir = 0
         try:
             for sample in samples:
-                if sample[0] == self._ws_max(samples):
+                if sample[0] == self.ws_max(samples):
                     maxdir = sample[1] / 10
         except Exception as err:
-            utils.log("{} => _wd_max ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG
+            utils.log("{} => wd_max ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG
         return maxdir
 
-    def _temp_avg(self, samples):
+    def temp_avg(self, samples):
         """Calculates the average air temperature."""
         avg = 0
         sample_list = []
@@ -121,10 +117,10 @@ class Y32500(DEVICE):
                 sample_list.append(int(sample[2]) * float(self.config["Meteo"]["Temp_Conv_0"]) - float(self.config["Meteo"]["Temp_Conv_1"]))
             avg = sum(sample_list) / len(sample_list)
         except Exception as err:
-            utils.log("{} => _temp_avg ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG
+            utils.log("{} => temp_avg ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG
         return avg
 
-    def _press_avg(self, samples):
+    def press_avg(self, samples):
         """Calculates the average barometric pressure."""
         avg = 0
         sample_list = []
@@ -133,10 +129,10 @@ class Y32500(DEVICE):
                 sample_list.append(int(sample[3]) * float(self.config["Meteo"]["Press_Conv_0"]) + float(self.config["Meteo"]["Press_Conv_1"]))
             avg = sum(sample_list) / len(sample_list)
         except Exception as err:
-            utils.log("{} => _press_avg ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG
+            utils.log("{} => press_avg ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG
         return avg
 
-    def _hum_avg(self, samples):
+    def hum_avg(self, samples):
         """Calculates the average relative humidity."""
         avg = 0
         sample_list = []
@@ -145,10 +141,10 @@ class Y32500(DEVICE):
                 sample_list.append(int(sample[4]) * float(self.config["Meteo"]["Hum_Conv_0"]))
             avg = sum(sample_list) / len(sample_list)
         except Exception as err:
-            utils.log("{} => _hum_avg ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG
+            utils.log("{} => hum_avg ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG
         return avg
 
-    def _compass_avg(self, samples):
+    def compass_avg(self, samples):
         """Calculates the average heading."""
         avg = 0
         sample_list = []
@@ -164,10 +160,10 @@ class Y32500(DEVICE):
             if avg < 0:
                 avg += 360
         except Exception as err:
-            utils.log("{} => _compass_avg ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG
+            utils.log("{} => compass_avg ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG
         return avg
 
-    def _radiance_avg(self, samples):
+    def radiance_avg(self, samples):
         """Calculates the average solar radiance."""
         avg = 0
         sample_list = []
@@ -176,7 +172,7 @@ class Y32500(DEVICE):
                 sample_list.append(int(sample[5]) * float(self.config["Meteo"]["Rad_Conv_0"]))
             avg = sum(sample_list) / len(sample_list)
         except Exception as err:
-            utils.log("{} => _radiance_avg ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG
+            utils.log("{} => radiance_avg ({}): {}".format(self.name, type(err).__name__, err), "e")  # DEBUG
         return avg
 
     def format_data(self, samples):
@@ -187,17 +183,17 @@ class Y32500(DEVICE):
             str(utils.unix_epoch(epoch)),
             utils.datestamp(epoch),  # MMDDYY
             utils.timestamp(epoch),  # hhmmss
-            "{:.1f}".format(self._wd_vect_avg(samples)),  # vectorial avg wind direction
-            "{:.1f}".format(self._ws_avg(samples)),  # avg wind speed
-            "{:.1f}".format(self._temp_avg(samples)),  # avg temp
-            "{:.1f}".format(self._press_avg(samples)),  # avg pressure
-            "{:.1f}".format(self._hum_avg(samples)),  # avg relative humidity
-            "{:.1f}".format(self._compass_avg(samples)),  # avg heading
-            "{:.1f}".format(self._ws_vect_avg(samples)),  # vectorial avg wind speed
-            "{:.1f}".format(self._ws_max(samples)),  # gust speed
-            "{:.1f}".format(self._wd_max(samples)),  # gust direction
+            "{:.1f}".format(self.wd_vect_avg(samples)),  # vectorial avg wind direction
+            "{:.1f}".format(self.ws_avg(samples)),  # avg wind speed
+            "{:.1f}".format(self.temp_avg(samples)),  # avg temp
+            "{:.1f}".format(self.press_avg(samples)),  # avg pressure
+            "{:.1f}".format(self.hum_avg(samples)),  # avg relative humidity
+            "{:.1f}".format(self.compass_avg(samples)),  # avg heading
+            "{:.1f}".format(self.ws_vect_avg(samples)),  # vectorial avg wind speed
+            "{:.1f}".format(self.ws_max(samples)),  # gust speed
+            "{:.1f}".format(self.wd_max(samples)),  # gust direction
             "{:0d}".format(len(samples)),  # number of strings
-            "{:.1f}".format(self._radiance_avg(samples))  # solar radiance (optional)
+            "{:.1f}".format(self.radiance_avg(samples))  # solar radiance (optional)
             ]
         return data
 
@@ -214,7 +210,7 @@ class Y32500(DEVICE):
         r_buff = bytearray(1)
         sample = []
         t0 = utime.time()
-        while not len(self.data) == self.samples:  # Reads out n-strings.
+        while len(self.data) <  self.samples:  # Reads out n-strings.
             if self._timeout(t0, self.timeout):
                 utils.log("{} => timeout occourred".format(self.name), "e")
                 if not self.data:

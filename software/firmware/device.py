@@ -99,11 +99,3 @@ class DEVICE:
         if not status is None and any(key == status for key, value in config.DEVICE_STATUS.items()):
             utils.status_table[self.name] = status
         return config.DEVICE_STATUS[utils.status_table[self.name]]
-
-    def _main(self, function):
-        def wrapper(self):
-            utils.log("{} => acquiring data...".format(self.name))  # DEBUG
-            self.led.on()
-            function(self)
-            self.led.off()
-        return wrapper

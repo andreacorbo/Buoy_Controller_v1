@@ -1,10 +1,10 @@
 import utime
 import uselect
-from device import DEVICE
-from tools.ymodem import YMODEM
 import tools.utils as utils
 import tools.shutil as shutil
 import config
+from device import DEVICE
+from tools.ymodem import YMODEM
 
 class MODEM(DEVICE, YMODEM):
 
@@ -19,12 +19,6 @@ class MODEM(DEVICE, YMODEM):
         ########################################################################
         self.tasks = tasks
         if self.tasks:
-            if not any( elem in ["start_up","on","off"] for elem in self.tasks):
-                self.status(2) # Sets device ready.
-                try:
-                    self.main()
-                except AttributeError:
-                    pass
             for task in self.tasks:
                 method = task
                 param_dict={"self":self}
@@ -41,19 +35,14 @@ class MODEM(DEVICE, YMODEM):
         ########################################################################
 
     def start_up(self):
-        """Performs the device specific initialization sequence."""
+        """Performs the instrument specific initialization sequence."""
         self.on()
-        self.init_terminal()
+        if self.is_ready():
+            self.init_terminal()
 
-    def init_terminal(self):
-        utils.log("{} => initializing".format(self.name))  # DEBUG
-        self.uart.read()  # Flushes input buffer.
+    def is_ready(self):
         t0 = utime.time()
-        while True:
-            if self._timeout(t0, self.config["Modem"]["Init_Timeout"]):
-                utils.log("{} => did not respond in {} secs.".format(self.name,self.config["Modem"]["Init_Timeout"]), "e")  # DEBUG
-                utils.log("{} => initialization failed".format(self.name), "e")  # DEBUG
-                return
+        while not self._timeout(t0, self.config["Modem"]["Init_Timeout"]):
             utils.verbose("AT\r",config.VERBOSE)
             self.uart.write("AT\r")
             if self.uart.any():
@@ -63,9 +52,14 @@ class MODEM(DEVICE, YMODEM):
                     continue
                 utils.verbose(rxd, config.VERBOSE)
                 if "OK" in rxd:
-                    break
+                    return True
                 else:
                     utime.sleep(1)
+        utils.log("{} => did not respond in {} secs.".format(self.name,self.config["Modem"]["Init_Timeout"]), "e")  # DEBUG
+        return False
+
+    def init_terminal(self):
+        self.uart.read()  # Flushes input buffer.
         for _ in range(self.config["Modem"]["Call_Attempt"]):
             retry = False
             for at in self.config["Modem"]["Init_Ats"]:
@@ -89,31 +83,15 @@ class MODEM(DEVICE, YMODEM):
                 utime.sleep(self.config["Modem"]["Ats_Delay"])
                 if retry:
                     break
-            if not retry:
-                utils.log("{} => initialization succeeded".format(self.name))  # DEBUG
 
     def _getc(self, size, timeout=1):
-        """Reads bytes from serial.
-
-        Params:
-            size(int): num of bytes
-            timeout(int)
-        Returns:
-            given data or None
-        """
+        """Reads out n-bytes from serial."""
         r, w, e = uselect.select([self.uart], [], [], timeout)
         if r:
             return self.uart.read(size)
 
     def _putc(self, data, timeout=1):
-        """Writes bytes to serial.
-
-        Params:
-            data(bytes)
-            timeout(int)
-        Returns:
-            written data or None
-        """
+        """Writes out n-bytes to serial."""
         r, w, e = uselect.select([], [self.uart], [], timeout)
         if w:
             return self.uart.write(data)
@@ -124,23 +102,13 @@ class MODEM(DEVICE, YMODEM):
         self.send(unsent_files, config.TMP_FILE_PFX, config.SENT_FILE_PFX)
 
     def _recv(self, timeout=10):
-        """Receives files.
-
-        Params:
-            attempts(int): number of attempts
-        Returns:
-            True or False
-        """
+        """Receives files."""
         utils.log("{} => receiving...".format(self.name))  # DEBUG
         if timeout > 0:
             self.recv(timeout)
 
     def call(self):
-        """Starts a call.
-
-        Returns:
-            True or False
-        """
+        """Starts a call."""
         self.uart.read()  # Flushes input buffer.
         utils.log("{} => dialing...".format(self.name))  # DEBUG
         for at in self.config["Modem"]["Pre_Ats"]:
@@ -172,11 +140,7 @@ class MODEM(DEVICE, YMODEM):
 
 
     def hangup(self):
-        """Ends a call.
-
-        Returns:
-            True or False
-        """
+        """Ends a call."""
         self.uart.read()  # Flushes input buffer.  # Flushes uart buffer
         for at in self.config["Modem"]["Post_Ats"]:
             utils.verbose(at,config.VERBOSE)
@@ -220,11 +184,7 @@ class MODEM(DEVICE, YMODEM):
         self.led.off()
 
     def sms(self, text):
-        """Starts a call.
-
-        Returns:
-            True or False
-        """
+        """Sends sms."""
         utils.log("{} => sending alert sms...".format(self.name))  # DEBUG
         self.led.on()
         self.uart.read()  # Flushes input buffer.
@@ -256,7 +216,3 @@ class MODEM(DEVICE, YMODEM):
         self.uart.write(text)
         self.uart.write(b"\x1A")
         self.led.off()
-
-    def main(self):
-        """Do nothing, just for service pourpose."""
-        return

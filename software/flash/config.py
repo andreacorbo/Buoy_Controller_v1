@@ -32,7 +32,7 @@ CTRL_PINS = {                 # ctrl_pin to device position mapping this paramet
     101:"Y4"
     }
 LEDS = {"IO":1, "PWR":2, "RUN":3, "SLEEP":4}  # red, green, yellow, blue
-TIMEOUT = 10                                                                      # sec.
+TIMEOUT = 1                                                                      # sec.
 WD_TIMEOUT = 30000  # 1000ms < watchdog timer timeout < 32000ms
 IRQ_TIMEOUT = 60  # millis. Waits at least 60 secs to allow usb_vcp gets ready and prevent sleep mode.
 ESC_CHAR = "#"
@@ -43,13 +43,13 @@ SESSION_TIMEOUT = 120  # sec.
 DATA_DIR = "/sd/data"
 DATA_FILE = "\"{:04d}{:02d}{:02d}\".format(utime.localtime()[0], utime.localtime()[1], utime.localtime()[2])"
 DATA_SEPARATOR = ","
-SCHEDULE = 600  # sec.
+SCHEDULE = 300  # sec.
 TASK_SCHEDULE = {
-    "dev_gps.GPS_1":{"sync_rtc":600, "last_fix":300},
-    "dev_modem.MODEM_1":{"data_transfer":600},
+    "dev_gps.GPS_1":{"last_fix":300, "sync_rtc":600},
+    "dev_modem.MODEM_1":{"data_transfer":1800},
     "dev_aml.UVXCHANGE_1":{"disable":600}
     }
-SLOT_DELAY = 70  # because meteo and gps share the same uart
+SLOT_DELAY = 80  # because meteo and gps share the same uart
                  # meteo must remain OFF until gps finishes its tasks to
                  # avoid byte collision.
                  # This parameter can be drastically reduced to few seconds when

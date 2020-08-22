@@ -15,11 +15,7 @@ class GPS(NMEA, DEVICE):
         self.tasks = tasks
         if self.tasks:
             if not any( elem in ["start_up","on","off"] for elem in self.tasks):
-                self.status(2) # Sets device ready.
-                try:
-                    self.main()
-                except AttributeError:
-                    pass
+                self.main()
             for task in self.tasks:
                 method = task
                 param_dict={"self":self}
@@ -36,7 +32,7 @@ class GPS(NMEA, DEVICE):
         ########################################################################
 
     def start_up(self):
-        """Performs the device specific initialization sequence."""
+        """Performs the instrument specific initialization sequence."""
         self.off()
 
     def is_fixed(self):

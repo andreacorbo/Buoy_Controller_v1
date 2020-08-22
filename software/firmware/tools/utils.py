@@ -1,3 +1,4 @@
+import pyb
 import machine
 import ujson
 import uos
@@ -162,43 +163,47 @@ def files_to_send():
                     unsent_files.append(config.DATA_DIR + "/" + file)  # Makes a list of files to send.
     return unsent_files
 
-def mem_mon():
-    """Prints out memory usage."""
-    import gc
-    free = gc.mem_free()
-    alloc = gc.mem_alloc()
-    tot = free + alloc
-    print("free {:2.0f}%, alloc {:2.0f}%".format(100 * free / tot, 100 - 100 * free / tot))
-
-def create_device(device):
+def create_device(device, tasks=[]):
     """Creates and return an istance of the passed device."""
     try:
         exec("from " + device.split(".")[0] + " import " + device.split(".")[1].split("_")[0])  # Imports the class.
-        exec(device.split(".")[1].lower() + " = " + device.split(".")[1].split("_")[0] + "(" + device.split(".")[1].split("_")[1] + ")")  # Creates the object.
-        exec("del " + device.split(".")[1].lower())
-        #exec("del " + device.split(".")[1].split("_")[0])
+        exec(device.split(".")[1].lower() + " = " + device.split(".")[1].split("_")[0] + "(" + device.split(".")[1].split("_")[1]  + ", " + str(tasks) +  ")")  # Creates the object.
         return eval(device.split(".")[1].lower())
     except Exception as err:
         log("create_device ({}): {}".format(type(err).__name__, err), "e")  # DEBUG
 
 
-def execute(schedule):
+def execute(device, tasks=[]):
     """Manages processes list at thread starting/ending."""
     # schedule = (device, [task1,(task2, param1,...),...]) dev_module.CLASS_instance
     global process_lock, processes
-    device = schedule[0]
-    tasks = schedule[1]
     while process_lock.locked():
         continue
     process_lock.acquire()
-    processes.append(_thread.get_ident())
+    processes.append(device)
     process_lock.release()
     exec("from " + device.split(".")[0] + " import " + device.split(".")[1].split("_")[0])  # Imports the class.
     exec(device.split(".")[1].lower() + " = " + device.split(".")[1].split("_")[0] + "(" + device.split(".")[1].split("_")[1] + ", " + str(tasks) + ")")  # Creates the object.
     exec("del " + device.split(".")[1].lower())
-    #exec("del " + device.split(".")[1].split("_")[0])
     while process_lock.locked():
         continue
     process_lock.acquire()
-    processes.remove(_thread.get_ident())
+    processes.remove(device)
     process_lock.release()
+
+def power(dev, mode="off"):
+    pin = config.CTRL_PINS[dict(map(reversed, config.DEVICES.items()))[dev]]
+    gpio = pyb.Pin(config.CTRL_PINS[dict(map(reversed, config.DEVICES.items()))[dev]], pyb.Pin.OUT, pyb.Pin.PULL_DOWN)
+    if mode == "on":
+        mode = 1
+    else:
+        mode = 0
+    gpio.value(mode)
+    log("{} => {}".format(dev, status(dev, mode)))
+
+def status(dev, status=None):
+    """Returns or sets the current device status."""
+    global status_table
+    if not status is None and any(key == status for key in config.DEVICE_STATUS):
+        status_table[dev] = status
+    return config.DEVICE_STATUS[status_table[dev]]

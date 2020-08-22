@@ -108,7 +108,7 @@ class PYBOARD:
         for port,dev in sorted(config.DEVICES.items()):
             if port >= 0:  # Skips device with a negative port number.
                 try:
-                    _thread.start_new_thread(utils.execute, ((dev, ["start_up"]),))
+                    _thread.start_new_thread(utils.execute, (dev, ["start_up"]))
                 except Exception as err:
                     utils.log("{} => init_devices ({}): {}".format(self.__qualname__, type(err).__name__, err), "e")  # DEBUG
         utime.sleep_ms(500)  # Waits for threads starting.
@@ -167,11 +167,7 @@ class SYSMON(DEVICE):
         self.tasks = tasks
         if self.tasks:
             if not any( elem in ["start_up","on","off"] for elem in self.tasks):
-                self.status(2) # Sets device ready.
-                try:
-                    self.main()
-                except AttributeError:
-                    pass
+                self.main()
             for task in self.tasks:
                 method = task
                 param_dict={"self":self}
@@ -188,7 +184,7 @@ class SYSMON(DEVICE):
         ########################################################################
 
     def start_up(self):
-        """Performs device specific initialization sequence."""
+        """Performs the instrument specific initialization sequence."""
         self.status(1)  # Virtual device is always on.
 
     def adcall_mask(self, channels):
@@ -253,6 +249,29 @@ class SYSMON(DEVICE):
             utils.log("{} => fs_freespace ({}): {}".format(self.__qualname__, type(err).__name__, err), "e")  # DEBUG
         return 0
 
+    def format_data(self, sample):
+        epoch = utime.time()
+        data = [
+            self.config["String_Label"],
+            str(utils.unix_epoch(epoch)),
+            utils.datestamp(epoch),  # MMDDYY
+            utils.timestamp(epoch),  # hhmmss
+            "{:.4f}".format(self.battery_level(sample[0])),  # Battery voltage [V].
+            "{:.4f}".format(self.current_level(sample[1])),  # Current consumption [A].
+            "{:.4f}".format(self.ad22103(sample[2], sample[6])),  # Internal vessel temp [°C].
+            "{:.4f}".format(sample[3]),  # Core temp [°C].
+            "{:.4f}".format(sample[4]),  # Core vbat [V].
+            "{:.4f}".format(sample[5]),  # Core vref [V].
+            "{:.4f}".format(sample[6]),  # Vref [V].
+            "{}".format(sample[7]//1024)  # SD free space [kB].
+            ]
+        return data
+
+    def log(self):
+        """Writes out acquired data to file."""
+        if self.data:
+            utils.log_data(config.DATA_SEPARATOR.join(self.format_data(self.data)))
+
     def main(self):
         """Gets data from internal sensors."""
         utils.log("{} => acquiring data...".format(self.name))  # DEBUG
@@ -294,25 +313,3 @@ class SYSMON(DEVICE):
         self.data.append(vref)
         self.data.append(self.fs_freespace())
         self.led.off()
-
-    def format_data(self, sample):
-        epoch = utime.time()
-        data = [
-            self.config["String_Label"],
-            str(utils.unix_epoch(epoch)),
-            utils.datestamp(epoch),  # MMDDYY
-            utils.timestamp(epoch),  # hhmmss
-            "{:.4f}".format(self.battery_level(sample[0])),  # Battery voltage [V].
-            "{:.4f}".format(self.current_level(sample[1])),  # Current consumption [A].
-            "{:.4f}".format(self.ad22103(sample[2], sample[6])),  # Internal vessel temp [°C].
-            "{:.4f}".format(sample[3]),  # Core temp [°C].
-            "{:.4f}".format(sample[4]),  # Core vbat [V].
-            "{:.4f}".format(sample[5]),  # Core vref [V].
-            "{:.4f}".format(sample[6]),  # Vref [V].
-            "{}".format(sample[7]//1024)  # SD free space [kB].
-            ]
-        return data
-
-    def log(self):
-        """Writes out acquired data to file."""
-        utils.log_data(config.DATA_SEPARATOR.join(self.format_data(self.data)))

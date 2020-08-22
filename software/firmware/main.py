@@ -1,3 +1,4 @@
+import micropython
 import machine
 import pyb
 import utime
@@ -12,28 +13,28 @@ from session import SESSION
 
 #pyb.repl_uart(pyb.UART(1,9600))  # DEBUG Forwards repl to uart 1 to monitoring even if sleep.
 
-for i in reversed(range(5)):  # DEBUG Delays main loop to stop before sleep.
+'''for i in reversed(range(5)):  # DEBUG Delays main loop to stop before sleep.
     print("{:> 2d}\" to system startup...".format(i), end="\r")
     utime.sleep(1)
 
 utils.log("{}".format(config.RESET_CAUSE[machine.reset_cause()]), "e")  # DEBUG Prints out the reset cause.
 
-print(utils.welcome_msg())
+print(utils.welcome_msg())'''
 
 board = PYBOARD()  # Creates a board object.
 
-session = SESSION(board=board, timeout=config.SESSION_TIMEOUT)  # Starts up the remote session.
+'''session = SESSION(board=board, timeout=config.SESSION_TIMEOUT)  # Starts up the remote session.'''
 
 scheduler = SCHEDULER()  # Creates the scheduler object.
 
-esc_buff = []  # Initializes the escape character counter.
+'''esc_buff = []  # Initializes the escape character counter.
 
 #wdt = machine.WDT(timeout=config.WD_TIMEOUT)  # Starts up the watchdog timer.
 
-t0 = utime.time()  # Gets timestamp at startup.
+t0 = utime.time()  # Gets timestamp at startup.'''
 
 while True:
-    #wdt.feed()  # Resets the watchdog timer.
+    '''#wdt.feed()  # Resets the watchdog timer.
     # Board has been woken up.
     if board.interrupted:
         # Prints out welcome msg if usb is connected, otherwise polls uart to catch escape sequence.
@@ -95,14 +96,14 @@ while True:
             board.interactive = False
             session.init()
     else:
-        utime.sleep_ms(500)  # Adds 500ms delay to allow threads startup.
-        t0 = utime.time()  # Gets timestamp before sleep.
-        if not utils.processes: # Waits for no running threads and no usb connection before sleep.
-            '''if utils.gps_displacement > config.DISPLACEMENT_THRESHOLD:
-                _thread.start_new_thread(utils.execute, (("dev_modem.MODEM_1", [("sms",eval(config.DISPLACEMENT_SMS))]),))
-                utils.gps_displacement = 0'''
-            if scheduler.next_event > t0 and not board.usb.isconnected():
-                board.go_sleep(scheduler.next_event - t0)  # Puts board in sleep mode.
+    utime.sleep_ms(500)  # Adds 500ms delay to allow threads startup.'''
+    t0 = utime.time()  # Gets timestamp before sleep.
+    if not utils.processes: # Waits for no running threads and no usb connection before sleep.
+        '''if utils.gps_displacement > config.DISPLACEMENT_THRESHOLD:
+            _thread.start_new_thread(utils.execute, (("dev_modem.MODEM_1", [("sms",eval(config.DISPLACEMENT_SMS))]),))
+            utils.gps_displacement = 0'''
+        if scheduler.next_event > t0 and not board.usb.isconnected():
+            board.go_sleep(scheduler.next_event - t0)  # Puts board in sleep mode.
     t0 = utime.time()  # Gets timestamp at wakeup.
     board.lastfeed = t0
     #wdt.feed()  # Resets the watchdog timer.
