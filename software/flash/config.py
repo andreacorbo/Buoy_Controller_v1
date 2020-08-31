@@ -9,16 +9,16 @@ LOG_FILE = "syslog"
 LOG_LEVEL = ["e"]  # e, w, m
 LOG_TO_FILE = True  # False screen output, True log to file
 VERBOSE = 0  # 0 nothing, 1 shows device activity
-STATUS_DICT = {0:"off", 1:"on", 2:"ready"}
+STATUS_DICT = {0:"off", 1:"on", 2:"run_period", 3:"run_until_complete"}
 DEVICES = {
     "dev_gps.GPS_1":0,
     "dev_aux.AUX_1":-3,  # configured to enable uart 1 as monitor
     "dev_young.Y32500_1":4,  # virtually assigned to slot 2 to avoid conflict with gps
     "dev_aml.METRECX_1":5,  # virtually assigned to slot 2 to avoid conflict with gps
     "dev_nortek.AQUADOPP_1":6,  # virtually assigned to slot 2 to stay in sync with the other instruments
-    "dev_modem.MODEM_1":-100,
+    "dev_modem.MODEM_1":100,
     "dev_aml.UVXCHANGE_1":101,
-    "dev_board.SYSMON_1":-999
+    "dev_board.SYSMON_1":999
     }
 
 UARTS = {0:2, 1:4, 2:6, 3:1}  # uart number to uart channel mapping
@@ -49,7 +49,7 @@ DATA_SEPARATOR = ","
 SCHEDULE = 120  # sec.
 TASK_SCHEDULE = {
     "dev_gps.GPS_1":{"last_fix":120, "sync_rtc":120},
-    "dev_modem.MODEM_1":{"data_transfer":120},
+    "dev_modem.MODEM_1":{"test":120},
     "dev_aml.UVXCHANGE_1":{"off":120}
     }
 SLOT_DELAY = 60  # because meteo and gps share the same uart

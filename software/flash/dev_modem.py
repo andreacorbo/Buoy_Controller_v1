@@ -20,7 +20,7 @@ class MODEM(DEVICE, YMODEM):
         self.tasks = tasks
         if self.tasks:
             if not any( elem in ["start_up","on","off"] for elem in self.tasks):
-                self.status(2)
+                self.status(3)
             for task in self.tasks:
                 method = task
                 param_dict={"self":self}
@@ -218,3 +218,9 @@ class MODEM(DEVICE, YMODEM):
         self.uart.write(text)
         self.uart.write(b"\x1A")
         self.led.off()
+
+    def test(self):
+        for _ in range(140):
+            print("test {}".format(_))
+            utime.sleep(1)
+        self.off()

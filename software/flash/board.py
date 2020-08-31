@@ -35,19 +35,23 @@ def init_interrupts():
         irqs.append(pyb.ExtInt(pyb.Pin(pin[0], pyb.Pin.IN), eval("pyb.ExtInt." + pin[1]), eval("pyb.Pin." + pin[2]), ext_callback))
 
 def run_async(dev, tasks=[]):
-    while lock.locked():
-        continue
-    lock.acquire()
-    processes.append(dev)
-    lock.release()
-    exec("from " + dev.split(".")[0] + " import " + dev.split(".")[1].split("_")[0])
-    exec(dev.split(".")[1].lower() + " = " + dev.split(".")[1].split("_")[0] + "(" + dev.split(".")[1].split("_")[1]  + ", " + str(tasks) +  ")")
-    exec("del " + dev.split(".")[1].lower())
-    while lock.locked():
-        continue
-    lock.acquire()
-    processes.remove(dev)
-    lock.release()
+    try:
+        while lock.locked():
+            continue
+        lock.acquire()
+        processes.append(dev)
+        lock.release()
+        exec("from " + dev.split(".")[0] + " import " + dev.split(".")[1].split("_")[0])
+        exec(dev.split(".")[1].lower() + " = " + dev.split(".")[1].split("_")[0] + "(" + dev.split(".")[1].split("_")[1]  + ", " + str(tasks) +  ")")
+        exec("del " + dev.split(".")[1].lower())
+        while lock.locked():
+            continue
+        lock.acquire()
+        processes.remove(dev)
+        lock.release()
+    except Exception as err:
+        print(err)
+
 
 def init_devices():
     msg(" init devices ".upper())
@@ -63,8 +67,11 @@ def next_event(timestamp):
         for _ in sorted(gen_events(timestamp)):
             print("{} -> {:<25}{}".format(timestring(_[0]), _[1], _[2]))
         msg("-")
-    next = min(gen_events(timestamp))[0]
-    print_events(timestamp)
+    try:
+        next = min(gen_events(timestamp))[0]
+        print_events(timestamp)
+    except:
+        pass
 
 def power(dev, status):
     if config.DEVICES[dev] in config.CTRL_PINS:
@@ -83,7 +90,7 @@ def schedule(timestamp):
             _thread.start_new_thread(run_async, (dev,tl))
         t0 = utime.time()
         while status0 == config.DEVICE_STATUS[dev]:
-            if(utime.time() - t0 > 2):
+            if(utime.time() - t0 > 1):
                 break
             continue
 
