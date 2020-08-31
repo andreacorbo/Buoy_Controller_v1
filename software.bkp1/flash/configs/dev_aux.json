@@ -1,5 +1,5 @@
 {
-	"GPS":{
+	"AUX":{
 		"Uart":{
 			"Baudrate":9600,
 			"Bits":8,
@@ -8,12 +8,10 @@
 			"Timeout":10,
 			"Timeout_Char":10,
 			"Flow_Control":0,
-			"Read_Buf_Len":512,
-			"Write_Buf_Len":0,
+			"Read_Buf_Len":1024,
+			"Write_Buf_Len":1024,
 			"Read_Char_Attempt":10
 		},
-		"Warmup_Interval":48,
-		"Samples":8,
-		"Sample_Rate":4
-		}
+		"Warmup_Interval":-1
 	}
+}

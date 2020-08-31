@@ -203,7 +203,7 @@ class YMODEM:
             except:
                 print("UNABLE TO RENAME {} FILE".format(file))
 
-    def _bkp_file(self, file, bkp_file_pfx):  # TODO
+    def _bkp_file(self, file):  # TODO
         bkp_file = file.replace(file.split("/")[-1], bkp_file_pfx + file.split("/")[-1])
         if file.split("/")[-1] == eval(config.DATA_FILE):  # Acquires the lock to safe handling the current data file.
             if not utils.file_lock.acquire(1, config.TIMEOUT):
@@ -295,7 +295,7 @@ class YMODEM:
         return crc & 0xffff
 
 
-    def send(self, files, tmp_file_pfx, sent_file_pfx, bkp_file_pfx, retry=3, timeout=30):
+    def send(self, files, tmp_file_pfx, sent_file_pfx, retry=3, timeout=30):
         """Sends files according to ymodem protocol.
 
         Params:
@@ -356,12 +356,11 @@ class YMODEM:
             filename = file.split("/")[-1]
             if file != "\x00":
                 filename = config.NAME.lower() + "/" + filename  # Adds system name to filename.
-                #try:
-                bkp_file = self._bkp_file(file, bkp_file_pfx)
-                stream = open(bkp_file)
-                #except:
-                #    print("UNABLE TO OPEN {}, TRY NEXT FILE...".format(bkp_file))
-                #    continue
+                try:
+                    stream = open(self._bkp_file(file))
+                except:
+                    print("UNABLE TO OPEN {}, TRY NEXT FILE...".format(bkp_file))
+                    continue
                 self._get_last_byte(tmp_file, stream)  # read last byte from .file
                 pointer = stream.tell()  # set stream pointer
                 if pointer == uos.stat(bkp_file)[6]:  # check if pointer correspond to file size

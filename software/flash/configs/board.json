@@ -1,0 +1,18 @@
+{
+	"BOARD":{
+		"Uart":{
+			"Bus":3,
+			"Baudrate":9600,
+			"Bits":8,
+			"Parity":"None",
+			"Stop":1,
+			"Timeout":1000,
+			"Timeout_Char":0,
+			"Flow_Control":0,
+			"Read_Buf_Len":64,
+			"Write_Buf_Len":64,
+			"Read_Char_Attempt":10
+		},
+		"Irq_Pins":[["Y10", "IRQ_FALLING", "PULL_UP"], ["A9", "IRQ_RISING", "PULL_UP"]]
+	}
+}

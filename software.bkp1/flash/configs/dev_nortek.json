@@ -1,5 +1,5 @@
 {
-	"METRECX":{
+	"AQUADOPP":{
 		"Uart":{
 			"Baudrate":9600,
 			"Bits":8,
@@ -12,17 +12,13 @@
 			"Write_Buf_Len":1024,
 			"Read_Char_Attempt":10
 		},
-		"Warmup_Interval":20,
+		"Warmup_Interval":-1,
 		"Samples":10,
 		"Sample_Rate":1,
-		"String_Label":"$METRECXR",
-		"Ctd":{
-			"Break_Sequence":"\x03\r",
-			"Break_Timeout":1,
-			"Prompt_Timeout":1
+		"String_Label":"$NORTEK",
+		"Adcp":{
+			"Deployment_Config":"aquadopp_1.pcf",
+			"Instrument_Config":"aquadopp_1.cfg"
 		}
-	},
-	"UVXCHANGE":{
-		"Warmup_Interval":60
 	}
 }

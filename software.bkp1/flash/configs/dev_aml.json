@@ -12,7 +12,7 @@
 			"Write_Buf_Len":1024,
 			"Read_Char_Attempt":10
 		},
-		"Warmup_Interval":20,
+		"Warmup_Interval":50,
 		"Samples":10,
 		"Sample_Rate":1,
 		"String_Label":"$METRECXR",
@@ -23,6 +23,6 @@
 		}
 	},
 	"UVXCHANGE":{
-		"Warmup_Interval":60
+		"Warmup_Interval":300
 	}
 }

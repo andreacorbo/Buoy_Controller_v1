@@ -32,7 +32,6 @@ class AQUADOPP(DEVICE):
         self.tasks = tasks
         if self.tasks:
             if not any( elem in ["start_up","on","off"] for elem in self.tasks):
-                self.status(2)
                 self.main()
             for task in self.tasks:
                 method = task
