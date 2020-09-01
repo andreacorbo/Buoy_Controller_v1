@@ -162,8 +162,7 @@ class MODEM(DEVICE, YMODEM):
 
     def data_transfer(self):
         """Sends files over the gsm network."""
-        unsent_files = utils.files_to_send()
-        if unsent_files:
+        if utils.files_to_send():
             self.led.on()
             ########################################################################
             if config.DEBUG:
@@ -177,7 +176,7 @@ class MODEM(DEVICE, YMODEM):
                         break
             if self.connected:
                 utils.log("{} => sending...".format(self.name))  # DEBUG
-                self.send(unsent_files, config.TMP_FILE_PFX, config.SENT_FILE_PFX, config.BKP_FILE_PFX)
+                self.send(utils.files_to_send(), config.TMP_FILE_PFX, config.SENT_FILE_PFX, config.BKP_FILE_PFX)
                 #self._recv()
                 self.hangup()
             else:
@@ -218,9 +217,3 @@ class MODEM(DEVICE, YMODEM):
         self.uart.write(text)
         self.uart.write(b"\x1A")
         self.led.off()
-
-    def test(self):
-        for _ in range(140):
-            print("test {}".format(_))
-            utime.sleep(1)
-        self.off()

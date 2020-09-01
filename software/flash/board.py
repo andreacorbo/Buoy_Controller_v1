@@ -35,23 +35,19 @@ def init_interrupts():
         irqs.append(pyb.ExtInt(pyb.Pin(pin[0], pyb.Pin.IN), eval("pyb.ExtInt." + pin[1]), eval("pyb.Pin." + pin[2]), ext_callback))
 
 def run_async(dev, tasks=[]):
-    try:
-        while lock.locked():
-            continue
-        lock.acquire()
-        processes.append(dev)
-        lock.release()
-        exec("from " + dev.split(".")[0] + " import " + dev.split(".")[1].split("_")[0])
-        exec(dev.split(".")[1].lower() + " = " + dev.split(".")[1].split("_")[0] + "(" + dev.split(".")[1].split("_")[1]  + ", " + str(tasks) +  ")")
-        exec("del " + dev.split(".")[1].lower())
-        while lock.locked():
-            continue
-        lock.acquire()
-        processes.remove(dev)
-        lock.release()
-    except Exception as err:
-        print(err)
-
+    while lock.locked():
+        continue
+    lock.acquire()
+    processes.append(dev)
+    lock.release()
+    exec("from " + dev.split(".")[0] + " import " + dev.split(".")[1].split("_")[0])
+    exec(dev.split(".")[1].lower() + " = " + dev.split(".")[1].split("_")[0] + "(" + dev.split(".")[1].split("_")[1]  + ", " + str(tasks) +  ")")
+    exec("del " + dev.split(".")[1].lower())
+    while lock.locked():
+        continue
+    lock.acquire()
+    processes.remove(dev)
+    lock.release()
 
 def init_devices():
     msg(" init devices ".upper())
@@ -87,6 +83,7 @@ def schedule(timestamp):
         if any(_ in ["on","off"] for _ in tl):
             power(dev,tl[0])
         else:
+            gc.collect()  # IMPORTANT.
             _thread.start_new_thread(run_async, (dev,tl))
         t0 = utime.time()
         while status0 == config.DEVICE_STATUS[dev]:

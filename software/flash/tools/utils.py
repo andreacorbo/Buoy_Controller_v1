@@ -140,7 +140,7 @@ def too_old(file):
 
 def files_to_send():
     """Checks for files to send."""
-    unsent_files = []
+    #unsent_files = []
     for file in uos.listdir(config.DATA_DIR):
         if file[0] not in (config.TMP_FILE_PFX, config.SENT_FILE_PFX):  # check for unsent files
             try:
@@ -157,11 +157,11 @@ def files_to_send():
                 except:
                     pass  # Tmp file does not exist.
                 if uos.stat(config.DATA_DIR + "/" + file)[6] > pointer:
-                    unsent_files.append(config.DATA_DIR + "/" + file)  # Makes a list of files to send.
-    if not unsent_files:
-        log("no files to send...")
-    return unsent_files
-
+                    #unsent_files.append(config.DATA_DIR + "/" + file)  # Makes a list of files to send.
+                    yield config.DATA_DIR + "/" + file
+    if any(file[0] not in (config.TMP_FILE_PFX, config.SENT_FILE_PFX) for file in uos.listdir(config.DATA_DIR)):
+            yield "\x00"
+    
 def create_device(device, tasks=[]):
     """Creates and return an istance of the passed device."""
     try:
