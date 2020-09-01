@@ -1,5 +1,5 @@
-import utime as time
-import uos as os
+import time
+import os
 import sys
 from tools.functools import partial
 import tools.utils as utils

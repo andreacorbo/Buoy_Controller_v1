@@ -1,4 +1,4 @@
-import utime
+import time
 import tools.utils as utils
 import config
 from device import DEVICE
@@ -43,14 +43,14 @@ class METRECX(DEVICE):
 
     def get_reply(self, timeout=None):
         """Gets the instrument replies."""
-        t0 = utime.time()
+        t0 = time.time()
         while not self._timeout(t0, timeout):
             if self.uart.any():
                 return self.uart.read().split(b"\r\n")[1].decode("utf-8")
 
     def break_(self):
         """Sends the escape sequence to the instrument ``CTRL+C``."""
-        t0 = utime.time()
+        t0 = time.time()
         while not self._timeout(t0, self.config["Ctd"]["Break_Timeout"]):
             self.uart.read()  # Flushes input buffer.
             self.uart.write(self.config["Ctd"]["Break_Sequence"])
@@ -71,7 +71,7 @@ class METRECX(DEVICE):
     def set_date(self):
         """Sets up the instrument date, mm/dd/yy."""
         if self.get_prompt():
-            now = utime.localtime()
+            now = time.localtime()
             self.uart.write("SET DATE {:02d}/{:02d}/{:02d}\r".format(now[1], now[2], int(str(now[0])[:-2])))
             if self.get_reply() == self.prompt:
                 return True
@@ -80,7 +80,7 @@ class METRECX(DEVICE):
     def set_time(self):
         """Sets up the instrument time, hh:mm:ss."""
         if self.get_prompt():
-            now = utime.localtime()
+            now = time.localtime()
             self.uart.write("SET TIME {:02d}:{:02d}:{:02d}\r".format(now[3], now[4], now[5]))
             if self.get_reply() ==  self.prompt:
                 return True
@@ -144,7 +144,7 @@ class METRECX(DEVICE):
 
     def format_data(self, sample):
         """Formats data according to output format."""
-        epoch = utime.time()
+        epoch = time.time()
         data = [
             self.config["String_Label"],
             str(utils.unix_epoch(epoch)),
@@ -165,7 +165,7 @@ class METRECX(DEVICE):
         self.led.on()
         new_line = False
         r_buff = bytearray(1)
-        t0 = utime.time()
+        t0 = time.time()
         while True:
             if self._timeout(t0, self.timeout):
                 utils.log("{} => timeout occourred".format(self.name), "e")  # DEBUG

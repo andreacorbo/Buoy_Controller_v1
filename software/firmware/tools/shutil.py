@@ -1,6 +1,5 @@
 # Reimplement, because CPython3.3 impl is rather bloated
-import uos
-
+import os
 
 def rmtree(top):
     for path, dirs, files in os.walk(top, False):
@@ -26,7 +25,6 @@ def copyfileobj(src, dest, length=512):
             if not buf:
                 break
             dest.write(buf)
-
 
 def copyfile(src, dst, follow_symlinks=True):
     assert follow_symlinks

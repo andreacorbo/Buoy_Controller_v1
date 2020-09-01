@@ -1,7 +1,7 @@
 # dev_board.py
 import pyb
-import utime
-import uos
+import time
+import os
 import config
 import tools.utils as utils
 from device import DEVICE
@@ -91,14 +91,14 @@ class SYSMON(DEVICE):
     def fs_freespace(self):
         """Returns the filesystem free space (bytes)."""
         try:
-            s=uos.statvfs("/sd")
+            s=os.statvfs("/sd")
             return s[0]*s[3]
         except Exception as err:
             utils.log("{} => fs_freespace ({}): {}".format(self.__qualname__, type(err).__name__, err), "e")  # DEBUG
         return 0
 
     def format_data(self, sample):
-        epoch = utime.time()
+        epoch = time.time()
         data = [
             self.config["String_Label"],
             str(utils.unix_epoch(epoch)),

@@ -1,5 +1,5 @@
-import utime
-import uselect
+import time
+import select
 import tools.utils as utils
 import tools.shutil as shutil
 import config
@@ -9,12 +9,7 @@ from tools.ymodem import YMODEM
 class MODEM(DEVICE, YMODEM):
 
     def __init__(self, instance, tasks=[]):
-        self.sending = False
-        self.connected = False
-        self.sent = False
-        self.received = False
-        self.file_paths = []
-        YMODEM.__init__(self, self._getc, self._putc, mode="Ymodem1k")
+        YMODEM.__init__(self, self.getc, self.putc, mode="Ymodem1k")
         DEVICE.__init__(self, instance)
         ########################################################################
         self.tasks = tasks
@@ -43,7 +38,7 @@ class MODEM(DEVICE, YMODEM):
             self.init_terminal()
 
     def is_ready(self):
-        t0 = utime.time()
+        t0 = time.time()
         while not self._timeout(t0, self.config["Modem"]["Init_Timeout"]):
             utils.verbose("AT\r",config.VERBOSE)
             self.uart.write("AT\r")
@@ -56,7 +51,7 @@ class MODEM(DEVICE, YMODEM):
                 if "OK" in rxd:
                     return True
                 else:
-                    utime.sleep(1)
+                    time.sleep(1)
         utils.log("{} => did not respond in {} secs.".format(self.name,self.config["Modem"]["Init_Timeout"]), "e")  # DEBUG
         return False
 
@@ -67,7 +62,7 @@ class MODEM(DEVICE, YMODEM):
             for at in self.config["Modem"]["Init_Ats"]:
                 utils.verbose(at,config.VERBOSE)
                 self.uart.write(at)
-                t0 = utime.time()
+                t0 = time.time()
                 while True:
                     if self._timeout(t0 ,self.config["Modem"]["Init_Timeout"]):
                         utils.log("{} => timeout occourred".format(self.name), "e")  # DEBUG
@@ -82,27 +77,21 @@ class MODEM(DEVICE, YMODEM):
                         if "ERROR" in rxd:
                             retry = True
                         break
-                utime.sleep(self.config["Modem"]["Ats_Delay"])
+                time.sleep(self.config["Modem"]["Ats_Delay"])
                 if retry:
                     break
 
-    def _getc(self, size, timeout=1):
+    def getc(self, size, timeout=1):
         """Reads out n-bytes from serial."""
-        r, w, e = uselect.select([self.uart], [], [], timeout)
+        r, w, e = select.select([self.uart], [], [], timeout)
         if r:
             return self.uart.read(size)
 
-    def _putc(self, data, timeout=1):
+    def putc(self, data, timeout=1):
         """Writes out n-bytes to serial."""
-        r, w, e = uselect.select([], [self.uart], [], timeout)
+        r, w, e = select.select([], [self.uart], [], timeout)
         if w:
             return self.uart.write(data)
-
-    def _recv(self, timeout=10):
-        """Receives files."""
-        utils.log("{} => receiving...".format(self.name))  # DEBUG
-        if timeout > 0:
-            self.recv(timeout)
 
     def call(self):
         """Starts a call."""
@@ -111,7 +100,7 @@ class MODEM(DEVICE, YMODEM):
         for at in self.config["Modem"]["Pre_Ats"]:
             utils.verbose(at,config.VERBOSE)
             self.uart.write(at)
-            t0 = utime.time()
+            t0 = time.time()
             while True:
                 if self._timeout(t0, self.config["Modem"]["Call_Timeout"]):
                     utils.log("{} => timeout occourred".format(self.name), "e")  # DEBUG
@@ -122,19 +111,13 @@ class MODEM(DEVICE, YMODEM):
                     except UnicodeError:
                         continue
                     utils.verbose(rxd,config.VERBOSE)
-                    if "ERROR" in rxd:
-                        return False
-                    if "NO CARRIER" in rxd:
-                        return False
-                    if "NO ANSWER" in rxd:
-                        return False
                     if "OK" in rxd:
                         break
                     if "CONNECT" in rxd:
-                        self.flush_uart(1)  # Clears last byte \n
+                        self.uart.read(1)  # Clears last byte \n
                         return True
-            utime.sleep(self.config["Modem"]["Ats_Delay"])
-
+                    return False
+            time.sleep(self.config["Modem"]["Ats_Delay"])
 
     def hangup(self):
         """Ends a call."""
@@ -142,7 +125,7 @@ class MODEM(DEVICE, YMODEM):
         for at in self.config["Modem"]["Post_Ats"]:
             utils.verbose(at,config.VERBOSE)
             self.uart.write(at)
-            t0 = utime.time()
+            t0 = time.time()
             while True:
                 if self._timeout(t0, self.config["Modem"]["Call_Timeout"]):
                     utils.log("{} => timeout occourred".format(self.name), "e")  # DEBUG
@@ -153,29 +136,28 @@ class MODEM(DEVICE, YMODEM):
                     except UnicodeError:
                         continue
                     utils.verbose(rxd,config.VERBOSE)
-                    if "ERROR" in rxd:
-                        return False
                     if "OK" in rxd:
                         break
-            utime.sleep(self.config["Modem"]["Ats_Delay"])
+                    return False
+            time.sleep(self.config["Modem"]["Ats_Delay"])
         return True
 
     def data_transfer(self):
         """Sends files over the gsm network."""
+        connected = False
         if utils.files_to_send():
             self.led.on()
             ########################################################################
             if config.DEBUG:
-                self.connected = True
+                connected = True
                 self.uart.write(b"CONNECT\r")
             ########################################################################
-            if not self.connected:
+            if not connected:
                 for _ in range(self.config["Modem"]["Call_Attempt"]):
                     if self.call():
-                        self.connected = True
+                        connected = True
                         break
-            if self.connected:
-                utils.log("{} => sending...".format(self.name))  # DEBUG
+            if connected:
                 self.send(utils.files_to_send(), config.TMP_FILE_PFX, config.SENT_FILE_PFX, config.BKP_FILE_PFX)
                 self.recv(10)
                 self.hangup()
@@ -192,7 +174,7 @@ class MODEM(DEVICE, YMODEM):
         for at in self.config["Modem"]["Sms_Pre_Ats"]:
             utils.verbose(at,config.VERBOSE)
             self.uart.write(at)
-            t0 = utime.time()
+            t0 = time.time()
             while True:
                 if self._timeout(t0, self.config["Modem"]["Call_Timeout"]):
                     utils.log("{} => timeout occourred".format(self.name), "e")  # DEBUG
@@ -203,17 +185,12 @@ class MODEM(DEVICE, YMODEM):
                     except UnicodeError:
                         continue
                     utils.verbose(rxd, config.VERBOSE)
-                    if "ERROR" in rxd:
-                        return False
-                    if "NO CARRIER" in rxd:
-                        return False
-                    if "NO ANSWER" in rxd:
-                        return False
                     if "OK" in rxd:
                         break
                     if ">" in rxd:
                         break
-            utime.sleep(self.config["Modem"]["Ats_Delay"])
+                    return False
+            time.sleep(self.config["Modem"]["Ats_Delay"])
         self.uart.write(text)
         self.uart.write(b"\x1A")
         self.led.off()

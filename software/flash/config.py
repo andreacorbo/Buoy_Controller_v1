@@ -49,7 +49,7 @@ DATA_SEPARATOR = ","
 SCHEDULE = 120  # sec.
 TASK_SCHEDULE = {
     "dev_gps.GPS_1":{"last_fix":120, "sync_rtc":120},
-    "dev_modem.MODEM_1":{"test":120},
+    "dev_modem.MODEM_1":{"data_transfer":180},
     "dev_aml.UVXCHANGE_1":{"off":120}
     }
 SLOT_DELAY = 60  # because meteo and gps share the same uart
@@ -63,6 +63,6 @@ SENT_FILE_PFX = "_"
 BUF_DAYS = 5
 DISPLACEMENT_THRESHOLD = 0.05399568  # Nautical miles: (100meters)
 DISPLACEMENT_SMS = "\"{}-{}-{} {}:{}:{} UTC ***WARNING*** {} current position: {}°{}'{} {}°{}'{} is {:.3f}nm away from previous position. Next msg in 5min.\".format(int(utils.gps_fix[9][-2:])+2000,utils.gps_fix[9][2:4],utils.gps_fix[9][0:2], utils.gps_fix[1][0:2], utils.gps_fix[1][2:4], utils.gps_fix[1][4:6], config.NAME, utils.gps_fix[3][0:2], utils.gps_fix[3][2:], utils.gps_fix[4], utils.gps_fix[5][0:3], utils.gps_fix[5][3:], utils.gps_fix[6], utils.gps_displacement)"
-DEBUG = True
+DEBUG = False
 ################################################################################
 DEVICE_STATUS = {}

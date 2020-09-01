@@ -1,4 +1,4 @@
-import utime
+import time
 import tools.utils as utils
 import config
 from math import sin, cos, radians, atan2, degrees, pow, sqrt
@@ -178,7 +178,7 @@ class Y32500(DEVICE):
 
     def format_data(self, samples):
         """Formats data according to output format."""
-        epoch = utime.time()
+        epoch = time.time()
         data = [
             self.config["String_Label"],
             str(utils.unix_epoch(epoch)),
@@ -210,7 +210,7 @@ class Y32500(DEVICE):
         new_string = False
         r_buff = bytearray(1)
         sample = []
-        t0 = utime.time()
+        t0 = time.time()
         while len(self.data) <  self.samples:  # Reads out n-strings.
             if self._timeout(t0, self.timeout):
                 utils.log("{} => timeout occourred".format(self.name), "e")
@@ -222,15 +222,15 @@ class Y32500(DEVICE):
                 for byte in r_buff:
                     try:
                         ascii = chr(byte)
-                        if ascii == "\n":
-                            new_string = True
-                        elif ascii == "\r":
-                            if new_string:
-                                self.data.append("".join(sample).split(self.config["Data_Separator"]))
-                                sample = []
-                                new_string = False
-                        elif new_string:
-                            sample.append(ascii)
                     except UnicodeError:
                         continue
+                    if ascii == "\n":
+                        new_string = True
+                    elif ascii == "\r":
+                        if new_string:
+                            self.data.append("".join(sample).split(self.config["Data_Separator"]))
+                            sample = []
+                            new_string = False
+                    elif new_string:
+                        sample.append(ascii)                    
         self.led.off()

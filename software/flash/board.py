@@ -1,17 +1,16 @@
 # board.py
 import pyb
-import config
-from tools.utils import msg, log, read_cfg, timestring, time_display
+import time
 import _thread
-import utime
 import gc
+from tools.utils import msg, log, read_cfg, timestring, time_display
+import config
 
 irqs = []
 lock = _thread.allocate_lock()
 processes = []
 interrupted = None
 next = 0
-
 rtc = pyb.RTC()
 
 def init_led():
@@ -85,9 +84,9 @@ def schedule(timestamp):
         else:
             gc.collect()  # IMPORTANT.
             _thread.start_new_thread(run_async, (dev,tl))
-        t0 = utime.time()
+        t0 = time.time()
         while status0 == config.DEVICE_STATUS[dev]:
-            if(utime.time() - t0 > 1):
+            if(time.time() - t0 > 1):
                 break
             continue
 
@@ -107,9 +106,9 @@ def schedule(timestamp):
                     tl.append(_[2])
     if dev:
         run_tasks(dev,tl)
-    while utime.time() - timestamp == 0:
+    while time.time() - timestamp == 0:
         continue
-    next_event(utime.time())
+    next_event(time.time())
 
 def gen_activation_interval(device, sampling_period):
     if sampling_period > 0:
@@ -174,12 +173,12 @@ def sleep(interval, lastfeed):
     log("sleeping.... wake up in {}".format(time_display(interval)))  # DEBUG
     sleep_led()
     enable_interrupts()
-    remain = config.WD_TIMEOUT - (utime.time() - lastfeed) * 1000
+    remain = config.WD_TIMEOUT - (time.time() - lastfeed) * 1000
     interval = interval * 1000
     if interval - remain > -3000:
         interval = remain - 3000
     rtc.wakeup(interval)  # Set next rtc wakeup (ms).
-    utime.sleep_ms(interval)  # DEBUG
+    time.sleep_ms(interval)  # DEBUG
     #pyb.stop()
     disable_interrupts()
     pwr_led()
@@ -189,4 +188,4 @@ def init():
     pwr_led()
     init_interrupts()
     init_devices()
-    next_event(utime.time())
+    next_event(time.time())

@@ -1,5 +1,5 @@
 import pyb
-import utime
+import time
 import tools.utils as utils
 import config
 
@@ -26,7 +26,7 @@ class DEVICE:
         """Checks if timeout has expired."""
         if not expire:
             expire = config.TIMEOUT
-        if expire > 0 and utime.time() - start >= expire:
+        if expire > 0 and time.time() - start >= expire:
             return True
         return False
 

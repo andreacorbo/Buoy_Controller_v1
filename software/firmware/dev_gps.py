@@ -1,5 +1,5 @@
 import pyb
-import utime
+import time
 from math import sin, cos, sqrt, atan2, radians
 import config
 import tools.utils as utils
@@ -83,7 +83,7 @@ class GPS(NMEA, DEVICE):
         """Retreives data from a serial gps device."""
         utils.log("{} => acquiring data...".format(self.name))
         self.led.on()
-        t0 = utime.time()
+        t0 = time.time()
         r_buff = bytearray(1)
         while True:
             if self._timeout(t0, self.timeout):

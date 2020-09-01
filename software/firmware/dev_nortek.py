@@ -1,4 +1,4 @@
-import utime
+import time
 import ubinascii
 import config
 import tools.utils as utils
@@ -51,7 +51,7 @@ class AQUADOPP(DEVICE):
 
     def start_up(self):
         self.on()
-        utime.sleep_ms(500)  # Allows instrument to start properly prior to send commands
+        time.sleep_ms(500)  # Allows instrument to start properly prior to send commands
         if self.break_():
             self.set_clock()
             self.set_usr_cfg()
@@ -60,7 +60,7 @@ class AQUADOPP(DEVICE):
 
     def get_reply(self, timeout=0):
         """Returns replies from instrument."""
-        t0 = utime.time()
+        t0 = time.time()
         while not self._timeout(t0, timeout):
             if self.uart.any():
                 x = self.uart.read()
@@ -80,9 +80,9 @@ class AQUADOPP(DEVICE):
         """Sends break sequence to instrument."""
         utils.verbose("=> @@@@@@K1W%!Q", config.VERBOSE)
         self.uart.write("@@@@@@")
-        utime.sleep_ms(100)
+        time.sleep_ms(100)
         self.uart.write("K1W%!Q")
-        t0 = utime.time()
+        t0 = time.time()
         while not self._timeout(t0, config.TIMEOUT):
             rx = self.get_reply()
             if self.ack(rx):
@@ -123,7 +123,7 @@ class AQUADOPP(DEVICE):
 
     def get_cfg(self):
         """Retreives the complete configuration data from the instrument."""
-        t0 = utime.time()
+        t0 = time.time()
         while not self._timeout(t0, config.TIMEOUT):
             if self.break_():
                 utils.verbose("=> GA", config.VERBOSE)
@@ -194,7 +194,7 @@ class AQUADOPP(DEVICE):
         """Uploads a deployment config to the instrument and sets up the device
         Activation_Rate and Warmup_Interval parameters according to the current
         deployment config."""
-        t0 = utime.time()
+        t0 = time.time()
         while not self._timeout(t0, config.TIMEOUT):
             if self.break_():
                 try:
@@ -220,11 +220,11 @@ class AQUADOPP(DEVICE):
 
     def set_deployment_start(self, sampling_interval, avg_interval):
         """Computes the measurement starting time to be in synch with the scheduler."""
-        now = utime.time() - self.activation_delay
+        now = time.time() - self.activation_delay
         next_sampling = now - now % sampling_interval + sampling_interval + self.activation_delay
         sampling_start = next_sampling - self.samples // self.sample_rate
         utils.log("{} => deployment t0 at {}, measurement interval {}\", average interval {}\"".format(self.name, utils.timestring(sampling_start), sampling_interval, avg_interval))  # DEBUG
-        deployment_start = utime.localtime(sampling_start + sampling_interval - avg_interval)
+        deployment_start = time.localtime(sampling_start + sampling_interval - avg_interval)
         deployment_start = ubinascii.unhexlify("{:02d}{:02d}{:02d}{:02d}{:02d}{:02d}".format(deployment_start[4], deployment_start[5], deployment_start[2], deployment_start[3], int(str(deployment_start[0])[2:]), deployment_start[1]))
         return deployment_start
 
@@ -418,7 +418,7 @@ class AQUADOPP(DEVICE):
 
     def format_recorder(self):
         """Erase all recorded data if it reached the maximum allowed files number (31)"""
-        t0 = utime.time()
+        t0 = time.time()
         while not self._timeout(t0, config.TIMEOUT):
             if self.break_():
                 utils.verbose("=> FO", config.VERBOSE)
@@ -435,7 +435,7 @@ class AQUADOPP(DEVICE):
         the recorder. Data is output on the serial port only if specified in
         the configuration.
         """
-        t0 = utime.time()
+        t0 = time.time()
         while not self._timeout(t0, config.TIMEOUT):
             if self.break_():
                 utils.verbose("=> SD", config.VERBOSE)
@@ -518,7 +518,7 @@ class AQUADOPP(DEVICE):
 
     def get_clock(self):
         """Reads the instrument RTC."""
-        t0 = utime.time()
+        t0 = time.time()
         while not self._timeout(t0, config.TIMEOUT):
             if self.break_():
                 utils.verbose("=> RC", config.VERBOSE)
@@ -544,10 +544,10 @@ class AQUADOPP(DEVICE):
 
         mm ss DD hh YY MM (3 words of 2 bytes each)
         """
-        t0 = utime.time()
+        t0 = time.time()
         while not self._timeout(t0, config.TIMEOUT):
             if self.break_():
-                now = utime.localtime()
+                now = time.localtime()
                 tx = "{:02d}{:02d}{:02d}{:02d}{:02d}{:02d}".format(now[4], now[5], now[2], now[3], int(str(now[0])[2:]), now[1])
                 self.uart.write("SC")
                 self.uart.write(ubinascii.unhexlify(tx))
@@ -596,7 +596,7 @@ class AQUADOPP(DEVICE):
         """Retreives data from a serial device."""
         utils.log("{} => acquiring data...".format(self.name))
         self.led.on()
-        t0 = utime.time()
+        t0 = time.time()
         while True:
             if self._timeout(t0, self.timeout):
                 utils.log("{} => timeout occourred".format(self.name), "e")  # DEBUG
