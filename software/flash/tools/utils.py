@@ -1,8 +1,8 @@
 import pyb
 import machine
 import ujson
-import uos
-import utime
+import uos as os
+import utime as time
 import config
 import _thread
 
@@ -32,10 +32,10 @@ def welcome_msg():
     "{:#^80}\n\r".format("")+
     "#{: ^78}#\n\r".format("WELCOME TO "+config.NAME+" "+config.SW_NAME+" "+config.SW_VERSION)+
     "#{: ^78}#\n\r".format("")+
-    "# {: <20}{: <57}#\n\r".format(" current time:", timestring(utime.time())+" UTC")+
-    "# {: <20}{: <57}#\n\r".format(" machine:", uos.uname()[4])+
-    "# {: <20}{: <57}#\n\r".format(" mpy release:", uos.uname()[2])+
-    "# {: <20}{: <57}#\n\r".format(" mpy version:", uos.uname()[3])+
+    "# {: <20}{: <57}#\n\r".format(" current time:", timestring(time.time())+" UTC")+
+    "# {: <20}{: <57}#\n\r".format(" machine:", os.uname()[4])+
+    "# {: <20}{: <57}#\n\r".format(" mpy release:", os.uname()[2])+
+    "# {: <20}{: <57}#\n\r".format(" mpy version:", os.uname()[3])+
     "{:#^80}".format("")
     )
 
@@ -54,16 +54,16 @@ def unix_epoch(epoch):
 
 def datestamp(epoch):
     """Returns a formatted date mmddyy."""
-    return "{:02d}{:02d}{:02d}".format(utime.localtime(epoch)[1], utime.localtime(epoch)[2], int(str(utime.localtime(epoch)[0])[-2:]))
+    return "{:02d}{:02d}{:02d}".format(time.localtime(epoch)[1], time.localtime(epoch)[2], int(str(time.localtime(epoch)[0])[-2:]))
 
 def timestamp(epoch):
     """Returns a formatted time HHMMSS."""
 
-    return "{:02d}{:02d}{:02d}".format(utime.localtime(epoch)[3], utime.localtime(epoch)[4], utime.localtime(epoch)[5])
+    return "{:02d}{:02d}{:02d}".format(time.localtime(epoch)[3], time.localtime(epoch)[4], time.localtime(epoch)[5])
 
 def timestring(timestamp):
     """Formats a time string as yyyy-mm-dd HH:MM:SS"""
-    return "{}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}".format(utime.localtime(timestamp)[0], utime.localtime(timestamp)[1], utime.localtime(timestamp)[2], utime.localtime(timestamp)[3], utime.localtime(timestamp)[4], utime.localtime(timestamp)[5])
+    return "{}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}".format(time.localtime(timestamp)[0], time.localtime(timestamp)[1], time.localtime(timestamp)[2], time.localtime(timestamp)[3], time.localtime(timestamp)[4], time.localtime(timestamp)[5])
 
 def time_display(timestamp):
     """Formats a timestamp."""
@@ -100,7 +100,7 @@ def msg(msg=None):
 
 def log(msg, msg_type="m", new_line=True):
     """Creates a log and prints out a messagge on screen."""
-    log_msg = "{: <23}{}".format(timestring(utime.time()), msg)
+    log_msg = "{: <23}{}".format(timestring(time.time()), msg)
     end_char = ""
     if new_line:
         end_char = "\n"
@@ -131,22 +131,22 @@ def too_old(file):
     """Renames unsent files older than buffer days."""
     filename = file.split("/")[-1]
     path = file.replace("/" + file.split("/")[-1], "")
-    if utime.mktime(utime.localtime()) - utime.mktime([int(filename[0:4]),int(filename[4:6]),int(filename[6:8]),0,0,0,0,0]) > config.BUF_DAYS * 86400:
-        uos.rename(file, path + "/" + config.SENT_FILE_PFX + filename)
-        if path + "/" + config.TMP_FILE_PFX + filename in uos.listdir(path):
-            uos.remove(path + "/" + config.TMP_FILE_PFX + filename)
+    if time.mktime(time.localtime()) - time.mktime([int(filename[0:4]),int(filename[4:6]),int(filename[6:8]),0,0,0,0,0]) > config.BUF_DAYS * 86400:
+        os.rename(file, path + "/" + config.SENT_FILE_PFX + filename)
+        if path + "/" + config.TMP_FILE_PFX + filename in os.listdir(path):
+            os.remove(path + "/" + config.TMP_FILE_PFX + filename)
         return True
     return False
 
 def files_to_send():
     """Checks for files to send."""
     #unsent_files = []
-    for file in uos.listdir(config.DATA_DIR):
+    for file in os.listdir(config.DATA_DIR):
         if file[0] not in (config.TMP_FILE_PFX, config.SENT_FILE_PFX):  # check for unsent files
             try:
                 int(file)
             except:
-                uos.remove(config.DATA_DIR + "/" + file)  # Deletes all except data files.
+                os.remove(config.DATA_DIR + "/" + file)  # Deletes all except data files.
                 continue
             if not too_old(config.DATA_DIR + "/" + file):
                 # Checks if new data has been added to the file since the last transmission.
@@ -156,12 +156,12 @@ def files_to_send():
                         pointer = int(tmp.read())
                 except:
                     pass  # Tmp file does not exist.
-                if uos.stat(config.DATA_DIR + "/" + file)[6] > pointer:
+                if os.stat(config.DATA_DIR + "/" + file)[6] > pointer:
                     #unsent_files.append(config.DATA_DIR + "/" + file)  # Makes a list of files to send.
                     yield config.DATA_DIR + "/" + file
-    if any(file[0] not in (config.TMP_FILE_PFX, config.SENT_FILE_PFX) for file in uos.listdir(config.DATA_DIR)):
+    if any(file[0] not in (config.TMP_FILE_PFX, config.SENT_FILE_PFX) for file in os.listdir(config.DATA_DIR)):
             yield "\x00"
-    
+
 def create_device(device, tasks=[]):
     """Creates and return an istance of the passed device."""
     try:

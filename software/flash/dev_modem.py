@@ -177,7 +177,7 @@ class MODEM(DEVICE, YMODEM):
             if self.connected:
                 utils.log("{} => sending...".format(self.name))  # DEBUG
                 self.send(utils.files_to_send(), config.TMP_FILE_PFX, config.SENT_FILE_PFX, config.BKP_FILE_PFX)
-                #self._recv()
+                self.recv(10)
                 self.hangup()
             else:
                 utils.log("{} => connection unavailable, aborting...".format(self.name), "e", True)

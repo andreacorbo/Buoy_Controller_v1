@@ -1,5 +1,5 @@
-import utime
-import uos
+import utime as time
+import uos as os
 import sys
 from tools.functools import partial
 import tools.utils as utils
@@ -64,277 +64,6 @@ class YMODEM:
         self.mode = mode
         self.pad = pad
 
-    def send(self, files, tmp_file_pfx, sent_file_pfx, bkp_file_pfx, retry=3, timeout=10):
-        """Sends files according to ymodem protocol.
-
-        Params:
-            files(list)
-            tmp_file_pfx(str)
-            sent_file_pfx(str)
-            retry(int): default[5]
-            timeout(int): seconds, default[10]
-        """
-        #
-        # Initialize transaction
-        #
-        try:
-            packet_size = dict(Ymodem = 128, Ymodem1k = 1024)[self.mode]
-        except KeyError:
-            raise ValueError("INVALID MODE {self.mode}".format(self=self))
-        error_count = 0
-        crc_mode = 0
-        cancel = 0
-        print("BEGIN TRANSACTION, PACKET SIZE {}".format(packet_size))
-        #
-        # Set 16 bit CRC or standard checksum mode
-        #
-        while True:
-            char = self._getc(1, timeout)
-            if error_count == retry:
-                print("TOO MANY ERRORS, ABORTING...")
-                return False  # Exit
-            elif not char:
-                print("TIMEOUT OCCURRED, RETRY...")
-                error_count += 1
-            elif char == C:
-                print("<-- C")
-                print("16 BIT CRC REQUESTED")
-                crc_mode = 1
-                error_count = 0
-                break
-            elif char == NAK:
-                print("<-- NAK")
-                print("STANDARD CECKSUM REQUESTED")
-                crc_mode = 0
-                error_count = 0
-                break
-            else:
-                print("UNATTENDED CHAR {}, RETRY...".format(char))
-                error_count += 1
-        #
-        # Iterate over file list
-        #
-        #files.extend("\x00")  # add a null file to list to handle eot
-        file_count = 0
-        for file in sorted(files, reverse=True):
-            #
-            # Set stream pointer (read file from last tansmitted byte)
-            #
-            tmp_file = file.replace(file.split("/")[-1], tmp_file_pfx + file.split("/")[-1])
-            sent_file = file.replace(file.split("/")[-1], sent_file_pfx + file.split("/")[-1])
-            filename = file.split("/")[-1]
-            if file != "\x00":
-                filename = config.NAME.lower() + "/" + filename  # Adds system name to filename.
-                #try:
-                bkp_file = self.bkp_file(file, bkp_file_pfx)
-                stream = open(bkp_file)
-                #except:
-                #    print("UNABLE TO OPEN {}, TRY NEXT FILE...".format(bkp_file))
-                #    continue
-                self.get_last_byte(tmp_file, stream)  # read last byte from .file
-                pointer = stream.tell()  # set stream pointer
-                if pointer == uos.stat(bkp_file)[6]:  # check if pointer correspond to file size
-                    print("FILE {} ALREADY TRANSMITTED, SEND NEXT FILE...".format(filename))
-                    stream.close()
-                    self.totally_sent(file, tmp_file, sent_file)
-                    continue  # open next file
-            file_count += 1
-            #
-            # Wait for clear to send (if there are more than one file)
-            #
-            if file_count > 1:
-                while True:
-                    char = self._getc(1, timeout)
-                    if error_count == retry:
-                        print("TOO MANY ERRORS, ABORTING...")
-                        return False  # Exit
-                    if not char:  # handle rx errors
-                        print("TIMEOUT OCCURRED, RETRY...")
-                        error_count += 1
-                    elif char == C:
-                        print("<-- C")
-                        error_count = 0
-                        break
-                    else:
-                        print("UNATTENDED CHAR {}, RETRY...".format(char))
-                        error_count += 1
-            #
-            # Create file name packet
-            #
-            header = self.make_filename_header(packet_size)  # create file packet
-
-            data = bytearray(filename + "\x00", "utf8")  # filename + space
-            if file != "\x00":
-                data.extend(str(uos.stat(bkp_file)[6] - pointer).encode("utf8"))  # Sends data size to be transmitted
-            padding = bytearray(packet_size - len(data))  # fill packet size with null char
-            data.extend(padding)
-            checksum = self.make_checksum(crc_mode, data)  # create packet checksum
-            ackd  = 0
-            while True:
-                #
-                # Send packet
-                #
-                while True:
-                    if error_count == retry:
-                        print("TOO MANY ERRORS, ABORTING...")
-                        return False  # Exit
-                    if not self._putc(header + data +checksum):  # handle tx errors
-                        error_count += 1
-                        continue
-                    print("SENDING FILE {}".format(filename))
-                    break
-                #
-                # Wait for reply
-                #
-                while True:
-                    char = self._getc(1, timeout)
-                    if error_count == retry:
-                        print("TOO MANY ERRORS, ABORTING...")
-                        return False  # Exit
-                    if not char:  # handle rx erros
-                        print("TIMEOUT OCCURRED, RETRY...")
-                        error_count += 1
-                        break  # resend packet
-                    elif char == ACK :
-                        print("<-- ACK")
-                        if data == bytearray(packet_size):
-                            print("TRANSMISSION COMPLETE, EXITING...")
-                            return True # Exit
-                        else:
-                            error_count = 0
-                            ackd = 1
-                            break
-                    elif char == CAN:
-                        print("<-- CAN")
-                        if cancel:
-                            print("TRANSMISSION CANCELED BY RECEIVER")
-                            return False  # Exit
-                        else:
-                            cancel = 1
-                            error_count = 0
-                            continue  # wait for a second CAN
-                    else:
-                        print("UNATTENDED CHAR {}, RETRY...".format(char))
-                        error_count += 1
-                        break  # resend packet
-                if ackd:
-                    break  # wait for data
-            #
-            # Waiting for clear to send
-            #
-            while True:
-                char = self._getc(1, timeout)
-                if error_count == retry:
-                    print("TOO MANY ERRORS, ABORTING...")
-                    return False # Exit
-                if not char:  # handle rx errors
-                    print("TIMEOUT OCCURRED, RETRY...")
-                    error_count += 1
-                elif char == C:
-                    print("<-- C")
-                    error_count = 0
-                    break
-                else:
-                    print("UNATTENDED CHAR {}, RETRY...".format(char))
-                    error_count += 1
-            #
-            # Send file
-            #
-            success_count = 0
-            total_packets = 0
-            sequence = 1
-            cancel = 0
-            while True:
-                #
-                # Create data packet
-                #
-                data = stream.read(packet_size)  # read a bytes packet
-
-                if not data:  # file reached eof send eot
-                    print("EOF")
-                    break
-                total_packets += 1
-
-                header = self.make_data_header(packet_size, sequence)  # create header
-                format_string = "{:"+self.pad.decode("utf-8")+"<"+str(packet_size)+"}"  # right fill data with pad byte
-                data = format_string.format(data)  # create packet data
-                checksum = self.make_checksum(crc_mode, data)  # create checksum
-                ackd = 0
-                while True:
-                    #
-                    # Send data packet
-                    #
-                    while True:
-                        if error_count == retry:
-                            print("TOO MANY ERRORS, ABORTING...")
-                            return False  # Exit
-                        if not self._putc(header + data + checksum):  # handle tx errors
-                            error_count += 1
-                            continue  # resend packet
-                        print("PACKET {} -->".format(sequence))
-                        break
-                    #
-                    # Wait for reply
-                    #
-                    while True:
-                        char = self._getc(1, timeout)
-                        if not char:  # handle rx errors
-                            print("TIMEOUT OCCURRED, RETRY...")
-                            error_count += 1
-                            break  # resend packet
-                        elif char == ACK:
-                            print("<-- ACK")
-                            ackd = 1
-                            success_count += 1
-                            error_count = 0
-                            pointer = stream.tell()  # move pointer to next packet start byte
-                            self.set_last_byte(tmp_file, pointer)  # keep track of last successfully transmitted packet
-                            sequence = (sequence + 1) % 0x100  # keep track of sequence
-                            break  # send next packet
-                        elif char == NAK:
-                            print("<-- NAK")
-                            error_count += 1
-                            break  # resend packet
-                        elif char == CAN:
-                            print("<-- CAN")
-                            if cancel:
-                                print("TRANSMISSION CANCELED BY RECEIVER")
-                                return False  # Exit
-                            else:
-                                cancel = 1
-                                error_count = 0
-                        else:
-                            print("UNATTENDED CHAR {}, RETRY...".format(char))
-                            error_count += 1
-                            break  # resend packet
-                    if ackd:
-                        break  # send next packet
-            #
-            # End of transmission
-            #
-            while True:
-                if error_count == retry:
-                    print("TOO MANY ERRORS, ABORTING...")
-                    return False  # Exit
-                if not self._putc(EOT):  # handle tx errors
-                    error_count += 1
-                    continue  # resend EOT
-                print("EOT -->")
-                char = self._getc(1, timeout)  # waiting for reply
-                if not char:  # handle rx errors
-                    print("TIMEOUT OCCURRED, RETRY...")
-                    error_count += 1
-                elif char == ACK:
-                    print("<-- ACK")
-                    print("FILE {} SUCCESSFULLY TRANSMITTED".format(filename))
-                    self.totally_sent(file, tmp_file, sent_file)
-                    stream.close()
-                    error_count = 0
-                    break  # send next file
-                else:
-                    print("UNATTENDED CHAR {}, RETRY...".format(char))
-                    error_count += 1
-
     def recv(self, timeout=10, retry=3, crc_mode=1):
         """Receives files according to ymodem protocol.
 
@@ -364,7 +93,7 @@ class YMODEM:
                             error_count += 1
                             continue
                         print("C -->")
-                        error_count = 0
+                        #error_count = 0
                         break
                 else:
                     #
@@ -383,9 +112,9 @@ class YMODEM:
             sequence = 0
             income_size = 0
             while True:
-                t = utime.time()
+                t0 = time.time()
                 while not self.uart.any():
-                    if utime.time() - t >= timeout:  # Exists if sender does not respond
+                    if time.time() - t0 >= timeout:  # Exits if sender does not respond
                         restart = True
                         error_count += 1
                         break
@@ -510,8 +239,8 @@ class YMODEM:
                                 mod_date = int(data_string[1].split(" ")[1])
                                 mode = "wb"  # Overwrite local.
                                 try:  # File exists
-                                    if utils.unix_epoch(uos.stat(pathname)[8]) > mod_date:
-                                        if uos.stat(pathname)[6] < file_size:  # Local file is incomplete.
+                                    if utils.unix_epoch(os.stat(pathname)[8]) > mod_date:
+                                        if os.stat(pathname)[6] < file_size:  # Local file is incomplete.
                                             mode = "ab"   # Append to local.
                                 except:  # File doesn't exist.
                                     pass
@@ -546,16 +275,282 @@ class YMODEM:
                             sequence = (sequence + 1) % 0x100
                     break
 
-    def abort(self, count=2, timeout=60):
-        """Sends an abort sequence using CAN byte.
+    def send(self, files, tmp_file_pfx, sent_file_pfx, bkp_file_pfx, retry=3, timeout=10):
+        """Sends files according to ymodem protocol.
 
         Params:
-            count(int)
-            timeout(int): seconds
+            files(list)
+            tmp_file_pfx(str)
+            sent_file_pfx(str)
+            retry(int): default[5]
+            timeout(int): seconds, default[10]
         """
+        #
+        # Initialize transaction
+        #
+        try:
+            packet_size = dict(Ymodem = 128, Ymodem1k = 1024)[self.mode]
+        except KeyError:
+            raise ValueError("INVALID MODE {self.mode}".format(self=self))
+        error_count = 0
+        crc_mode = 0
+        cancel = 0
+        print("BEGIN TRANSACTION, PACKET SIZE {}".format(packet_size))
+        #
+        # Set 16 bit CRC or standard checksum mode
+        #
+        while True:
+            char = self._getc(1, timeout)
+            if error_count == retry:
+                print("TOO MANY ERRORS, ABORTING...")
+                return False  # Exit
+            elif not char:
+                print("TIMEOUT OCCURRED WHILE WAITING FOR STARTING TRANSMISSION, RETRY...")
+                error_count += 1
+            elif char == C:
+                print("<-- C")
+                print("16 BIT CRC REQUESTED")
+                crc_mode = 1
+                error_count = 0
+                break
+            elif char == NAK:
+                print("<-- NAK")
+                print("STANDARD CECKSUM REQUESTED")
+                crc_mode = 0
+                error_count = 0
+                break
+            else:
+                print("UNATTENDED CHAR {}, RETRY...".format(char))
+                error_count += 1
+        #
+        # Iterate over file list
+        #
+        #files.extend("\x00")  # add a null file to list to handle eot
+        file_count = 0
+        for file in sorted(files, reverse=True):
+            #
+            # Set stream pointer (read file from last tansmitted byte)
+            #
+            tmp_file = file.replace(file.split("/")[-1], tmp_file_pfx + file.split("/")[-1])
+            sent_file = file.replace(file.split("/")[-1], sent_file_pfx + file.split("/")[-1])
+            filename = file.split("/")[-1]
+            if file != "\x00":
+                filename = config.NAME.lower() + "/" + filename  # Adds system name to filename.
+                #try:
+                bkp_file = self.bkp_file(file, bkp_file_pfx)
+                stream = open(bkp_file)
+                #except:
+                #    print("UNABLE TO OPEN {}, TRY NEXT FILE...".format(bkp_file))
+                #    continue
+                self.get_last_byte(tmp_file, stream)  # read last byte from .file
+                pointer = stream.tell()  # set stream pointer
+                if pointer == os.stat(bkp_file)[6]:  # check if pointer correspond to file size
+                    print("FILE {} ALREADY TRANSMITTED, SEND NEXT FILE...".format(filename))
+                    stream.close()
+                    self.totally_sent(file, tmp_file, sent_file)
+                    continue  # open next file
+            file_count += 1
+            #
+            # Wait for clear to send (if there are more than one file)
+            #
+            if file_count > 1:
+                while True:
+                    char = self._getc(1, timeout)
+                    if error_count == retry:
+                        print("TOO MANY ERRORS, ABORTING...")
+                        return False  # Exit
+                    if not char:  # handle rx errors
+                        print("TIMEOUT OCCURRED WHILE WAITING FOR SEND HEADER PACKET, RETRY...")
+                        error_count += 1
+                    elif char == C:
+                        print("<-- C")
+                        error_count = 0
+                        break
+                    else:
+                        print("UNATTENDED CHAR {}, RETRY...".format(char))
+                        error_count += 1
+            #
+            # Create file name packet
+            #
+            header = self.make_filename_header(packet_size)  # create file packet
+
+            data = bytearray(filename + "\x00", "utf8")  # filename + space
+            if file != "\x00":
+                data.extend(str(os.stat(bkp_file)[6] - pointer).encode("utf8"))  # Sends data size to be transmitted
+            padding = bytearray(packet_size - len(data))  # fill packet size with null char
+            data.extend(padding)
+            checksum = self.make_checksum(crc_mode, data)  # create packet checksum
+            ackd  = 0
+            while True:
+                #
+                # Send packet
+                #
+                while True:
+                    if error_count == retry:
+                        print("TOO MANY ERRORS, ABORTING...")
+                        return False  # Exit
+                    if not self._putc(header + data +checksum):  # handle tx errors
+                        error_count += 1
+                        continue
+                    print("SENDING FILE {}".format(filename))
+                    break
+                #
+                # Wait for reply
+                #
+                while True:
+                    char = self._getc(1, timeout)
+                    if error_count == retry:
+                        print("TOO MANY ERRORS, ABORTING...")
+                        return False  # Exit
+                    if not char:  # handle rx erros
+                        print("TIMEOUT OCCURRED WHILE WAITING FOR REPLY TO HEADER PACKET, RETRY...")
+                        error_count += 1
+                        break  # resend packet
+                    elif char == ACK :
+                        print("<-- ACK")
+                        if data == bytearray(packet_size):
+                            print("TRANSMISSION COMPLETE, EXITING...")
+                            return True # Exit
+                        else:
+                            error_count = 0
+                            ackd = 1
+                            break
+                    elif char == CAN:
+                        print("<-- CAN")
+                        if cancel:
+                            print("TRANSMISSION CANCELED BY RECEIVER")
+                            return False  # Exit
+                        else:
+                            cancel = 1
+                            error_count = 0
+                            continue  # wait for a second CAN
+                    else:
+                        print("UNATTENDED CHAR {}, RETRY...".format(char))
+                        error_count += 1
+                        break  # resend packet
+                if ackd:
+                    break  # wait for data
+            #
+            # Waiting for clear to send
+            #
+            while True:
+                char = self._getc(1, timeout)
+                if error_count == retry:
+                    print("TOO MANY ERRORS, ABORTING...")
+                    return False # Exit
+                if not char:  # handle rx errors
+                    print("TIMEOUT OCCURRED WHILE WAITING FOR SEND DATA PACKET, RETRY...")
+                    error_count += 1
+                elif char == C:
+                    print("<-- C")
+                    error_count = 0
+                    break
+                else:
+                    print("UNATTENDED CHAR {}, RETRY...".format(char))
+                    error_count += 1
+            #
+            # Send file
+            #
+            success_count = 0
+            total_packets = 0
+            sequence = 1
+            cancel = 0
+            while True:
+                #
+                # Create data packet
+                #
+                data = stream.read(packet_size)  # read a bytes packet
+
+                if not data:  # file reached eof send eot
+                    print("EOF")
+                    break
+                total_packets += 1
+
+                header = self.make_data_header(packet_size, sequence)  # create header
+                format_string = "{:"+self.pad.decode("utf-8")+"<"+str(packet_size)+"}"  # right fill data with pad byte
+                data = format_string.format(data)  # create packet data
+                checksum = self.make_checksum(crc_mode, data)  # create checksum
+                ackd = 0
+                while True:
+                    #
+                    # Send data packet
+                    #
+                    while True:
+                        if error_count == retry:
+                            print("TOO MANY ERRORS, ABORTING...")
+                            return False  # Exit
+                        if not self._putc(header + data + checksum):  # handle tx errors
+                            error_count += 1
+                            continue  # resend packet
+                        print("PACKET {} -->".format(sequence))
+                        break
+                    #
+                    # Wait for reply
+                    #
+                    while True:
+                        char = self._getc(1, timeout)
+                        if not char:  # handle rx errors
+                            print("TIMEOUT OCCURRED WHILE WAITING FOR REPLY TO DATA PACKET, RETRY...")
+                            error_count += 1
+                            break  # resend packet
+                        elif char == ACK:
+                            print("<-- ACK")
+                            ackd = 1
+                            success_count += 1
+                            error_count = 0
+                            pointer = stream.tell()  # move pointer to next packet start byte
+                            self.set_last_byte(tmp_file, pointer)  # keep track of last successfully transmitted packet
+                            sequence = (sequence + 1) % 0x100  # keep track of sequence
+                            break  # send next packet
+                        elif char == NAK:
+                            print("<-- NAK")
+                            error_count += 1
+                            break  # resend packet
+                        elif char == CAN:
+                            print("<-- CAN")
+                            if cancel:
+                                print("TRANSMISSION CANCELED BY RECEIVER")
+                                return False  # Exit
+                            else:
+                                cancel = 1
+                                error_count = 0
+                        else:
+                            print("UNATTENDED CHAR {}, RETRY...".format(char))
+                            error_count += 1
+                            break  # resend packet
+                    if ackd:
+                        break  # send next packet
+            #
+            # End of transmission
+            #
+            while True:
+                if error_count == retry:
+                    print("TOO MANY ERRORS, ABORTING...")
+                    return False  # Exit
+                if not self._putc(EOT):  # handle tx errors
+                    error_count += 1
+                    continue  # resend EOT
+                print("EOT -->")
+                char = self._getc(1, timeout)  # waiting for reply
+                if not char:  # handle rx errors
+                    print("TIMEOUT OCCURRED WHILE WAITING FOR REPLY TO EOT, RETRY...")
+                    error_count += 1
+                elif char == ACK:
+                    print("<-- ACK")
+                    print("FILE {} SUCCESSFULLY TRANSMITTED".format(filename))
+                    self.totally_sent(file, tmp_file, sent_file)
+                    stream.close()
+                    error_count = 0
+                    break  # send next file
+                else:
+                    print("UNATTENDED CHAR {}, RETRY...".format(char))
+                    error_count += 1
+
+    def abort(self, count=2, timeout=60):
+        print("CANCEL TRANSMISSION...")
         for _ in range(count):
             self._putc(CAN, timeout)  # handle tx errors
-            print("CANCEL TRANSMISSION...")
+            print("CAN -->")
 
     def ack(self, error_count, retry):
         while True:
@@ -567,6 +562,19 @@ class YMODEM:
                 error_count += 1
                 continue
             print("ACK -->")
+            break
+        return True
+
+    def nak(self, error_count, retry):
+        while True:
+            if error_count == retry:
+                print("TOO MANY ERRORS, ABORTING...")
+                return False  # Exit
+            if not self._putc(NAK):  # handle tx errors
+                print("ERROR SENDING NAK, RETRY...")
+                error_count += 1
+                continue
+            print("NAK -->")
             break
         return True
 
@@ -583,25 +591,7 @@ class YMODEM:
             break
         return True
 
-
-    def nak(self, error_count, retry):
-        while True:
-            if error_count == retry:
-                print("TOO MANY ERRORS, ABORTING...")
-                return False  # Exit
-            if not self._putc(NAK):  # handle tx errors
-                print("ERROR SENDING NAK, RETRY...")
-                error_count += 1
-                continue
-            print("NAK -->")
-            break
-        return True
-
-
     def verify_recvd_checksum(self, crc_mode, data):
-        #
-        # Verifiy the received CRC or checksum
-        #
         if crc_mode:
             _checksum = bytearray(data[-2:])
             received_sum = (_checksum[0] << 8) + _checksum[1]
@@ -622,23 +612,10 @@ class YMODEM:
         return valid, data
 
     def set_last_byte(self, tmp_file, pointer):
-        """Stores sent bytes counter into temp file.
-
-        Params:
-            tmp_file(str)
-            pointer(int)
-        """
         with open(tmp_file, "w") as part:
             part.write(str(pointer))
 
-
     def get_last_byte(self, tmp_file, stream):
-        """Gets sent bytes number from temp file.
-
-        Params:
-            tmp_file(str)
-            stream(bytes)
-        """
         pointer = 0
         try:
             with open(tmp_file, "r") as part:
@@ -647,42 +624,67 @@ class YMODEM:
             pass
         stream.seek(pointer)
 
-
     def is_new_day(self, file):
-        """Checks if file is older than one day.
-
-        Params:
-            file(str)
-
-        Returns:
-            True or False
-        """
-        now = utime.time() - utime.time() % 86400
+        now = time.time() - time.time() % 86400
         try:
-            last_file_write = uos.stat(file)[8] - uos.stat(file)[8] % 86400
+            last_file_write = os.stat(file)[8] - os.stat(file)[8] % 86400
             if now - last_file_write >= 86400:
                 return True
             return False
         except:
             return False
 
-
     def totally_sent(self, file, tmp_file, sent_file):
-        """Marks file as sent.
-
-        Params:
-            tmp_file(str)
-            sent_file(str)
-        """
         if self.is_new_day(file):
             try:
-                uos.rename(file, sent_file)
+                os.rename(file, sent_file)
                 try:
-                    uos.remove(tmp_file)
+                    os.remove(tmp_file)
                 except:
                     print("UNABLE TO REMOVE {} FILE".format(tmp_file))
             except:
                 print("UNABLE TO RENAME {} FILE".format(file))
+
+    def make_filename_header(self, packet_size):
+        _bytes = []
+        if packet_size == 128:
+            _bytes.append(ord(SOH))
+        elif packet_size == 1024:
+            _bytes.append(ord(STX))
+        _bytes.extend([0x00, 0xff])
+        return bytearray(_bytes)
+
+    def make_data_header(self, packet_size, sequence):
+        assert packet_size in (128, 1024), packet_size
+        _bytes = []
+        if packet_size == 128:
+            _bytes.append(ord(SOH))
+        elif packet_size == 1024:
+            _bytes.append(ord(STX))
+        _bytes.extend([sequence, 0xff - sequence])
+        return bytearray(_bytes)
+
+    def make_checksum(self, crc_mode, data):
+        _bytes = []
+        if crc_mode:
+            crc = self.calc_crc(data)
+            _bytes.extend([crc >> 8, crc & 0xff])
+        else:
+            crc = self.calc_checksum(data)
+            _bytes.append(crc)
+        return bytearray(_bytes)
+
+    def calc_checksum(self, data, checksum=0):
+        return (sum(map(ord, data)) + checksum) % 256
+
+    def calc_crc(self, data, crc=0):
+        """Calculates the 16 bit Cyclic Redundancy Check for a given block of data."""
+        for char in bytearray(data):
+            crctbl_idx = ((crc >> 8) ^ char) & 0xff
+            crc = ((crc << 8) ^ self.crctable[crctbl_idx]) & 0xffff
+        return crc & 0xffff
+
+    ############################ Buoy Controller ###############################
 
     def bkp_file(self, file, bkp_file_pfx):  # TODO
         bkp_file = file.replace(file.split("/")[-1], bkp_file_pfx + file.split("/")[-1])
@@ -698,81 +700,5 @@ class YMODEM:
         if file.split("/")[-1] == eval(config.DATA_FILE):  # Release the lock.
             utils.file_lock.release()
         return bkp_file
-
-
-    def make_filename_header(self, packet_size):
-        """Builds filename packet header.
-
-        Params:
-            packet_size(int)
-        """
-        _bytes = []
-        if packet_size == 128:
-            _bytes.append(ord(SOH))
-        elif packet_size == 1024:
-            _bytes.append(ord(STX))
-        _bytes.extend([0x00, 0xff])
-        return bytearray(_bytes)
-
-
-    def make_data_header(self, packet_size, sequence):
-        """Builds data packet header.
-
-        Params:
-            packet_size(int)
-            sequence(int)
-        """
-        assert packet_size in (128, 1024), packet_size
-        _bytes = []
-        if packet_size == 128:
-            _bytes.append(ord(SOH))
-        elif packet_size == 1024:
-            _bytes.append(ord(STX))
-        _bytes.extend([sequence, 0xff - sequence])
-        return bytearray(_bytes)
-
-
-    def make_checksum(self, crc_mode, data):
-        """Creates data checksum.
-
-        Params:
-            crc_mode(int)
-            data(str)
-        """
-        _bytes = []
-        if crc_mode:
-            crc = self.calc_crc(data)
-            _bytes.extend([crc >> 8, crc & 0xff])
-        else:
-            crc = self.calc_checksum(data)
-            _bytes.append(crc)
-        return bytearray(_bytes)
-
-
-    def calc_checksum(self, data, checksum=0):
-        """Calculates the checksum for a given block of data.
-
-        Params:
-            data(str)
-            checksum(int): default[0]
-        Returns:
-            checksum(hex)
-        """
-        return (sum(map(ord, data)) + checksum) % 256
-
-
-    def calc_crc(self, data, crc=0):
-        """Calculates the 16 bit Cyclic Redundancy Check for a given block of data
-
-        Params:
-            data(str)
-            crc(int): default[0]
-        Returns:
-            crc(hex)
-        """
-        for char in bytearray(data):
-            crctbl_idx = ((crc >> 8) ^ char) & 0xff
-            crc = ((crc << 8) ^ self.crctable[crctbl_idx]) & 0xffff
-        return crc & 0xffff
 
 YMODEM1k = partial(YMODEM, mode="Ymodem1k")
