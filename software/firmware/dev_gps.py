@@ -1,36 +1,16 @@
 import pyb
 import time
 from math import sin, cos, sqrt, atan2, radians
-import config
 import tools.utils as utils
+from configs import dfl, cfg
 from device import DEVICE
 from tools.nmea import NMEA
 
 class GPS(NMEA, DEVICE):
 
-    def __init__(self, instance, tasks=[]):
+    def __init__(self, instance):
         DEVICE.__init__(self, instance)
-        NMEA.__init__(self)
-        ########################################################################
-        self.tasks = tasks
-        if self.tasks:
-            if not any( elem in ["start_up","on","off"] for elem in self.tasks):
-                self.status(2)
-                self.main()
-            for task in self.tasks:
-                method = task
-                param_dict={"self":self}
-                param_list=[]
-                params=""
-                if type(task) == tuple:
-                    method = task[0]
-                    i = 0
-                    for param in task[1:]:
-                        param_dict["param"+str(i)] = task[1:][i]
-                        param_list.append("param"+str(i))
-                        params = ",".join(param_list)
-                exec("self."+ method +"(" + params + ")", param_dict)
-        ########################################################################
+        self.rx_buff = bytearray(1)
 
     def start_up(self):
         """Performs the instrument specific initialization sequence."""
@@ -38,7 +18,7 @@ class GPS(NMEA, DEVICE):
 
     def is_fixed(self):
         """Checks for a valid position."""
-        if not self.sentence or not self.sentence[2] == "A":
+        if not self.sentence[2] == "A":
             utils.log("{} => no fix".format(self.name))
             return False
         return True
@@ -76,26 +56,33 @@ class GPS(NMEA, DEVICE):
 
     def log(self):
         """Writes out acquired data to file."""
-        if self.sentence:
-            utils.log_data(config.DATA_SEPARATOR.join(map(str, self.sentence)))
+        utils.log_data(dfl.DATA_SEPARATOR.join(self.sentence))
 
-    def main(self, sentence="RMC"):
+    def main(self, tasks=[], sentence="RMC"):
         """Retreives data from a serial gps device."""
-        utils.log("{} => acquiring data...".format(self.name))
-        self.led.on()
+        utils.log("{} => acquiring data...".format(self.name))  # DEBUG
+        self.status(2)
+        self.init_uart()
+        pyb.LED(3).on()
+        NMEA.__init__(self)
         t0 = time.time()
-        r_buff = bytearray(1)
         while True:
             if self._timeout(t0, self.timeout):
-                utils.log("{} => timeout occourred".format(self.name), "e")  # DEBUG
-                if not self.sentence:
-                    utils.log("{} => no data received".format(self.name), "e")  # DEBUG
-                else:
+                if self.sentence:
                     utils.log("{} => no {} string received".format(self.name, sentence), "e")  # DEBUG
+                else:
+                    utils.log("{} => no data received".format(self.name), "e")  # DEBUG
                 break
             if self.uart.any():
-                self.uart.readinto(r_buff)
-                if not self.get_sentence(r_buff, sentence):
+                self.uart.readinto(self.rx_buff)
+                try:
+                    self.rx_buff.decode("utf-8")
+                except UnicodeError:
+                    continue
+                if not self.get_sentence(self.rx_buff.decode("utf-8"), sentence):
                     continue
                 break
-        self.led.off()
+        for t in tasks:
+            exec("self."+t+"()",{"self":self})
+        pyb.LED(3).off()
+        self.uart.deinit()

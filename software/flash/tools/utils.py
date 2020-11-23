@@ -3,7 +3,7 @@ import machine
 import json
 import os
 import time
-import config
+from configs import dfl, cfg
 import _thread
 
 # Creates a lock to handling data file secure.
@@ -13,22 +13,42 @@ gps_fix = []
 # Calculated displacement from previous fix.
 gps_displacement = 0
 
-def welcome_msg():
+'''def welcome_msg():
     return(
     "{:#^80}\n\r".format("")+
-    "#{: ^78}#\n\r".format("WELCOME TO "+config.NAME+" "+config.SW_NAME+" "+config.SW_VERSION)+
+    "#{: ^78}#\n\r".format("WELCOME TO "+cfg.NAME+" "+dfl.SW_NAME+" "+dfl.SW_VERSION)+
     "#{: ^78}#\n\r".format("")+
     "# {: <20}{: <57}#\n\r".format(" current time:", timestring(time.time())+" UTC")+
     "# {: <20}{: <57}#\n\r".format(" machine:", os.uname()[4])+
     "# {: <20}{: <57}#\n\r".format(" mpy release:", os.uname()[2])+
     "# {: <20}{: <57}#\n\r".format(" mpy version:", os.uname()[3])+
     "{:#^80}".format("")
-    )
+    )'''
+
+def welcome_msg():
+    return(
+    "{:#^80}\n\r#{: ^78} {} {} {}#\n\r#{: ^78}#\n\r# {: <20}{}{: <57}#\n\r# {: <20}{: <57}#\n\r# {: <20}{: <57}#\n\r# {: <20}{: <57}#\n\r{:#^80}".format(
+        "",
+        "WELCOME TO ",
+        cfg.NAME,
+        dfl.SW_NAME,
+        dfl.SW_VERSION,
+        "",
+        " current time:",
+        timestring(time.time()),
+        " UTC",
+        "machine:",
+        os.uname()[4],
+        " mpy release:",
+        os.uname()[2],
+        " mpy version:",
+        os.uname()[3],
+        ""))
 
 def read_cfg(file):
     """Parses a json configuration file."""
     try:
-        with open(config.CONFIG_DIR + file + config.CONFIG_TYPE) as cfg:
+        with open(dfl.CONFIG_DIR + file + dfl.CONFIG_TYPE) as cfg:
             return json.load(cfg)
     except:
         log("Unable to read file {}".format(file), "e")
@@ -89,10 +109,10 @@ def log(msg, msg_type="m", new_line=True):
     if new_line:
         end_char = "\n"
     print(log_msg, end=end_char)
-    if config.LOG_TO_FILE:
-        if msg_type in config.LOG_LEVEL:
+    if cfg.LOG_TO_FILE:
+        if msg_type in cfg.LOG_LEVEL:
             try:
-                with open(config.LOG_DIR + "/" + config.LOG_FILE, "a") as log:  # TODO: start new file, zip old file, remove oldest
+                with open(dfl.LOG_DIR + "/" + dfl.LOG_FILE, "a") as log:  # TODO: start new file, zip old file, remove oldest
                     log.write(log_msg + end_char)
             except Exception as err:
                 print(err)
@@ -103,9 +123,9 @@ def log_data(data):
         continue
     file_lock.acquire()
     try:
-        with open(config.DATA_DIR + "/" + eval(config.DATA_FILE), "a") as data_file:  # append row to existing file
+        with open(dfl.DATA_DIR + "/" + cfg.DATA_FILE, "a") as data_file:  # append row to existing file
             log("{}".format(data))
-            data_file.write(data + "\r\n")
+            data_file.write("{}{}".format(data, "\r\n" if not data[-2:] == "\r\n" else ""))
     except Exception as err:
         log("log_data ({}): {}".format(type(err).__name__, err), "e")  # DEBUG
     file_lock.release()
@@ -117,30 +137,30 @@ def files_to_send():
         """Renames unsent files older than buffer days."""
         filename = file.split("/")[-1]
         path = file.replace("/" + file.split("/")[-1], "")
-        if time.mktime(time.localtime()) - time.mktime([int(filename[0:4]),int(filename[4:6]),int(filename[6:8]),0,0,0,0,0]) > config.BUF_DAYS * 86400:
-            os.rename(file, path + "/" + config.SENT_FILE_PFX + filename)
-            if path + "/" + config.TMP_FILE_PFX + filename in os.listdir(path):
-                os.remove(path + "/" + config.TMP_FILE_PFX + filename)
+        if time.mktime(time.localtime()) - time.mktime([int(filename[0:4]),int(filename[4:6]),int(filename[6:8]),0,0,0,0,0]) > cfg.BUF_DAYS * 86400:
+            os.rename(file, path + "/" + dfl.SENT_FILE_PFX + filename)
+            if path + "/" + dfl.TMP_FILE_PFX + filename in os.listdir(path):
+                os.remove(path + "/" + dfl.TMP_FILE_PFX + filename)
             return True
         return False
 
-    for file in os.listdir(config.DATA_DIR):
-        if file[0] not in (config.TMP_FILE_PFX, config.SENT_FILE_PFX):  # check for unsent files
+    for file in os.listdir(dfl.DATA_DIR):
+        if file[0] not in (dfl.TMP_FILE_PFX, dfl.SENT_FILE_PFX):  # check for unsent files
             try:
                 int(file)
             except:
-                os.remove(config.DATA_DIR + "/" + file)  # Deletes all except data files.
+                os.remove(dfl.DATA_DIR + "/" + file)  # Deletes all except data files.
                 continue
-            if not too_old(config.DATA_DIR + "/" + file):
+            if not too_old(dfl.DATA_DIR + "/" + file):
                 # Checks if new data has been added to the file since the last transmission.
                 pointer = 0
                 try:
-                    with open(config.DATA_DIR + "/" + config.TMP_FILE_PFX + file, "r") as tmp:
+                    with open(dfl.DATA_DIR + "/" + dfl.TMP_FILE_PFX + file, "r") as tmp:
                         pointer = int(tmp.read())
                 except:
                     pass  # Tmp file does not exist.
-                if os.stat(config.DATA_DIR + "/" + file)[6] > pointer:
+                if os.stat(dfl.DATA_DIR + "/" + file)[6] > pointer:
                     #unsent_files.append(config.DATA_DIR + "/" + file)  # Makes a list of files to send.
-                    yield config.DATA_DIR + "/" + file
-    if any(file[0] not in (config.TMP_FILE_PFX, config.SENT_FILE_PFX) for file in os.listdir(config.DATA_DIR)):
+                    yield dfl.DATA_DIR + "/" + file
+    if any(file[0] not in (dfl.TMP_FILE_PFX, dfl.SENT_FILE_PFX) for file in os.listdir(dfl.DATA_DIR)):
             yield "\x00"  # Needed to end ymodem transfer.

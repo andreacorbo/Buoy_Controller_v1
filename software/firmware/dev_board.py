@@ -1,35 +1,14 @@
-# dev_board.py
 import pyb
 import time
 import os
-import config
 import tools.utils as utils
+from configs import dfl, cfg
 from device import DEVICE
 
 class SYSMON(DEVICE):
 
-    def __init__(self, instance, tasks=[]):
+    def __init__(self, instance):
         DEVICE.__init__(self, instance)
-        ########################################################################
-        self.tasks = tasks
-        if self.tasks:
-            if not any( elem in ["start_up","on","off"] for elem in self.tasks):
-                self.status(2)
-                self.main()
-            for task in self.tasks:
-                method = task
-                param_dict={"self":self}
-                param_list=[]
-                params=""
-                if type(task) == tuple:
-                    method = task[0]
-                    i = 0
-                    for param in task[1:]:
-                        param_dict["param"+str(i)] = task[1:][i]
-                        param_list.append("param"+str(i))
-                        params = ",".join(param_list)
-                exec("self."+ method +"(" + params + ")", param_dict)
-        ########################################################################
 
     def start_up(self):
         """Performs the instrument specific initialization sequence."""
@@ -97,32 +76,34 @@ class SYSMON(DEVICE):
             utils.log("{} => fs_freespace ({}): {}".format(self.__qualname__, type(err).__name__, err), "e")  # DEBUG
         return 0
 
-    def format_data(self, sample):
-        epoch = time.time()
-        data = [
-            self.config["String_Label"],
-            str(utils.unix_epoch(epoch)),
-            utils.datestamp(epoch),  # MMDDYY
-            utils.timestamp(epoch),  # hhmmss
-            "{:.4f}".format(self.battery_level(sample[0])),  # Battery voltage [V].
-            "{:.4f}".format(self.current_level(sample[1])),  # Current consumption [A].
-            "{:.4f}".format(self.ad22103(sample[2], sample[6])),  # Internal vessel temp [°C].
-            "{:.4f}".format(sample[3]),  # Core temp [°C].
-            "{:.4f}".format(sample[4]),  # Core vbat [V].
-            "{:.4f}".format(sample[5]),  # Core vref [V].
-            "{:.4f}".format(sample[6]),  # Vref [V].
-            "{}".format(sample[7]//1024)  # SD free space [kB].
-            ]
-        return data
-
     def log(self):
         """Writes out acquired data to file."""
-        if self.data:
-            utils.log_data(config.DATA_SEPARATOR.join(self.format_data(self.data)))
+        utils.log("{} => acquiring data...".format(self.name))  # DEBUG
+        if self.main():
+            epoch = time.time()
+            if self.main():
+                utils.log_data(
+                    config.DATA_SEPARATOR.join(
+                        [
+                            self.config["String_Label"],
+                            str(utils.unix_epoch(epoch)),
+                            utils.datestamp(epoch),  # MMDDYY
+                            utils.timestamp(epoch),  # hhmmss
+                            "{:.4f}".format(self.battery_level(self.data[0])),  # Battery voltage [V].
+                            "{:.4f}".format(self.current_level(self.data[1])),  # Current consumption [A].
+                            "{:.4f}".format(self.ad22103(self.data[2], self.data[6])),  # Internal vessel temp [°C].
+                            "{:.4f}".format(self.data[3]),  # Core temp [°C].
+                            "{:.4f}".format(self.data[4]),  # Core vbat [V].
+                            "{:.4f}".format(self.data[5]),  # Core vref [V].
+                            "{:.4f}".format(self.data[6]),  # Vref [V].
+                            "{}".format(self.data[7]//1024)  # SD free space [kB].
+                        ]
+                    )
+                )
 
     def main(self):
         """Gets data from internal sensors."""
-        utils.log("{} => acquiring data...".format(self.name))  # DEBUG
+        self.status(2)
         self.led.on()
         core_temp = 0
         core_vbat = 0
@@ -161,3 +142,4 @@ class SYSMON(DEVICE):
         self.data.append(vref)
         self.data.append(self.fs_freespace())
         self.led.off()
+        return True

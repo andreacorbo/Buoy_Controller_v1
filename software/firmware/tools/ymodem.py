@@ -4,7 +4,7 @@ import sys
 from tools.functools import partial
 import tools.utils as utils
 import tools.shutil as shutil
-import config
+from configs import dfl, cfg
 
 #
 # Protocol bytes
@@ -689,16 +689,15 @@ class YMODEM:
     def bkp_file(self, file, bkp_file_pfx):  # TODO
         bkp_file = file.replace(file.split("/")[-1], bkp_file_pfx + file.split("/")[-1])
         if file.split("/")[-1] == eval(config.DATA_FILE):  # Acquires the lock to safe handling the current data file.
-            if not utils.file_lock.acquire(1, config.TIMEOUT):
-                print("UNABLE TO ACQUIRE THE LOCK ON {}".format(file))
+            while utils.file_lock.locked():
+                continue
+            utils.file_lock.acquire()
+            try:
+                shutil.copyfile(file, bkp_file)  # Makes a backup copy of the file.
+            except:
+                print("UNABLE TO BACKUP {}".format(file))
                 return
-        try:
-            shutil.copyfile(file, bkp_file)  # Makes a backup copy of the file.
-        except:
-            print("UNABLE TO BACKUP {}".format(file))
-            return
-        if file.split("/")[-1] == eval(config.DATA_FILE):  # Release the lock.
             utils.file_lock.release()
-        return bkp_file
+            return bkp_file
 
 YMODEM1k = partial(YMODEM, mode="Ymodem1k")

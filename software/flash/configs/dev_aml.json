@@ -8,13 +8,14 @@
 			"Timeout":10,
 			"Timeout_Char":10,
 			"Flow_Control":0,
-			"Read_Buf_Len":1024,
+			"Read_Buf_Len":100,
 			"Write_Buf_Len":1024,
 			"Read_Char_Attempt":10
 		},
-		"Warmup_Interval":20,
-		"Samples":10,
+		"Warmup_Interval":40,
+		"Samples":1,
 		"Sample_Rate":1,
+		"Data_Length":100,
 		"String_Label":"$METRECXR",
 		"Ctd":{
 			"Break_Sequence":"\x03\r",
@@ -23,6 +24,6 @@
 		}
 	},
 	"UVXCHANGE":{
-		"Warmup_Interval":60
+		"Warmup_Interval":300
 	}
 }

@@ -1,5 +1,5 @@
 import tools.utils as utils
-import config
+from configs import dfl, cfg
 
 class NMEA:
 
@@ -13,20 +13,16 @@ class NMEA:
     def verify_checksum(self, checksum, sentence):
         """Verifies the NMEA sentence integrity."""
         calculated_checksum = 0
-        for char in ",".join(map(str, sentence)):
+        for char in ",".join(sentence):
             calculated_checksum ^= ord(char)
         if "{:02X}".format(calculated_checksum) != checksum:
             utils.log("NMEA invalid checksum calculated: {:02X} got: {}".format(calculated_checksum, checksum))
             return False
         return True
 
-    def get_sentence(self, buff, sentence):
+    def get_sentence(self, string, sentence):
         """Gets a single NMEA sentence, each sentence is a list of words itself."""
-        for byte in buff:
-            try:
-                ascii = chr(byte)
-            except UnicodeError:
-                return False  # pass?
+        for ascii in string:
             if ascii == "$":
                 self.new_sentence_flag = True
                 self.word = []

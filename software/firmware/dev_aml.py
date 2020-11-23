@@ -1,35 +1,16 @@
+import pyb
 import time
 import tools.utils as utils
-import config
+from configs import dfl, cfg
 from device import DEVICE
 
 class METRECX(DEVICE):
     """Creates an aml metrecx multiparametric probe object."""
 
-    def __init__(self, instance, tasks=[]):
+    def __init__(self, instance):
         DEVICE.__init__(self, instance)
-        self.data = []
         self.prompt = ">"
-        ########################################################################
-        self.tasks = tasks
-        if self.tasks:
-            if not any( elem in ["start_up","on","off"] for elem in self.tasks):
-                self.status(2)
-                self.main()
-            for task in self.tasks:
-                method = task
-                param_dict={"self":self}
-                param_list=[]
-                params=""
-                if type(task) == tuple:
-                    method = task[0]
-                    i = 0
-                    for param in task[1:]:
-                        param_dict["param"+str(i)] = task[1:][i]
-                        param_list.append("param"+str(i))
-                        params = ",".join(param_list)
-                exec("self."+ method +"(" + params + ")", param_dict)
-        ########################################################################
+        self.rx_buff = bytearray(1)
 
     def start_up(self):
         """Performs the instrument specific initialization sequence."""
@@ -142,75 +123,63 @@ class METRECX(DEVICE):
         utils.log("{} => unable to start logging".format(self.name), "e")  # DEBUG
         return False
 
-    def format_data(self, sample):
-        """Formats data according to output format."""
-        epoch = time.time()
-        data = [
-            self.config["String_Label"],
-            str(utils.unix_epoch(epoch)),
-            utils.datestamp(epoch),  # YYMMDD
-            utils.timestamp(epoch)  # hhmmssno
-            ]
-        return data + sample
-
-
     def log(self):
         """Writes out acquired data to file."""
-        if self.data:
-            utils.log_data(config.DATA_SEPARATOR.join(self.format_data(self.data)))
+        epoch = time.time()
+        utils.log_data(
+            dfl.DATA_SEPARATOR.join(
+                [
+                    self.config["String_Label"],
+                    str(utils.unix_epoch(epoch)),
+                    utils.datestamp(epoch),  # YYMMDD
+                    utils.timestamp(epoch)  # hhmmssno
+                ]
+                + self.data.decode("utf-8").split(",")
+            )
+        )
 
-    def main(self):
+    def main(self, tasks=[]):
         """Captures instrument data."""
         utils.log("{} => acquiring data...".format(self.name))  # DEBUG
-        self.led.on()
-        new_line = False
-        r_buff = bytearray(1)
+        self.status(2)
+        self.init_uart()
+        pyb.LED(3).on()
+        self.data = bytearray()
+        nl = False
         t0 = time.time()
         while True:
             if self._timeout(t0, self.timeout):
-                utils.log("{} => timeout occourred".format(self.name), "e")  # DEBUG
-                if not self.data:
-                    utils.log("{} => no data received".format(self.name), "e")  # DEBUG
+                utils.log("{} => no data received".format(self.name), "e")  # DEBUG
                 break
             if self.uart.any():
-                self.uart.readinto(r_buff)
-                for byte in r_buff:
-                    try:
-                        ascii = chr(byte)
-                        if ascii == "\n":
-                            new_line = True
-                        elif ascii == "\r" and new_line:
-                            self.data = "".join(self.data).split(config.DATA_SEPARATOR)
-                            return
-                        elif new_line:
-                            self.data.append(ascii)
-                        #print(ascii, end="")
-                    except UnicodeError:
-                        continue
-        self.led.off()
+                self.uart.readinto(self.rx_buff)
+                try:
+                    self.rx_buff.decode("utf-8")
+                except UnicodeError:
+                    nl = False
+                    sample = bytearray()
+                    continue
+                if self.rx_buff == '\n':
+                    nl = True
+                    sample = bytearray()
+                elif nl and self.rx_buff == '\r':
+                    sample.extend(b'\r\n')
+                    self.data.extend(sample)
+                    nl = False
+                elif nl:
+                    sample.extend(self.rx_buff)
+                if len(self.data) == self.config["Samples"]*self.config["Data_Length"]:
+                    break
+        for t in tasks:
+            exec("self."+t+"()",{"self":self})
+        pyb.LED(3).off()
+        self.uart.deinit()
 
 class UVXCHANGE(DEVICE):
     """Creates an aml uvxchange untifouling object."""
 
-    def __init__(self, instance, tasks=[]):
+    def __init__(self, instance):
         DEVICE.__init__(self, instance)
-        ########################################################################
-        self.tasks = tasks
-        if self.tasks:
-            for task in self.tasks:
-                method = task
-                param_dict={"self":self}
-                param_list=[]
-                params=""
-                if type(task) == tuple:
-                    method = task[0]
-                    i = 0
-                    for param in task[1:]:
-                        param_dict["param"+str(i)] = task[1:][i]
-                        param_list.append("param"+str(i))
-                        params = ",".join(param_list)
-                exec("self."+ method +"(" + params + ")", param_dict)
-        ########################################################################
 
     def start_up(self):
         """Performs the instrument specific initialization sequence."""

@@ -2,34 +2,15 @@ import time
 import select
 import tools.utils as utils
 import tools.shutil as shutil
-import config
+from configs import dfl, cfg
 from device import DEVICE
 from tools.ymodem import YMODEM
 
 class MODEM(DEVICE, YMODEM):
 
-    def __init__(self, instance, tasks=[]):
+    def __init__(self, instance):
         YMODEM.__init__(self, self.getc, self.putc, mode="Ymodem1k")
         DEVICE.__init__(self, instance)
-        ########################################################################
-        self.tasks = tasks
-        if self.tasks:
-            if not any( elem in ["start_up","on","off"] for elem in self.tasks):
-                self.status(3)
-            for task in self.tasks:
-                method = task
-                param_dict={"self":self}
-                param_list=[]
-                params=""
-                if type(task) == tuple:
-                    method = task[0]
-                    i = 0
-                    for param in task[1:]:
-                        param_dict["param"+str(i)] = task[1:][i]
-                        param_list.append("param"+str(i))
-                        params = ",".join(param_list)
-                exec("self."+ method +"(" + params + ")", param_dict)
-        ########################################################################
 
     def start_up(self):
         """Performs the instrument specific initialization sequence."""
@@ -40,14 +21,14 @@ class MODEM(DEVICE, YMODEM):
     def is_ready(self):
         t0 = time.time()
         while not self._timeout(t0, self.config["Modem"]["Init_Timeout"]):
-            utils.verbose("AT\r",config.VERBOSE)
+            utils.verbose("AT\r",cfg.VERBOSE)
             self.uart.write("AT\r")
             if self.uart.any():
                 try:
                     rxd = self.uart.read().decode("utf-8")
                 except UnicodeError:
                     continue
-                utils.verbose(rxd, config.VERBOSE)
+                utils.verbose(rxd)
                 if "OK" in rxd:
                     return True
                 else:
@@ -60,7 +41,7 @@ class MODEM(DEVICE, YMODEM):
         for _ in range(self.config["Modem"]["Call_Attempt"]):
             retry = False
             for at in self.config["Modem"]["Init_Ats"]:
-                utils.verbose(at,config.VERBOSE)
+                utils.verbose(at)
                 self.uart.write(at)
                 t0 = time.time()
                 while True:
@@ -73,7 +54,7 @@ class MODEM(DEVICE, YMODEM):
                             rxd = self.uart.read().decode("utf-8")
                         except UnicodeError:
                             continue
-                        utils.verbose(rxd, config.VERBOSE)
+                        utils.verbose(rxd)
                         if "ERROR" in rxd:
                             retry = True
                         break
@@ -98,7 +79,7 @@ class MODEM(DEVICE, YMODEM):
         self.uart.read()  # Flushes input buffer.
         utils.log("{} => dialing...".format(self.name))  # DEBUG
         for at in self.config["Modem"]["Pre_Ats"]:
-            utils.verbose(at,config.VERBOSE)
+            utils.verbose(at)
             self.uart.write(at)
             t0 = time.time()
             while True:
@@ -110,7 +91,7 @@ class MODEM(DEVICE, YMODEM):
                         rxd = self.uart.read().decode("utf-8")
                     except UnicodeError:
                         continue
-                    utils.verbose(rxd,config.VERBOSE)
+                    utils.verbose(rxd)
                     if "OK" in rxd:
                         break
                     if "CONNECT" in rxd:
@@ -123,7 +104,7 @@ class MODEM(DEVICE, YMODEM):
         """Ends a call."""
         self.uart.read()  # Flushes input buffer.  # Flushes uart buffer
         for at in self.config["Modem"]["Post_Ats"]:
-            utils.verbose(at,config.VERBOSE)
+            utils.verbose(at)
             self.uart.write(at)
             t0 = time.time()
             while True:
@@ -135,7 +116,7 @@ class MODEM(DEVICE, YMODEM):
                         rxd = self.uart.read().decode("utf-8")
                     except UnicodeError:
                         continue
-                    utils.verbose(rxd,config.VERBOSE)
+                    utils.verbose(rxd)
                     if "OK" in rxd:
                         break
                     return False
@@ -144,6 +125,7 @@ class MODEM(DEVICE, YMODEM):
 
     def data_transfer(self):
         """Sends files over the gsm network."""
+        self.status(3)
         connected = False
         if utils.files_to_send():
             self.led.on()
@@ -162,7 +144,7 @@ class MODEM(DEVICE, YMODEM):
                 self.recv(10)
                 self.hangup()
             else:
-                utils.log("{} => connection unavailable, aborting...".format(self.name), "e", True)
+                utils.log("{} => connection unavailable, aborting...".format(self.name), "e")
             self.led.off()
         self.off()
 
@@ -172,7 +154,7 @@ class MODEM(DEVICE, YMODEM):
         self.led.on()
         self.uart.read()  # Flushes input buffer.
         for at in self.config["Modem"]["Sms_Pre_Ats"]:
-            utils.verbose(at,config.VERBOSE)
+            utils.verbose(at)
             self.uart.write(at)
             t0 = time.time()
             while True:
@@ -184,7 +166,7 @@ class MODEM(DEVICE, YMODEM):
                         rxd = self.uart.read().decode("utf-8")
                     except UnicodeError:
                         continue
-                    utils.verbose(rxd, config.VERBOSE)
+                    utils.verbose(rxd)
                     if "OK" in rxd:
                         break
                     if ">" in rxd:

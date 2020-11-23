@@ -8,15 +8,16 @@
 			"Timeout":10,
 	    "Timeout_Char":10,
 			"Flow_Control":0,
-			"Read_Buf_Len":512,
+			"Read_Buf_Len":4,
 			"Write_Buf_Len":0,
 			"Read_Char_Attempt":10
 		},
-		"Warmup_Interval":20,
+		"Warmup_Interval":40,
 		"Samples":20,
 		"Sample_Rate":2,
 		"Data_Separator":" ",
 		"String_Label":"$YOUNG",
+		"Data_Length":41,
 		"Meteo":{
 			"Windspeed_Unit":"0",
 			"Winddirection_Unit":"0",
